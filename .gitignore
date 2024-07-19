@@ -1,0 +1,15 @@
+# IDE
+.vscode
+
+# Virtual envs
+venv/
+
+# Files and repositories Python
+__pycache__/
+*.egg
+*.egg-info/
+dist/
+build/
+
+# Config files
+config/.env
