@@ -21,10 +21,10 @@ git clone https://github.com/DiaghoProject/diagho-uploader.git
 cd diagho-uploader
 
 # Create venv
-python -m venv env
+python -m venv venv
 
 # Activate venv
-source env/bin/activate
+source venv/bin/activate
 
 # Install dependences
 pip install -r requirements.txt
