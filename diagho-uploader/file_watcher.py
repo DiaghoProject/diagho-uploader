@@ -10,8 +10,9 @@ from watchdog.events import FileSystemEventHandler
 from process_file import *
 
 class MyHandler(FileSystemEventHandler):
-    def __init__(self, target_directory):
+    def __init__(self, target_directory, path_biofiles):
         self.target_directory = target_directory
+        self.path_biofiles = path_biofiles
         super().__init__()
         
     def on_created(self, event):
@@ -21,13 +22,20 @@ class MyHandler(FileSystemEventHandler):
             file_path = event.src_path
             print(f"New file created: {file_path}")
             
+            ## TEST MAIL -----------------------
+            recipients = "benedicte.nouyou@chu-rennes.fr"
+            subject = "TEST Diagho-Uploader"
+            content = "Test Email"
+            send_mail(recipients, subject, content)
+            ## -----------------------
+            
             if file_path.endswith('.tsv') or file_path.endswith('.json'):
                 print(("File format : TSV or JSON"))
                 self.copy_file(file_path)
                 
                 ## TODO #4 API authentification
                 
-                self.process_file(file_path)
+                self.process_file(file_path, self.path_biofiles)
                 
                 time.sleep(3)
                 
@@ -50,11 +58,10 @@ class MyHandler(FileSystemEventHandler):
         except Exception as e:
             print(f"Failed to remove file: {e}")
     
-    def process_file(self, file_path):
+    def process_file(self, file_path, path_biofiles):
         print(f"Processing file: {file_path}")
         try:
-            with open(file_path, 'r') as file:
-                diagho_process_file(file_path, path_biofiles)
+            diagho_process_file(file_path, path_biofiles)
         except Exception as e:
             print(f"Failed to process file: {e}")
             
@@ -64,7 +71,7 @@ def load_config(config_file):
         config = yaml.safe_load(file)
     return config
 
-if __name__ == "__main__":
+def main():
     config = load_config("config/config.yaml")
     path_input = config.get("input_data", ".")
     path_biofiles = config.get("input_biofiles", ".")
@@ -73,7 +80,7 @@ if __name__ == "__main__":
             os.makedirs(path_backup)
 
 
-    event_handler = MyHandler(target_directory=path_backup)
+    event_handler = MyHandler(target_directory=path_backup, path_biofiles=path_biofiles)
     observer = Observer()
     observer.schedule(event_handler, path_input, recursive=False)
 
@@ -85,3 +92,7 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         observer.stop()
     observer.join()
+    
+if __name__ == "__main__":
+    main()
+    
