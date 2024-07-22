@@ -105,10 +105,12 @@ def diagho_process_file(file, config):
                         send_mail(recipients, subject, content)
         
                         ## POST config
+                        #
                         # 1- Récup les configfiles correspondants
                         # families
                         # interpretation
                         # files
+                        # POST l'un après l'autre
                     
                     # FAIL :
                     else:
@@ -210,11 +212,16 @@ def check_md5sum(checksum1, checksum2):
 
 def check_loading_status(max_retries=10, delay=5, attempt=0):
     """
-    Description.
+    Vérification du statut de chargement.
 
     Arguments:
+        max_retries: nombre de tentatives max.
+        delay: déli (en secondes) entre chaque tentative.
+        attempt=0
 
     Returns:
+        True : si le fichier est chargé
+        False : si échec de chargement
         
     """
     print("check_loading_status")
@@ -223,15 +230,18 @@ def check_loading_status(max_retries=10, delay=5, attempt=0):
         print("Nombre maximal de tentatives atteint. Abandon.")
         return None
 
+    # Get loading status :
     status = diagho_api_get_loadingstatus()
-    print(f"Tentative {attempt + 1}: Statut de chargement = {status}")
+    
+    print(f"\nTentative {attempt + 1}: Statut de chargement = {status}")
 
+    # Test des statuts :
     if status == 0:
         return False 
     elif status == 3:
         return True
     elif status == 1 or status == 2 or status == 4:
-        print(f"Attente de {delay} secondes avant la tentative {attempt + 2}")
+        print(f"Attente de {delay} secondes...")
         time.sleep(delay)
         return check_loading_status(max_retries, delay, attempt + 1)
     else:
