@@ -1,12 +1,13 @@
+#!/usr/bin/python3
+
 import time
 import os
-import json
 import yaml
 import shutil
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
-
+from process_file import *
 
 class MyHandler(FileSystemEventHandler):
     def __init__(self, target_directory):
@@ -49,19 +50,12 @@ class MyHandler(FileSystemEventHandler):
     
     def process_file(self, file_path):
         print(f"Processing file: {file_path}")
-        # try:
-        #     with open(file_path, 'r') as file:
-        #         data = json.load(file)
-        #         # Parcourir chaque élément du JSON et lancer une fonction
-        #         for item in data:
-        #             self.process_item(item)
-        # except Exception as e:
-        #     print(f"Failed to process file: {e}")
+        try:
+            with open(file_path, 'r') as file:
+                diagho_process_file(file_path, path_biofiles)
+        except Exception as e:
+            print(f"Failed to process file: {e}")
             
-    def process_item(self, item):
-        # Fonction spécifique pour traiter chaque élément du JSON
-        print(f"Processing item: {item}")
-        
             
 def load_config(config_file):
     with open(config_file, 'r') as file:
@@ -70,8 +64,11 @@ def load_config(config_file):
 
 if __name__ == "__main__":
     config = load_config("config/config.yaml")
-    path_input = config.get("input_data", ".")  # Par défaut, utilise le répertoire courant si non spécifié
-    path_backup = config.get("backup_data_files", ".")
+    path_input = config.get("input_data", ".")
+    path_biofiles = config.get("input_biofiles", ".")
+    path_backup = config.get("backup_data_files")
+    if not os.path.exists(path_backup):
+            os.makedirs(path_backup)
 
 
     event_handler = MyHandler(target_directory=path_backup)
