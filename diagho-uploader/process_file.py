@@ -139,8 +139,7 @@ def diagho_process_file(file, config):
                         return
                         
                 else:
-                    # md5 non valide
-                    # Alerte
+                    # md5 non valide : ALERTE
                     content = "MD5 = FAIL"
                     send_mail_alert(recipients, content)
                     
