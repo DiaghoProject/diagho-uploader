@@ -22,6 +22,8 @@ logging.basicConfig(
     ]
 )
 
+
+
 def diagho_process_file(file, config):
     """
     Process file.
@@ -31,6 +33,8 @@ def diagho_process_file(file, config):
         path_biofiles: path to the directory where there are the biofiles (VCF or BED)
     """
     print(f"Process file: {file}")
+    
+    recipients = config['emails']['recipients']
     
     # Check path_biofiles
     path_biofiles = config.get("input_biofiles")
@@ -43,6 +47,12 @@ def diagho_process_file(file, config):
         
     else:
         print(f"JSON file...")
+        
+    ## Check JSON : si fichier bien formaté
+    check_json_format(file)
+    if check_json_format(file) == False:
+        content = "Failed to process JSON input file."
+        send_mail_alert(recipients, content)
     
     # 1- Récup les filenames
     dict_files = {}
@@ -99,10 +109,9 @@ def diagho_process_file(file, config):
                     # En fonction du statut :
                     # SUCCESS :
                     if loading_status:
-                        recipients = config['emails']['recipients']
-                        subject = "TEST Diagho-Uploader"
+                        
                         content = "Loading File = SUCCESS"
-                        send_mail(recipients, subject, content)
+                        send_mail_info(recipients, content)
         
                         ## POST config
                         #
@@ -111,24 +120,29 @@ def diagho_process_file(file, config):
                         # interpretation
                         # files
                         # POST l'un après l'autre
+                        
+                        file_families = "file_families"
+                        file_files = "file_files"
+                        file_interpretations = "file_interpretations"
+                        
+                        # 2- POST config files
+                        diagho_api_post_config(file_families)
+                        diagho_api_post_config(file_files)
+                        diagho_api_post_config(file_interpretations)
                     
                     # FAIL :
                     else:
                         # TODO #5 Modifier l'alerte si upload == FAIL
-                        recipients = config['emails']['recipients']
-                        subject = "TEST Diagho-Uploader"
                         content = "Loading File = FAIL"
-                        send_mail(recipients, subject, content)
+                        send_mail_alert(recipients, content)
                         
                         return
                         
                 else:
                     # md5 non valide
                     # Alerte
-                    recipients = config['emails']['recipients']
-                    subject = "TEST Diagho-Uploader"
                     content = "MD5 = FAIL"
-                    send_mail(recipients, subject, content)
+                    send_mail_alert(recipients, content)
                     
             
             # 3.2- Si c'est un BED :
@@ -241,7 +255,7 @@ def check_loading_status(max_retries=10, delay=5, attempt=0):
     elif status == 3:
         return True
     elif status == 1 or status == 2 or status == 4:
-        print(f"Attente de {delay} secondes...")
+        print(f"Attente de {delay} secondes...\n")
         time.sleep(delay)
         return check_loading_status(max_retries, delay, attempt + 1)
     else:
@@ -262,3 +276,28 @@ def get_configfiles():
     """
     print("get_configfiles")
 
+
+
+def check_json_format(file_path):
+    """
+    Description.
+
+    Arguments:
+
+    Returns:
+        
+    """
+    try:
+        with open(file_path, 'r', encoding='utf-8') as file:
+            json.load(file)
+        logging.info(f"File: '{file_path}' is well-formatted.")
+        return True
+    except json.JSONDecodeError as e:
+        logging.error(f"File: '{file_path}' is not well-formatted: {e}")
+        return False
+    except FileNotFoundError:
+        logging.error(f"File: '{file_path}' was not found.")
+        return False
+    except Exception as e:
+        logging.error(f"An unexpected error occurred while checking the file '{file_path}': {e}")
+        return False
