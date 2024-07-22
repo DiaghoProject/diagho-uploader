@@ -9,10 +9,22 @@ from watchdog.events import FileSystemEventHandler
 
 from process_file import *
 
+import logging
+logging.basicConfig(
+    level=logging.DEBUG,                     # Définir le niveau de log minimum
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', # Format du message
+    handlers=[
+        logging.FileHandler('app.log'),     # Enregistrer les logs dans un fichier
+        logging.StreamHandler()             # Afficher les logs sur la console
+    ]
+)
+
+
 class MyHandler(FileSystemEventHandler):
-    def __init__(self, target_directory, path_biofiles):
+    def __init__(self, target_directory, path_biofiles, config):
         self.target_directory = target_directory
         self.path_biofiles = path_biofiles
+        self.config = config
         super().__init__()
         
     def on_created(self, event):
@@ -21,11 +33,12 @@ class MyHandler(FileSystemEventHandler):
         else:
             file_path = event.src_path
             print(f"New file created: {file_path}")
+            logging.info(f"New file created: {file_path}")
             
             ## TEST MAIL -----------------------
-            recipients = "benedicte.nouyou@chu-rennes.fr"
+            recipients = self.config['emails']['recipients']
             subject = "TEST Diagho-Uploader"
-            content = "Test Email"
+            content = "Test Email - New file created"
             send_mail(recipients, subject, content)
             ## -----------------------
             
@@ -35,7 +48,8 @@ class MyHandler(FileSystemEventHandler):
                 
                 ## TODO #4 API authentification
                 
-                self.process_file(file_path, self.path_biofiles)
+                # self.process_file(file_path, self.path_biofiles)
+                self.process_file(file_path, self.config)
                 
                 time.sleep(3)
                 
@@ -61,9 +75,11 @@ class MyHandler(FileSystemEventHandler):
     def process_file(self, file_path, path_biofiles):
         print(f"Processing file: {file_path}")
         try:
+            logging.info(f"Processing file: {file_path}")
             diagho_process_file(file_path, path_biofiles)
         except Exception as e:
             print(f"Failed to process file: {e}")
+            logging.error(f"Failed to process file: {e}")
             
             
 def load_config(config_file):
@@ -77,10 +93,10 @@ def main():
     path_biofiles = config.get("input_biofiles", ".")
     path_backup = config.get("backup_data_files")
     if not os.path.exists(path_backup):
-            os.makedirs(path_backup)
+        os.makedirs(path_backup)
 
 
-    event_handler = MyHandler(target_directory=path_backup, path_biofiles=path_biofiles)
+    event_handler = MyHandler(target_directory=path_backup, path_biofiles=path_biofiles, config=config)
     observer = Observer()
     observer.schedule(event_handler, path_input, recursive=False)
 
