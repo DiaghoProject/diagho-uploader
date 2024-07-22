@@ -19,18 +19,21 @@ class MyHandler(FileSystemEventHandler):
         else:
             file_path = event.src_path
             print(f"New file created: {file_path}")
-            print(f"Process file...")
             
-            self.copy_file(file_path)
+            if file_path.endswith('.tsv') or file_path.endswith('.json'):
+                print(("File format : TSV or JSON"))
+                self.copy_file(file_path)
+                
+                self.process_file(file_path)
+                
+                time.sleep(3)
+                
+                self.remove_file(file_path)
+                
+            else:
+                print(f"Ignored file: {file_path}")
             
-            # Traiter le fichier
-            self.process_file(file_path)
-            
-            time.sleep(3)
-            
-            self.remove_file(file_path)
-
-    
+           
     def copy_file(self, file_path):
         if not os.path.exists(self.target_directory):
             os.makedirs(self.target_directory)
@@ -46,14 +49,14 @@ class MyHandler(FileSystemEventHandler):
     
     def process_file(self, file_path):
         print(f"Processing file: {file_path}")
-        try:
-            with open(file_path, 'r') as file:
-                data = json.load(file)
-                # Parcourir chaque élément du JSON et lancer une fonction
-                for item in data:
-                    self.process_item(item)
-        except Exception as e:
-            print(f"Failed to process file: {e}")
+        # try:
+        #     with open(file_path, 'r') as file:
+        #         data = json.load(file)
+        #         # Parcourir chaque élément du JSON et lancer une fonction
+        #         for item in data:
+        #             self.process_item(item)
+        # except Exception as e:
+        #     print(f"Failed to process file: {e}")
             
     def process_item(self, item):
         # Fonction spécifique pour traiter chaque élément du JSON
