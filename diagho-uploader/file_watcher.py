@@ -25,6 +25,8 @@ class MyHandler(FileSystemEventHandler):
                 print(("File format : TSV or JSON"))
                 self.copy_file(file_path)
                 
+                ## TODO #4 API authentification
+                
                 self.process_file(file_path)
                 
                 time.sleep(3)
