@@ -8,24 +8,21 @@ import time
 
 import random
 
-# import logging
-
-
 
 from functions import * 
+from functions_diagho_api import *
 
+import logging
+logging.basicConfig(
+    level=logging.INFO,                     # Définir le niveau de log minimum
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', # Format du message
+    handlers=[
+        logging.FileHandler('app.log'),     # Enregistrer les logs dans un fichier
+        logging.StreamHandler()             # Afficher les logs sur la console
+    ]
+)
 
-# logging.basicConfig(
-#     level=logging.DEBUG,                     # Définir le niveau de log minimum
-#     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', # Format du message
-#     handlers=[
-#         logging.FileHandler('app.log'),     # Enregistrer les logs dans un fichier
-#         logging.StreamHandler()             # Afficher les logs sur la console
-#     ]
-# )
-
-
-def diagho_process_file(file, path_biofiles):
+def diagho_process_file(file, config):
     """
     Process file.
 
@@ -34,6 +31,9 @@ def diagho_process_file(file, path_biofiles):
         path_biofiles: path to the directory where there are the biofiles (VCF or BED)
     """
     print(f"Process file: {file}")
+    
+    # Check path_biofiles
+    path_biofiles = config.get("input_biofiles")
     
     # Si TSV : parser tsv2json
     if file.endswith('.tsv'):
@@ -66,7 +66,7 @@ def diagho_process_file(file, path_biofiles):
             
             ## Get MD5 from biofile
             checksum_current_biofile = md5(biofile)
-            print("   >> checksum_current_biofile", checksum_current_biofile)         
+            # print("   >> checksum_current_biofile", checksum_current_biofile)         
     
             # 3.1- Si c'est un VCF :
             if biofile.endswith('.vcf') or biofile.endswith('.vcf.gz'):
@@ -92,8 +92,6 @@ def diagho_process_file(file, path_biofiles):
                     # loading_code = diagho_api_get_loadingstatus()
                     
                     # check loading status
-                    with open('config/config.yaml', 'r') as file:
-                        config = yaml.safe_load(file)
                     max_retries = config['check_loading']['max_retries']
                     delay = config['check_loading']['delay']
                     loading_status = check_loading_status(max_retries, delay, attempt=0)
@@ -101,7 +99,7 @@ def diagho_process_file(file, path_biofiles):
                     # En fonction du statut :
                     # SUCCESS :
                     if loading_status:
-                        recipients = "benedicte.nouyou@chu-rennes.fr"
+                        recipients = config['emails']['recipients']
                         subject = "TEST Diagho-Uploader"
                         content = "Loading File = SUCCESS"
                         send_mail(recipients, subject, content)
@@ -114,16 +112,18 @@ def diagho_process_file(file, path_biofiles):
                     
                     # FAIL :
                     else:
-                        # Alerte
-                        recipients = "benedicte.nouyou@chu-rennes.fr"
+                        # TODO #5 Modifier l'alerte si upload == FAIL
+                        recipients = config['emails']['recipients']
                         subject = "TEST Diagho-Uploader"
                         content = "Loading File = FAIL"
                         send_mail(recipients, subject, content)
                         
+                        return
+                        
                 else:
                     # md5 non valide
                     # Alerte
-                    recipients = "benedicte.nouyou@chu-rennes.fr"
+                    recipients = config['emails']['recipients']
                     subject = "TEST Diagho-Uploader"
                     content = "MD5 = FAIL"
                     send_mail(recipients, subject, content)
@@ -142,6 +142,7 @@ def diagho_process_file(file, path_biofiles):
                              
         else:
             print("Le BIOFILE : ", biofile, " n'existe pas.")
+            logging.error(f"Biofile: {biofile} doesn't exist.")
             # 4- Si non :
             ## Ne rien faire
     
@@ -218,9 +219,6 @@ def check_loading_status(max_retries=10, delay=5, attempt=0):
     """
     print("check_loading_status")
     
-    status = diagho_api_get_loadingstatus()
-    print("STATUS:", status)
-    
     if attempt >= max_retries:
         print("Nombre maximal de tentatives atteint. Abandon.")
         return None
@@ -254,57 +252,3 @@ def get_configfiles():
     """
     print("get_configfiles")
 
-
-    
-#------------------------------------------------------------------
-# Functions for API queries
-
-def diagho_api_post_biofile(biofile_filename, biofile_checksum):
-    """
-    Description.
-
-    Arguments:
-
-    Returns:
-        
-    """
-    print("API POST - Biofile : ", biofile_filename, biofile_checksum)
-    
-def diagho_api_get_md5sum(biofile):
-    """
-    Description.
-
-    Arguments:
-
-    Returns:
-        
-    """
-    print("API GET - MD5SUM for biofile:", biofile)
-    ## Pour les tests:
-    return "139361d8c92fd7bba1e26fbe89ebf5eb"
-
-def diagho_api_get_loadingstatus():
-    """
-    Description.
-
-    Arguments:
-
-    Returns:
-        
-    """
-    print("diagho_api_get_loadingstatus")
-    ## Pour les tests ------------------
-    loading_status = random.randint(1, 4)
-    ##----------------------------------
-    return loading_status
-
-def diagho_api_post_config(config_file):
-    """
-    Description.
-
-    Arguments:
-
-    Returns:
-        
-    """
-    print("diagho_api_post_config")
