@@ -22,6 +22,8 @@ def diagho_process_file(file, path_biofiles):
     if file.endswith('.tsv'):
         print(f"TSV file...")
         print(f"Parser tsv2json for file: {file}")
+        ## TODO #1 If input file == TSV : parser tsv2json
+        
     else:
         print(f"JSON file...")
     
@@ -35,20 +37,41 @@ def diagho_process_file(file, path_biofiles):
     
     # 2- Pour chaque filename : vérifier s'il existe dans le répertoire BIOFILES
     for filename in filenames:
-        file_target = path_biofiles + "/" + filename
-        if os.path.exists(file_target):
-            print("Le BIOFILE : ", file_target, " existe.")
+        biofile = path_biofiles + "/" + filename
+        
+        # 3- Si oui :
+        if os.path.exists(biofile):
+            print("Le BIOFILE : ", biofile, " existe.")           
+    
+            # 3.1- Si c'est un VCF :
+            if biofile.endswith('.vcf') or biofile.endswith('.vcf.gz'):
+                print("BIOFILE: VCF")
+                
+                ## POST
+                ## TODO #2 API post biofile VCF
+                print("API - POST VCF")
+                
+            
+            # 3.2- Si c'est un BED :
+            if biofile.endswith('.bed'):
+                print("BIOFILE: BED")
+                
+                ## POST
+                ## TODO #3 API post biofile BED
+                print("API - POST BED")
+                
+                
+            else:
+                print("BIOFILE: wrong format.")
+                
+                             
+                
+            
         else:
-            print("Le BIOFILE : ", file_target, " n'existe pas.")
+            print("Le BIOFILE : ", biofile, " n'existe pas.")
     
-    # 3- Si oui :
-    
-    # 3.1- Si c'est un VCF
-    
-    # 3.2- Si c'est un BED :
-    
-    # 4- Si non :
-    ## Ne rien faire
+            # 4- Si non :
+            ## Ne rien faire
     
 
 def get_filenames(json_input):
@@ -60,5 +83,4 @@ def get_filenames(json_input):
         dict_filenames[filename] = {
             "checksum" : checksum
         }
-        
     return dict_filenames
