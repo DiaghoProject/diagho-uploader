@@ -28,7 +28,7 @@ def pretty_print_json_string(string):
 # Send mail
 def send_mail(recipients: str, subject: str, content: str):
     """
-    Send email.
+    Envoi de mail.
 
     Arguments:
         recipients : un ou plusieurs destinataires, séparés par des virgules
