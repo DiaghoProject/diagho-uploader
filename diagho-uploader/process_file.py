@@ -6,8 +6,6 @@ import os
 import hashlib
 import time
 
-import random
-
 
 from functions import * 
 from functions_diagho_api import *
@@ -29,15 +27,36 @@ def diagho_process_file(file, config):
     Process file.
 
     Arguments:
-        file : input  JSON file
-        path_biofiles: path to the directory where there are the biofiles (VCF or BED)
+        file: input JSON or TSV file
+        config: config file
     """
+    
     print(f"Process file: {file}")
     
+    # Get informations from config file
     recipients = config['emails']['recipients']
+    path_biofiles = config['input_biofiles']
+    get_biofile_max_retries = config['check_biofile']['max_retries']
+    get_biofile_delay = config['check_biofile']['delay']
     
-    # Check path_biofiles
-    path_biofiles = config.get("input_biofiles")
+    url_diagho_api_healthcheck = config['diagho_api']['healthcheck']
+    url_diagho_api_login = config['diagho_api']['login']
+    username = config['diagho_api']['username']
+    password = config['diagho_api']['password']
+    
+    # TEST DIAGHO API :
+    if not diagho_api_test(url_diagho_api_healthcheck):
+        content = "Failed to connect to Diagho API. Exit."
+        send_mail_alert(recipients, content)
+        return
+    
+    diagho_api_post_login(url_diagho_api_login, username, password)
+    
+    access_token = get_access_token('tokens.json')
+    print("access_token:", access_token)
+    
+    
+
     
     # Si TSV : parser tsv2json
     if file.endswith('.tsv'):
@@ -45,21 +64,24 @@ def diagho_process_file(file, config):
         print(f"Parser tsv2json for file: {file}")
         ## TODO #1 If input file == TSV : parser tsv2json
         
+        # On obtient un JSON "simple"
+        
     else:
         print(f"JSON file...")
         
-    ## Check JSON : si fichier bien formaté
+    # Check JSON : vérifier si fichier bien formaté
     check_json_format(file)
     if check_json_format(file) == False:
         content = "Failed to process JSON input file."
         send_mail_alert(recipients, content)
+        return
     
-    # 1- Récup les filenames
+    # Get filenames from JSON file
     dict_files = {}
     dict_files = get_files_infos(file)
     pretty_print_json_string(dict_files)
     
-    # 2- Pour chaque filename : vérifier s'il existe dans le répertoire BIOFILES
+    # Foreach filename : vérifier s'il existe dans le répertoire path_biofiles
     for filename in dict_files:
         biofile = path_biofiles + "/" + filename
         checksum = dict_files[filename]["checksum"]
@@ -70,16 +92,25 @@ def diagho_process_file(file, config):
         print("   >> Checksum:", checksum)
         print("   >> persons:", persons)
         
-        # 3- Si oui :
-        if os.path.exists(biofile):
-            print("   ---> Le BIOFILE : ", biofile, " existe.")  
+        # Tant que le biofile n'existe pas...
+        # On boucle toutes les X secondes pendant Y minutes
+        attempt = 1
+        while not os.path.exists(biofile) and attempt <= get_biofile_max_retries:
+            print("Wait biofile:", biofile, " ... tentative n°", attempt)
+            time.sleep(get_biofile_delay)
+            attempt += 1
             
-            ## Get MD5 from biofile
-            checksum_current_biofile = md5(biofile)
-            # print("   >> checksum_current_biofile", checksum_current_biofile)         
+        
+        # If file exists:
+        if os.path.exists(biofile):
+            print("   ---> Biofile: ", biofile, " exists.")  
+            
+            # Get MD5 from current biofile
+            checksum_current_biofile = md5(biofile)    
     
-            # 3.1- Si c'est un VCF :
+            # If file == VCF:
             if biofile.endswith('.vcf') or biofile.endswith('.vcf.gz'):
+                
                 
                 ## POST
                 ## TODO #2 API post biofile VCF
@@ -93,49 +124,40 @@ def diagho_process_file(file, config):
                 # 3. Comparer les checksums
                 check_md5 = check_md5sum(checksum_from_api, checksum_current_biofile)
                 
-                # 4. Si checksum sont identiques :
+                # 4. Si checksum sont identiques : on continue
                 if check_md5:
-                    print("MD5 = PASS")
-                    # Ce sont bien les mêmes fichiers
-                     
-                    # get loading status
-                    # loading_code = diagho_api_get_loadingstatus()
-                    
-                    # check loading status
+                    # Check loading status
                     max_retries = config['check_loading']['max_retries']
                     delay = config['check_loading']['delay']
                     loading_status = check_loading_status(max_retries, delay, attempt=0)
                     
                     # En fonction du statut :
-                    # SUCCESS :
                     if loading_status:
+                        # ==> loading_status == Success
                         
+                        # Mail
                         content = "Loading File = SUCCESS"
                         send_mail_info(recipients, content)
         
                         ## POST config
-                        #
-                        # 1- Récup les configfiles correspondants
+                        # 1- Récup les configfiles correspondants en utilisant les "persons"
                         # families
                         # interpretation
                         # files
-                        # POST l'un après l'autre
                         
+                        # 2- POST l'un après l'autre des fichiers 
                         file_families = "file_families"
                         file_files = "file_files"
                         file_interpretations = "file_interpretations"
                         
-                        # 2- POST config files
                         diagho_api_post_config(file_families)
                         diagho_api_post_config(file_files)
                         diagho_api_post_config(file_interpretations)
                     
-                    # FAIL :
                     else:
-                        # TODO #5 Modifier l'alerte si upload == FAIL
+                        # ==> loading_status == Fail
                         content = "Loading File = FAIL"
                         send_mail_alert(recipients, content)
-                        
                         return
                         
                 else:
@@ -144,7 +166,7 @@ def diagho_process_file(file, config):
                     send_mail_alert(recipients, content)
                     
             
-            # 3.2- Si c'est un BED :
+            # If file == BED:
             elif biofile.endswith('.bed'):
                 print("   BIOFILE type: BED")
                 
@@ -153,13 +175,17 @@ def diagho_process_file(file, config):
                 
             else:
                 print("BIOFILE: wrong format.")
-                
-                             
+                content = "BIOFILE: wrong format."
+                send_mail_alert(recipients, content)            
         else:
+            # Le biofile attendu n'existe pas. 
             print("Le BIOFILE : ", biofile, " n'existe pas.")
+            content = "Le BIOFILE : ", biofile, " n'existe pas."
+            send_mail_alert(recipients, content)
+            
             logging.error(f"Biofile: {biofile} doesn't exist.")
-            # 4- Si non :
-            ## Ne rien faire
+
+
     
 
 def get_files_infos(json_input):
