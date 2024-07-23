@@ -164,11 +164,14 @@ def diagho_api_get_md5sum(biofile, url):
 # GET api/v1/bio_files/files/ --> loading
 def diagho_api_get_loadingstatus(url, checksum):
     """
-    Description.
+    GET pour obtenir le loading_status du fichier (checksum).
 
     Arguments:
+        url (str): URL de l'API.
+        checksum (str): valeur du checksum à inclure comme paramètre de requête dans l'URL.
 
     Returns:
+        int: La valeur du champ 'loading' si elle est trouvée dans la réponse JSON. 
         
     """
     access_token = get_access_token()
