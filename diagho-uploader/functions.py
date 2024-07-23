@@ -67,3 +67,11 @@ def send_mail(recipients: str, subject: str, content: str):
         print("Email sent successfully")
     except Exception as e:
         print("Error sending email:", str(e))
+        
+def send_mail_alert(recipients: str, content: str):
+    subject = "[ALERT] TEST Diagho-Uploader"
+    send_mail(recipients, subject, content)
+    
+def send_mail_info(recipients: str, content: str):
+    subject = "[INFO] TEST Diagho-Uploader"
+    send_mail(recipients, subject, content)
