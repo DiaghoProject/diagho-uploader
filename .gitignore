@@ -13,3 +13,9 @@ build/
 
 # Config files
 config/.env
+config/config.yaml
+
+# Divers
+README.save.md
+nohup.out
+app.log
