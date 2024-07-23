@@ -37,12 +37,11 @@ class MyHandler(FileSystemEventHandler):
             
             ## TEST MAIL -----------------------
             recipients = self.config['emails']['recipients']
-            subject = "TEST Diagho-Uploader"
             content = "Test Email - New file created"
-            send_mail(recipients, subject, content)
+            send_mail_info(recipients, content)
             ## -----------------------
             
-            if file_path.endswith('.tsv') or file_path.endswith('.json'):
+            if file_path.endswith('.tsv') or file_path.endswith('.files.json'):
                 print(("File format : TSV or JSON"))
                 self.copy_file(file_path)
                 
@@ -72,14 +71,14 @@ class MyHandler(FileSystemEventHandler):
         except Exception as e:
             print(f"Failed to remove file: {e}")
     
-    def process_file(self, file_path, path_biofiles):
+    def process_file(self, file_path, config):
         print(f"Processing file: {file_path}")
         try:
             logging.info(f"Processing file: {file_path}")
-            diagho_process_file(file_path, path_biofiles)
+            diagho_process_file(file_path, config)
         except Exception as e:
             print(f"Failed to process file: {e}")
-            logging.error(f"Failed to process file: {e}")
+            # logging.error(f"Failed to process file: {e}")
             
             
 def load_config(config_file):
