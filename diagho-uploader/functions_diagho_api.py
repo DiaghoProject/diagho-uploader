@@ -3,6 +3,7 @@
 import json
 from bs4 import BeautifulSoup
 import requests
+import os
 import random   # pour les tests
 
 
@@ -82,17 +83,16 @@ def get_access_token(filename='tokens.json'):
         
 def diagho_api_post_login(url, username, password):
     """
-    Effectue une requête POST pour se connecter à l'API et stocke la réponse dans un fichier JSON.
+    Requête POST pour se connecter à l'API et stocke la réponse dans un fichier JSON.
 
     Args:
-        url (str): L'URL de l'API de connexion.
-        username (str): Le nom d'utilisateur.
-        password (str): Le mot de passe.
+        url (str): URL de l'API de connexion.
+        username (str): nom d'utilisateur.
+        password (str): mot de passe.
 
     Returns:
-        dict: La réponse JSON de l'API contenant les tokens d'accès.
+        dict: réponse JSON de l'API contenant les tokens d'accès.
     """
-    print("diagho_api_post_login:", url, username, password)
     headers = {
         'accept': '*/*',
         'Content-Type': 'application/json'
@@ -101,7 +101,6 @@ def diagho_api_post_login(url, username, password):
         'username': username,
         'password': password
     }
-    print("payload:", payload)
     response = requests.post(url, headers=headers, json=payload)
     
     if response.status_code == 200:
@@ -113,53 +112,79 @@ def diagho_api_post_login(url, username, password):
         response.raise_for_status()  # Raise an HTTPError if the response code is not 200
 
 
-
 # POST api/v1/bio_files/files/
-def diagho_api_post_biofile(biofile_filename, biofile_checksum):
+def diagho_api_post_biofile(url, file_path, accession_id):
     """
-    Description.
+    Requête POST pour se uploader un bio_file.
 
-    Arguments:
+    Args:
+        url (str): URL de l'API.
+        file_path (str): fichier à uploader.
+        accession_id (int): PK de l'accession à utiliser.
 
     Returns:
-        
-    """
-    print("API POST - Biofile : ", biofile_filename, biofile_checksum)
-    
-    
-
-# GET api/v1/bio_files/files/ --> checksum
-def diagho_api_get_md5sum(biofile, url):
-    """
-    Description.
-
-    Arguments:
-
-    Returns:
-        
+        checksum: si upload OK, retourne le checksum du fichier uploadé.
     """
     access_token = get_access_token()
     headers = {
-        'Authorization': f'Bearer {access_token}',  # Remplacez par votre token d'accès
-        'Accept': 'application/json'
+        'Authorization': f'Bearer {access_token}'
+    }
+    # files = {
+    #     'file': open(file_path, 'rb')
+    # }
+    files = {
+        'file': (os.path.basename(file_path), open(file_path, 'rb'), 'application/octet-stream')
+    }
+    data = {
+        'accession': accession_id
     }
     try:
-        # Effectuer la requête GET avec les en-têtes spécifiés
-        response = requests.get(url, headers=headers)
+        # Effectuer la requête POST avec le fichier et les données de formulaire
+        response = requests.post(url, headers=headers, files=files, data=data)
         response.raise_for_status()  # Vérifie si la requête a réussi (statut 200)
-        # Retourner la réponse JSON ou le texte brut si ce n'est pas du JSON
         try:
-            return response.json()
+            return response.json().get('checksum')
+            # return response.json()  # Retourner la réponse JSON
         except ValueError:
-            return response.text
+            return {"error": "Response is not in JSON format"}
     except requests.exceptions.HTTPError as err:
-        return {"error": str(err)}
+        return {"error": str(err)}  # Retourner une erreur HTTP si la requête échoue
     except requests.exceptions.RequestException as e:
-        return {"error": str(e)}
+        return {"error": str(e)}  # Retourner une erreur de requête si un autre problème survient
+
+
+# # GET api/v1/bio_files/files/ --> checksum
+# def diagho_api_get_md5sum(biofile, url):
+#     """
+#     Description.
+
+#     Arguments:
+
+#     Returns:
+        
+#     """
+#     access_token = get_access_token()
+#     headers = {
+#         'Authorization': f'Bearer {access_token}',  # Remplacez par votre token d'accès
+#         'Accept': 'application/json'
+#     }
+#     try:
+#         # Effectuer la requête GET avec les en-têtes spécifiés
+#         response = requests.get(url, headers=headers)
+#         response.raise_for_status()  # Vérifie si la requête a réussi (statut 200)
+#         # Retourner la réponse JSON ou le texte brut si ce n'est pas du JSON
+#         try:
+#             return response.json()
+#         except ValueError:
+#             return response.text
+#     except requests.exceptions.HTTPError as err:
+#         return {"error": str(err)}
+#     except requests.exceptions.RequestException as e:
+#         return {"error": str(e)}
     
     
-    ## Pour les tests:
-    return "139361d8c92fd7bba1e26fbe89ebf5eb"
+#     ## Pour les tests:
+#     return "139361d8c92fd7bba1e26fbe89ebf5eb"
 
 # GET api/v1/bio_files/files/ --> loading
 def diagho_api_get_loadingstatus(url, checksum):
@@ -201,13 +226,34 @@ def diagho_api_get_loadingstatus(url, checksum):
     return loading_status
 
 # POST api/v1/configurations/configurations/
-def diagho_api_post_config(config_file):
+def diagho_api_post_config(url, config_file):
     """
-    Description.
+    Requête POST pour se uploader un config_file (JSON).
 
-    Arguments:
+    Args:
+        url (str): URL de l'API.
+        config_file (str): fichier JSON de config à uploader.
 
     Returns:
-        
+        dict: réponse JSON de l'API.
     """
     print("diagho_api_post_config:",config_file)
+    access_token = get_access_token()
+    headers = {
+        'Authorization': f'Bearer {access_token}',
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+    }            
+    try:
+        with open(config_file, 'r') as json_file:
+            json_data = json.load(json_file)
+        response = requests.post(url, headers=headers, json=json_data)
+        response.raise_for_status()  # Vérifie si la requête a réussi (statut 200)
+        try:
+            return response.json()  # Retourner la réponse JSON
+        except ValueError:
+            return {"error": "Response is not in JSON format"}
+    except requests.exceptions.HTTPError as err:
+        return {"error": str(err)}  # Retourner une erreur HTTP si la requête échoue
+    except requests.exceptions.RequestException as e:
+        return {"error": str(e)}  # Retourner une erreur de requête si un autre problème survient
