@@ -129,9 +129,6 @@ def diagho_api_post_biofile(url, file_path, accession_id):
     headers = {
         'Authorization': f'Bearer {access_token}'
     }
-    # files = {
-    #     'file': open(file_path, 'rb')
-    # }
     files = {
         'file': (os.path.basename(file_path), open(file_path, 'rb'), 'application/octet-stream')
     }
