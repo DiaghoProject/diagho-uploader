@@ -36,3 +36,14 @@ cp config/.env.example config.env
 
 
 ## Utilisation
+
+```bash
+
+source venv/bin/activate
+
+python diagho-uploader/file_watcher.py 
+
+```
+
+- Déposer un fichier "files.json" dans le répertoire **input_data**
+- **input_data** doit contenir aussi les fichiers JSON : families + interpretations (1 fichier par famille/interpretation)
