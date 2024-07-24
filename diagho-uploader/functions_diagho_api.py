@@ -222,6 +222,7 @@ def diagho_api_get_loadingstatus(url, checksum):
     ##----------------------------------
     return loading_status
 
+
 # POST api/v1/configurations/configurations/
 def diagho_api_post_config(url, config_file):
     """
