@@ -52,6 +52,52 @@ def diagho_api_test(url, exit_on_error=False):
     return False
 
 
+# GET /api/v1/accounts/users/me/
+def diagho_api_get_connected_user(url, config_file):
+    """
+    Vérifie si l'utilisateur connecté à l'API est le même que celui spécifié dans la configuration.
+
+    Args:
+        url (str): URL de l'API pour obtenir les informations de l'utilisateur connecté.
+        config_file (str): Chemin vers le fichier de configuration contenant le nom d'utilisateur attendu.
+
+    Returns:
+        bool: True si l'utilisateur connecté correspond à celui du fichier de configuration, sinon False.
+        
+    Raises:
+        Exception: Si une erreur se produit lors de la récupération des informations utilisateur ou de la configuration.
+    """
+    access_token = get_access_token()
+    headers = {
+        'Authorization': f'Bearer {access_token}'
+    }
+    
+    try:
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()  # Vérifie si la requête a réussi
+        user_data = response.json()
+        user_username = user_data.get('username')
+        
+        config = load_config(config_file)
+        username = config['diagho_api']['username']
+        
+        if user_username == username:
+            return True
+        else:
+            return False
+    except requests.exceptions.RequestException as e:
+        print(f"Erreur lors de la connexion à l'API: {e}")
+        return False
+    except KeyError as e:
+        print(f"Clé manquante dans la configuration ou les données de l'utilisateur: {e}")
+        return False
+    except json.JSONDecodeError:
+        print("Erreur de décode JSON. Réponse de l'API non valide.")
+        return False
+    except Exception as e:
+        print(f"Une erreur inattendue s'est produite: {e}")
+    
+
 # POST api/v1/auth/login/
 def store_tokens(tokens, filename='tokens.json'):
     """
@@ -105,19 +151,28 @@ def get_access_token(filename='tokens.json'):
     except Exception as e:
         return {"error": str(e)}
         
-def diagho_api_post_login(url, username, password):
+def diagho_api_post_login(url, config_file):
     """
     Requête POST pour se connecter à l'API et stocke la réponse dans un fichier JSON.
 
     Args:
         url (str): URL de l'API de connexion.
-        username (str): nom d'utilisateur.
-        password (str): mot de passe.
+        config_file (str): Chemin vers le fichier de configuration contenant les informations de connexion.
+
 
     Returns:
         dict: réponse JSON de l'API contenant les tokens d'accès.
     """
     function_name = inspect.currentframe().f_code.co_name
+    
+    config = load_config(config_file)
+    username = config['diagho_api']['username']
+    password = config['diagho_api']['password']
+    
+    url_connected_user = config['diagho_api']['get_user']
+    if diagho_api_get_connected_user(url_connected_user, config_file):
+        print("User already connected.")
+        return {"status": "User already connected"}
     
     # Validation des paramètres
     if not username or not password:
