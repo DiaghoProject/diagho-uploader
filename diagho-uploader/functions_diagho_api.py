@@ -5,7 +5,6 @@ from bs4 import BeautifulSoup
 import requests
 import os
 import time
-import random   # pour les tests
 import inspect
 
 from functions import * 
