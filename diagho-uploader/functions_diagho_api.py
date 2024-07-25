@@ -35,9 +35,6 @@ def diagho_api_test(url, exit_on_error=False):
     Returns:
         bool: True if the request is successful (status code 200), False otherwise.
     """
-    print("\n~~~~~~~~~~~~~~~~~~~~~~~~")
-    print("API : healthcheck")
-    print("~~~~~~~~~~~~~~~~~~~~~~~~")
     try:
         response = requests.get(url)
         response.raise_for_status() # Raises an HTTPError for bad responses (4xx or 5xx)
@@ -65,23 +62,18 @@ def store_tokens(tokens, filename='tokens.json'):
         tokens (dict): Dictionnaire contenant les tokens à stocker.
         filename (str): Nom du fichier où les tokens seront stockés. Par défaut 'tokens.json'.
     """
-    with open(filename, 'w') as file:
-        json.dump(tokens, file, indent=4)
-        
-def load_tokens(filename='tokens.json'):
-    """
-    Charge les tokens depuis un fichier JSON.
+    if not isinstance(tokens, dict):
+        return {"error": "'tokens' must be a dictionary"}
+    
+    try:
+        with open(filename, 'w') as file:
+            json.dump(tokens, file, indent=4)
+    except IOError as e:
+        return {"error": f"IOError: {str(e)}"}
+    except Exception as e:
+        return {"error": str(e)}
 
-    Args:
-        filename (str): Nom du fichier où les tokens sont stockés. Par défaut 'tokens.json'.
-
-    Returns:
-        dict: Dictionnaire contenant les tokens chargés.
-    """
-    with open(filename, 'r') as file:
-        tokens = json.load(file)
-    return tokens
-
+       
 def get_access_token(filename='tokens.json'):
     """
     Charge les tokens depuis un fichier JSON.
