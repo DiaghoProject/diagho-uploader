@@ -80,7 +80,39 @@ def find_json_file(directory, search_value=None, file_type=None):
                         return file_path
                     
     return "Aucun fichier correspondant trouvé."
+
+# Récupérer les infos dans le fichier JSON files
+def get_files_infos(json_input):
+    """
+    Extrait les informations à partir du fichier JSON.
+
+    Args:
+        json_input (str): Chemin vers un fichier JSON ou une chaîne JSON contenant les informations de fichier.
+
+    Returns:
+        dict: Dictionnaire contenant les informations de fichier, où chaque clé est un nom de fichier et chaque valeur est un dictionnaire
+              contenant le checksum et une liste des identifiants de personnes associés.
+    """
+    try:
+        input_data = pd.read_json(json_input)
+    except ValueError as e:
+        print(f"Erreur lors de la lecture du JSON: {e}")
+        return {}
     
+    dict_files = {}
+    for file in input_data['file']:
+        filename = file['filename']
+        checksum = file['checksum']
+        samples = file['samples']
+        persons = []
+        for sample in samples:
+            persons.append(sample["person"])
+        dict_files[filename] = {
+            "checksum" : checksum,
+            "persons" : persons
+        }
+    return dict_files
+   
 
 def diagho_process_file(file, config):
     """
@@ -252,31 +284,7 @@ def diagho_process_file(file, config):
                 
     
 
-def get_files_infos(json_input):
-    """
-    Description.
 
-    Arguments:
-
-    Returns:
-        
-    """
-    input_data = pd.read_json(json_input)
-    dict_files = {}
-    for file in input_data['file']:
-        filename = file['filename']
-        checksum = file['checksum']
-        samples = file['samples']
-        persons = []
-        for sample in samples:
-            person_id = sample["person"]
-            persons.append(person_id)
-        dict_files[filename] = {
-            "checksum" : checksum,
-            "persons" : persons
-        }
-    pretty_print_json_string(dict_files)
-    return dict_files
 
 ## A UTILISER AVANT !!
 def split_families_with_root(json_data, output_dir):
