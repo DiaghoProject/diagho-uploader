@@ -124,3 +124,30 @@ def md5(filepath):
         alert(content)
         print(f"Erreur lors de l'ouverture ou de la lecture du fichier : {e}")
         return None
+
+# Compare MD5  
+def check_md5sum(checksum1, checksum2):
+    """
+    Compare deux sommes de contrôle MD5.
+
+    Args:
+        checksum1 (str): La première somme de contrôle MD5.
+        checksum2 (str): La deuxième somme de contrôle MD5.
+
+    Returns:
+        bool: True si les sommes de contrôle MD5 sont identiques, sinon False.
+
+    Raises:
+        ValueError: Si l'une des sommes de contrôle MD5 n'a pas la longueur attendue de 32 caractères.
+    """
+    print("\nCompare MD5sum :")
+    print("checksum1:", checksum1)
+    print("checksum2:", checksum2)
+    # Validation des entrées
+    if not isinstance(checksum1, str) or not isinstance(checksum2, str):
+        raise TypeError("Les sommes de contrôle MD5 doivent être des chaînes de caractères.")
+    # Vérifier que les deux sommes MD5 ont la même longueur (32 caractères pour MD5)
+    if len(checksum1) != 32 or len(checksum2) != 32:
+        raise ValueError("Les sommes de contrôle MD5 doivent avoir 32 caractères.")
+    # Comparer les deux sommes MD5
+    return checksum1.lower() == checksum2.lower()
