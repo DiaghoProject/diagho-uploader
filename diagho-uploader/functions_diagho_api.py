@@ -6,6 +6,7 @@ import requests
 import os
 import time
 import random   # pour les tests
+import inspect
 
 from functions import * 
 
@@ -140,6 +141,8 @@ def diagho_api_post_biofile(url, file_path, accession_id):
     Returns:
         checksum: si upload OK, retourne le checksum du fichier uploadé.
     """
+    function_name = inspect.currentframe().f_code.co_name
+    
     access_token = get_access_token()
     if not access_token:
         return {"error": "No access token available"}
@@ -167,23 +170,23 @@ def diagho_api_post_biofile(url, file_path, accession_id):
             if checksum:
                 return {"checksum": checksum}
             else:
-                content = "FUNCTION: diagho_api_post_biofile:\n\nError: No checksum in response"
+                content = f"FUNCTION: {function_name}:\n\nError: No checksum in response"
                 alert(content)
                 return {"error": "No checksum in response"}
         except ValueError:
-            content = "FUNCTION: diagho_api_post_biofile:\n\nError: Response is not in JSON format"
+            content = f"FUNCTION: {function_name}:\n\nError: Response is not in JSON format"
             alert(content)
             return {"error": "Response is not in JSON format"}
     except requests.exceptions.HTTPError as err:
-        content = f"FUNCTION: diagho_api_post_biofile:\n\nHTTP Error: {str(err)}"
+        content = f"FUNCTION: {function_name}:\n\nHTTP Error: {str(err)}"
         alert(content)
         return {"error": str(err)}  # Retourner une erreur HTTP si la requête échoue
     except requests.exceptions.RequestException as e:
-        content = f"FUNCTION: diagho_api_post_biofile:\n\nRequest Error: {str(e)}"
+        content = f"FUNCTION: {function_name}:\n\nRequest Error: {str(e)}"
         alert(content)
         return {"error": str(e)}
     except Exception as e:
-        content = f"FUNCTION: diagho_api_post_biofile:\n\nUnexpected Error: {str(e)}"
+        content = f"FUNCTION: {function_name}:\n\nUnexpected Error: {str(e)}"
         alert(content)
         return {"error": str(e)}
 
@@ -232,34 +235,52 @@ def diagho_api_get_loadingstatus(url, checksum):
 
 
 # POST api/v1/configurations/configurations/
-def diagho_api_post_config(url, config_file):
+def diagho_api_post_config(url, file):
     """
     Requête POST pour se uploader un config_file (JSON).
 
     Args:
         url (str): URL de l'API.
-        config_file (str): fichier JSON de config à uploader.
+        file (str): fichier JSON de config à uploader.
 
     Returns:
         dict: réponse JSON de l'API.
     """
-    print("diagho_api_post_config:",config_file)
+    function_name = inspect.currentframe().f_code.co_name
+    
     access_token = get_access_token()
+    if not access_token:
+        return {"error": "No access token available"}
+    
     headers = {
         'Authorization': f'Bearer {access_token}',
         'Accept': 'application/json',
         'Content-Type': 'application/json'
     }            
     try:
-        with open(config_file, 'r') as json_file:
-            json_data = json.load(json_file)
+        with open(file, 'r') as json_file:
+            try:
+                json_data = json.load(json_file)
+            except json.JSONDecodeError:
+                content = f"FUNCTION: {function_name}:\n\nError: Config file '{file}' is not valid JSON"
+                alert(content)
+                return {"error": "Config file is not valid JSON"}
+            
         response = requests.post(url, headers=headers, json=json_data)
         response.raise_for_status()  # Vérifie si la requête a réussi (statut 200)
+        
         try:
             return response.json()  # Retourner la réponse JSON
         except ValueError:
+            content = f"FUNCTION: {function_name}:\n\nError: Response is not in JSON format"
+            alert(content)
             return {"error": "Response is not in JSON format"}
     except requests.exceptions.HTTPError as err:
+        content = f"FUNCTION: {function_name}:\n\nHTTP Error: {str(err)}"
+        alert(content)
         return {"error": str(err)}  # Retourner une erreur HTTP si la requête échoue
     except requests.exceptions.RequestException as e:
+        content = f"FUNCTION: {function_name}:\n\nRequest Error: {str(e)}"
+        alert(content)
         return {"error": str(e)}  # Retourner une erreur de requête si un autre problème survient
+    
