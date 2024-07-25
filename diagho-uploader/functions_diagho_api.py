@@ -92,10 +92,27 @@ def get_access_token(filename='tokens.json'):
     Returns:
         dict: Dictionnaire contenant les tokens chargés.
     """
-    with open(filename, 'r') as file:
-        tokens = json.load(file)
-        access_token = tokens['access']
-    return access_token
+    if not os.path.isfile(filename):
+        print("Token not found... Re-authentification...")
+        config = load_config(config_file)
+        url = config['diagho_api']['login']
+        username = config['diagho_api']['username']
+        password = config['diagho_api']['password']
+        diagho_api_post_login(url, username, password)
+        
+    try:
+        with open(filename, 'r') as file:
+            tokens = json.load(file)
+            if 'access' not in tokens:
+                return {"error": "'access' token not found in file"}
+            access_token = tokens['access']
+            return access_token
+    except json.JSONDecodeError:
+        return {"error": "File is not a valid JSON"}
+    except KeyError:
+        return {"error": "'access' key not found in tokens"}
+    except Exception as e:
+        return {"error": str(e)}
         
 def diagho_api_post_login(url, username, password):
     """
@@ -109,6 +126,14 @@ def diagho_api_post_login(url, username, password):
     Returns:
         dict: réponse JSON de l'API contenant les tokens d'accès.
     """
+    function_name = inspect.currentframe().f_code.co_name
+    
+    # Validation des paramètres
+    if not username or not password:
+        content = f"FUNCTION: {function_name}:\n\nError: Username or password is missing"
+        alert(content)
+        return {"error": "Username or password is missing"}
+    
     headers = {
         'accept': '*/*',
         'Content-Type': 'application/json'
@@ -117,15 +142,36 @@ def diagho_api_post_login(url, username, password):
         'username': username,
         'password': password
     }
-    response = requests.post(url, headers=headers, json=payload)
     
-    if response.status_code == 200:
-        response_json = response.json()
-        store_tokens(response_json)  # Stocker la réponse dans un fichier JSON
-        print("Tokens stored successfully.")
-        return response.json()  # Assuming the response is in JSON format
-    else:
-        response.raise_for_status()  # Raise an HTTPError if the response code is not 200
+    try:
+        response = requests.post(url, headers=headers, json=payload)
+        response.raise_for_status()  # Lève une exception si le code de statut n'est pas 200
+        
+        try:
+            response_json = response.json()
+            store_tokens(response_json)  # Stocker les tokens dans un fichier JSON
+            return response_json
+        except ValueError:
+            content = f"FUNCTION: {function_name}:\n\nError: Response is not in JSON format"
+            alert(content)
+            return {"error": "Response is not in JSON format"}
+        except Exception as e:
+            content = f"FUNCTION: {function_name}:\n\nError: Failed to store tokens - {str(e)}"
+            alert(content)
+            return {"error": "Failed to store tokens"}
+        
+    except requests.exceptions.HTTPError as err:
+        content = f"FUNCTION: {function_name}:\n\nHTTP Error: {str(err)}"
+        alert(content)
+        return {"error": str(err)}
+    except requests.exceptions.RequestException as e:
+        content = f"FUNCTION: {function_name}:\n\nRequest Error: {str(e)}"
+        alert(content)
+        return {"error": str(e)}
+    except Exception as e:
+        content = f"FUNCTION: {function_name}:\n\nUnexpected Error: {str(e)}"
+        alert(content)
+        return {"error": str(e)}
 
 
 # POST api/v1/bio_files/files/
@@ -258,7 +304,7 @@ def diagho_api_get_loadingstatus(url, checksum):
 def diagho_api_post_config(url, file):
     """
     Requête POST pour se uploader un config_file (JSON).
-
+    
     Args:
         url (str): URL de l'API.
         file (str): fichier JSON de config à uploader.
