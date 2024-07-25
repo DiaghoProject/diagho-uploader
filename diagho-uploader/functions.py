@@ -13,7 +13,15 @@ import socket
 import yaml
 import re
 #---
-
+import logging
+logging.basicConfig(
+    level=logging.INFO,                     # Définir le niveau de log minimum
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', # Format du message
+    handlers=[
+        logging.FileHandler('app.log'),     # Enregistrer les logs dans un fichier
+        logging.StreamHandler()             # Afficher les logs sur la console
+    ]
+)
 
 config_file = "config/config.yaml"
 
@@ -151,3 +159,31 @@ def check_md5sum(checksum1, checksum2):
         raise ValueError("Les sommes de contrôle MD5 doivent avoir 32 caractères.")
     # Comparer les deux sommes MD5
     return checksum1.lower() == checksum2.lower()
+
+
+# Check JSON format
+def check_json_format(file_path):
+    """
+    Vérifie si le fichier donné est bien formaté en JSON.
+
+    Args:
+        file_path (str): Chemin vers le fichier JSON à vérifier.
+
+    Returns:
+        bool: True si le fichier est bien formaté en JSON, False sinon.
+    """
+        
+    try:
+        with open(file_path, 'r', encoding='utf-8') as file:
+            json.load(file)
+        logging.info(f"File: '{file_path}' is well-formatted.")
+        return True
+    except json.JSONDecodeError as e:
+        logging.error(f"File: '{file_path}' is not well-formatted: {e}")
+        return False
+    except FileNotFoundError:
+        logging.error(f"File: '{file_path}' was not found.")
+        return False
+    except Exception as e:
+        logging.error(f"An unexpected error occurred while checking the file '{file_path}': {e}")
+        return False
