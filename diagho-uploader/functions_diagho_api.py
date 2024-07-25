@@ -201,37 +201,57 @@ def diagho_api_get_loadingstatus(url, checksum):
         checksum (str): valeur du checksum à inclure comme paramètre de requête dans l'URL.
 
     Returns:
-        int: La valeur du champ 'loading' si elle est trouvée dans la réponse JSON. 
+        dict: Contenant la valeur du champ 'loading' ou un message d'erreur.
         
     """
+    function_name = inspect.currentframe().f_code.co_name
+    
     access_token = get_access_token()
+    if not access_token:
+        return {"error": "No access token available"}
+    
     headers = {
-        'Authorization': f'Bearer {access_token}',  # Remplacez par votre token d'accès
+        'Authorization': f'Bearer {access_token}', 
         'Accept': 'application/json'
     }
+    
+    # Construire l'URL avec le paramètre checksum
+    url_with_params = f"{url}?checksum={checksum}"
+    
     try:
-        url2 = url + "?checksum=" + str(checksum)
-        # Effectuer la requête GET avec les en-têtes spécifiés
-        response = requests.get(url2, headers=headers)
+        response = requests.get(url_with_params, headers=headers)
         response.raise_for_status()  # Vérifie si la requête a réussi (statut 200)
-        # Retourner la réponse JSON ou le texte brut si ce n'est pas du JSON
         
         try:
-            print("bip1")
             results = response.json().get('results', [])
-            print(results)
-            return results[0].get('loading')
+            if not results:
+                content = f"FUNCTION: {function_name}:\n\nError: No results found in response"
+                alert(content)
+                return {"error": "No results found in response"}
+            
+            loading = results[0].get('loading')
+            if loading is None:
+                content = f"FUNCTION: {function_name}:\n\nError: 'loading' field not found in results"
+                alert(content)
+                return {"error": "'loading' field not found in results"}
+            
+            return {"loading": loading}
         except ValueError:
+            content = f"FUNCTION: {function_name}:\n\nError: Response is not in JSON format"
+            alert(content)
             return {"error": str(e)}
     except requests.exceptions.HTTPError as err:
+        content = f"FUNCTION: {function_name}:\n\nHTTP Error: {str(err)}"
+        alert(content)
         return {"error": str(err)}
     except requests.exceptions.RequestException as e:
+        content = f"FUNCTION: {function_name}:\n\nRequest Error: {str(e)}"
+        alert(content)
         return {"error": str(e)}
-    
-    ## Pour les tests ------------------
-    loading_status = random.randint(1, 4)
-    ##----------------------------------
-    return loading_status
+    except Exception as e:
+        content = f"FUNCTION: {function_name}:\n\nUnexpected Error: {str(e)}"
+        alert(content)
+        return {"error": str(e)}
 
 
 # POST api/v1/configurations/configurations/
