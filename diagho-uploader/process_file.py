@@ -20,7 +20,67 @@ logging.basicConfig(
     ]
 )
 
+# Cherche le fichier JSON (famille ou interprétations) correspondant au fichier JSON files en cours
+def find_json_file(directory, search_value=None, file_type=None):
+    """
+    Cherche un fichier JSON dans le répertoire spécifié en fonction du type de fichier et le valeur à chercher.
 
+    Args:
+        directory (str): Le répertoire où chercher les fichiers.
+        search_value (str): Valeur à rechercher (checksum ou personnes de la famille).
+        file_type (str): Type de fichier à rechercher ("family" ou "interpretation").
+
+    Returns:
+        str: Le chemin du fichier trouvé, ou un message d'erreur si aucun fichier n'est trouvé.
+    """
+    if not os.path.isdir(directory):
+        raise ValueError(f"Le répertoire spécifié '{directory}' n'existe pas ou n'est pas un répertoire valide.")
+    
+    if file_type not in ["family", "interpretation"]:
+        return "Type de fichier non supporté. Utilisez 'family' ou 'interpretation'."
+    
+    for filename in os.listdir(directory):
+        file_path = os.path.join(directory, filename)
+        
+        if not filename.endswith(f'.{file_type}.json'):
+            continue
+        
+        # Lecture du fichier JSON
+        try:
+            with open(file_path, 'r') as file:
+                data = json.load(file)
+        except (IOError, json.JSONDecodeError) as e:
+            print(f"Erreur lors de la lecture de {filename}: {e}")
+            continue
+        
+        # Si family
+        if file_type == "family":
+            if not search_value:
+                return "Les personnes doivent être fournies."
+            
+            families = data.get("families", [])
+            if not families:
+                continue
+            
+            for person in families[0].get('persons', []):
+                if person.get("identifier") in search_value:
+                    print("Family file found:", filename)
+                    return file_path
+                
+        # Si interpretations
+        elif file_type == "interpretation":
+            interpretations = data.get("interpretations", [])
+            if not interpretations:
+                continue
+            
+            for data_samples in interpretations[0].get('datas', []):
+                for sample in data_samples.get("samples", []):
+                    if sample.get("checksum") == search_value:
+                        print("Interpretations file found:", filename)
+                        return file_path
+                    
+    return "Aucun fichier correspondant trouvé."
+    
 
 def diagho_process_file(file, config):
     """
@@ -127,7 +187,7 @@ def diagho_process_file(file, config):
                     # Check loading status
                     max_retries = config['check_loading']['max_retries']
                     delay = config['check_loading']['delay']
-                    loading_status = check_loading_status(checksum_from_api, max_retries, delay, attempt=0)
+                    loading_status = check_loading_status(url_diagho_api_biofiles, checksum_from_api, max_retries, delay, attempt=0)
                     
                     # En fonction du statut :
                     if loading_status:
@@ -188,35 +248,7 @@ def diagho_process_file(file, config):
 
 
 
-def find_json_file(directory, persons, checksum, file_type):
-    if file_type == "family":
-        for family_file in os.listdir(directory):
-            if family_file.endswith('.family.json'):
-                family_file_path = os.path.join(directory, family_file)
-                with open(family_file_path, 'r') as file:
-                    data = json.load(file)
-                    # print(f"Contenu de {family_file}: {data}")
-                    for person in data["families"][0].get('persons'):
-                        person["identifier"]
-                        if person["identifier"] in persons:
-                            print("This is the GOOD family !", family_file)
-                            return family_file_path
-    elif file_type == "interpretation":
-        for interp_file in os.listdir(directory):
-            print(interp_file)
-            if interp_file.endswith('.interpretation.json'):
-                file_path = os.path.join(directory, interp_file)
-                print(file_path)
-                with open(file_path, 'r') as file:
-                    data = json.load(file)
-                    # print(f"Contenu de {file}: {data}")
-                    for data_samples in data["interpretations"][0].get('datas'):
-                        for sample in data_samples["samples"]:
-                            if sample["checksum"] == checksum:
-                                print("This is the GOOD file !", interp_file)
-                                return file_path
-    else:
-        return "error"
+
                 
     
 
@@ -322,7 +354,7 @@ def check_md5sum(checksum1, checksum2):
     return checksum1.lower() == checksum2.lower()
 
 
-def check_loading_status(checksum, max_retries, delay, attempt=0):
+def check_loading_status(url, checksum, max_retries, delay, attempt=0):
     """
     Vérification du statut de chargement.
 
@@ -341,8 +373,7 @@ def check_loading_status(checksum, max_retries, delay, attempt=0):
     print("MAX_RETRIES:", max_retries)
     # Get loading status :
     ## TODO #6 mettre l'URL à partir du fichier de config
-    url = "http://lx026:8080/api/v1/bio_files/files/"
-    status = diagho_api_get_loadingstatus(url, checksum)
+    status = diagho_api_get_loadingstatus(url, checksum).get('loading')
     print("Initial status=", status)
     
     while status not in [0, 3]:
