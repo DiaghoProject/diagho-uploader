@@ -52,8 +52,61 @@ def diagho_api_test(url, exit_on_error=False):
     return False
 
 
+def diagho_api_login(config_file):
+    """
+    Gère le processus de connexion à l'API Diagho.
+
+    Cette fonction vérifie si l'utilisateur est déjà connecté en utilisant un access token.
+    Si l'utilisateur n'est pas connecté, elle appelle diagho_api_post_login pour se connecter.
+
+    Args:
+        config_file (str): Chemin vers le fichier de configuration contenant les informations de connexion.
+
+    Returns:
+        dict: Un dictionnaire contenant le statut de la connexion ou les erreurs éventuelles.
+    """
+    function_name = inspect.currentframe().f_code.co_name
+    
+    try:
+        # Charger les informations de configuration
+        config = load_config(config_file)
+        username = config['diagho_api']['username']
+        password = config['diagho_api']['password']
+        
+        # Validation des identifiants
+        if not username or not password:
+            content = f"FUNCTION: {function_name}:\n\nError: Username or password is missing"
+            alert(content)
+            return {"error": "Username or password is missing"}
+        
+        # Obtenir l'access token actuel
+        access_token = get_access_token()
+        
+        # Vérifier si l'utilisateur est déjà connecté
+        if diagho_api_get_connected_user(config_file, access_token):
+            print("User already connected.")
+            return {"status": "User already connected"}
+        else:
+            # Tenter une nouvelle connexion
+            return diagho_api_post_login(config_file)
+        
+    except FileNotFoundError:
+        content = f"FUNCTION: {function_name}:\n\nError: Configuration file not found"
+        alert(content)
+        return {"error": "Configuration file not found"}
+    except KeyError as e:
+        content = f"FUNCTION: {function_name}:\n\nError: Missing key in configuration - {str(e)}"
+        alert(content)
+        return {"error": f"Missing key in configuration: {str(e)}"}
+    except Exception as e:
+        content = f"FUNCTION: {function_name}:\n\nUnexpected Error: {str(e)}"
+        alert(content)
+        return {"error": f"Unexpected error: {str(e)}"}
+        
+    
+
 # GET /api/v1/accounts/users/me/
-def diagho_api_get_connected_user(url, config_file):
+def diagho_api_get_connected_user(config_file, access_token):
     """
     Vérifie si l'utilisateur connecté à l'API est le même que celui spécifié dans la configuration.
 
@@ -67,7 +120,11 @@ def diagho_api_get_connected_user(url, config_file):
     Raises:
         Exception: Si une erreur se produit lors de la récupération des informations utilisateur ou de la configuration.
     """
-    access_token = get_access_token()
+    config = load_config(config_file)
+    url = config['diagho_api']['get_user']
+    if not access_token:
+        return {"error": "No access token available"}
+    
     headers = {
         'Authorization': f'Bearer {access_token}'
     }
@@ -133,9 +190,7 @@ def get_access_token(filename='tokens.json'):
         print("Token not found... Re-authentification...")
         config = load_config(config_file)
         url = config['diagho_api']['login']
-        username = config['diagho_api']['username']
-        password = config['diagho_api']['password']
-        diagho_api_post_login(url, username, password)
+        diagho_api_post_login(config_file)
         
     try:
         with open(filename, 'r') as file:
@@ -151,7 +206,7 @@ def get_access_token(filename='tokens.json'):
     except Exception as e:
         return {"error": str(e)}
         
-def diagho_api_post_login(url, config_file):
+def diagho_api_post_login(config_file):
     """
     Requête POST pour se connecter à l'API et stocke la réponse dans un fichier JSON.
 
@@ -168,11 +223,7 @@ def diagho_api_post_login(url, config_file):
     config = load_config(config_file)
     username = config['diagho_api']['username']
     password = config['diagho_api']['password']
-    
-    url_connected_user = config['diagho_api']['get_user']
-    if diagho_api_get_connected_user(url_connected_user, config_file):
-        print("User already connected.")
-        return {"status": "User already connected"}
+    url = config['diagho_api']['login']
     
     # Validation des paramètres
     if not username or not password:
