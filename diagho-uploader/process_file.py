@@ -3,7 +3,7 @@
 import json
 import pandas as pd
 import os
-import hashlib
+
 import time
 
 
@@ -63,6 +63,7 @@ def find_json_file(directory, search_value=None, file_type=None):
                 continue
             
             for person in families[0].get('persons', []):
+                print("person:", person.get("identifier"))
                 if person.get("identifier") in search_value:
                     print("Family file found:", filename)
                     return file_path
@@ -78,8 +79,9 @@ def find_json_file(directory, search_value=None, file_type=None):
                     if sample.get("checksum") == search_value:
                         print("Interpretations file found:", filename)
                         return file_path
-                    
-    return "Aucun fichier correspondant trouvé."
+        else:            
+            return "Aucun fichier correspondant trouvé."
+
 
 # Récupérer les infos dans le fichier JSON files
 def get_files_infos(json_input):
@@ -114,254 +116,170 @@ def get_files_infos(json_input):
     return dict_files
    
 
+# Fonction principale : process JSON file
 def diagho_process_file(file, config):
     """
-    Process file.
+    Traite un fichier JSON ou TSV : import du biofile dans Diagho + import des configurations associées.
 
-    Arguments:
-        file: input JSON or TSV file
-        config: config file
+    Args:
+        file (str): Chemin vers le fichier d'entrée (JSON ou TSV).
+        config (dict): Configuration contenant les paramètres nécessaires pour le traitement.
+
+    Returns:
+        None
     """
-    print(f"Process file: {file}")
-    file_files = file
+    print(f"Processing file: {file}")
+    logging.info(f"Processing file: {file}")
     
-    # Get informations from config file
+    # Configuration et URLs
+    config_file = "config/config.yaml" # TODO #9 #8 mettre à l'exterieur de la fonction
     recipients = config['emails']['recipients']
-    path_input_data = config['input_data']
     path_biofiles = config['input_biofiles']
     get_biofile_max_retries = config['check_biofile']['max_retries']
     get_biofile_delay = config['check_biofile']['delay']
-    
     url_diagho_api_healthcheck = config['diagho_api']['healthcheck']
-    url_diagho_api_login = config['diagho_api']['login']
-    username = config['diagho_api']['username']
-    password = config['diagho_api']['password']
-    url_diagho_api_biofiles = config['diagho_api']['biofiles']
-    url_diagho_api_config = config['diagho_api']['config']
     
-    # TEST DIAGHO API :
+    # Vérification de l'API Diagho
     if not diagho_api_test(url_diagho_api_healthcheck):
         content = "Failed to connect to Diagho API. Exit."
         send_mail_alert(recipients, content)
+        logging.error(content)
         return
     
-    diagho_api_post_login(url_diagho_api_login, username, password)
-    
+    # Connexion à l'API
+    diagho_api_login(config_file)
     access_token = get_access_token('tokens.json')
-    print("access_token:", access_token)
+    logging.info(f"Access token: {access_token}")
     
-    
-
-    
-    # Si TSV : parser tsv2json
+    # Traitement du fichier
     if file.endswith('.tsv'):
-        print(f"TSV file...")
-        print(f"Parser tsv2json for file: {file}")
-        ## TODO #1 If input file == TSV : parser tsv2json
-        
-        # On obtient un JSON "simple"
-        
+        logging.info(f"TSV file detected. Parsing TSV to JSON for file: {file}")
+        # TODO: #10 Parser TSV en JSON
+    elif file.endswith('.json'):
+        logging.info(f"JSON file detected.")
     else:
-        print(f"JSON file...")
-        
-    # Check JSON : vérifier si fichier bien formaté
-    check_json_format(file)
-    if check_json_format(file) == False:
-        content = "Failed to process JSON input file."
+        content = f"Unsupported file format for file: {file}"
+        logging.error(content)
         send_mail_alert(recipients, content)
         return
     
-    # Get filenames from JSON file
-    dict_files = {}
+    # Vérification du format JSON
+    if not check_json_format(file):
+        content = "Failed to process JSON input file."
+        logging.error(content)
+        send_mail_alert(recipients, content)
+        return
+    
+    # Extraction des informations de fichier
     dict_files = get_files_infos(file)
-    # pretty_print_json_string(dict_files)
     
     # Foreach filename : vérifier s'il existe dans le répertoire path_biofiles
-    for filename in dict_files:
-        biofile = path_biofiles + "/" + filename
-        checksum = dict_files[filename]["checksum"]
-        persons = dict_files[filename]["persons"]
+    for filename, file_info in dict_files.items():
+        biofile = os.path.join(path_biofiles, filename)
+        checksum = file_info["checksum"]
+        persons = file_info["persons"]
         
-        print("\nBIOFILE:")
-        print("   >> Filename:", filename)
-        print("   >> Checksum:", checksum)
-        print("   >> persons:", persons)
-        
+        logging.info(f"Processing biofile: {biofile}")
+
         # Tant que le biofile n'existe pas...
-        # On boucle toutes les X secondes pendant Y minutes
+        # On boucle toutes les X secondes pendant un certain nombre de fois max
         attempt = 1
         while not os.path.exists(biofile) and attempt <= get_biofile_max_retries:
+            logging.warning(f"Biofile {biofile} not found, attempt {attempt}")
             print("Wait biofile:", biofile, " ... tentative n°", attempt)
             time.sleep(get_biofile_delay)
             attempt += 1
-            
         
-        # If file exists:
-        if os.path.exists(biofile):
-            print("   ---> Biofile: ", biofile, " exists.")  
-            
-            # Get MD5 from current biofile
-            checksum_current_biofile = md5(biofile)
-    
-            # If file == VCF:
-            if biofile.endswith('.vcf') or biofile.endswith('.vcf.gz'):
-                
-                # 1. POST du biofile + récup le checksum du fichier uploadé
-                accession_id = 1 # TODO #7 Récupérer l'accession_id en config
-                checksum_from_api = diagho_api_post_biofile(url_diagho_api_biofiles, biofile, accession_id)
-                # checksum_from_api = "bd9e9d23a190cac33c26a0e7d806d201"
-                                
-                # 2. Comparer les checksums
-                check_md5 = check_md5sum(checksum_from_api, checksum_current_biofile)
-                
-                # 3. Si checksum sont identiques : on continue
-                if check_md5:
-                    # Check loading status
-                    max_retries = config['check_loading']['max_retries']
-                    delay = config['check_loading']['delay']
-                    loading_status = check_loading_status(url_diagho_api_biofiles, checksum_from_api, max_retries, delay, attempt=0)
-                    
-                    # En fonction du statut :
-                    if loading_status:
-                        # ==> loading_status == Success
-                        
-                        # Mail
-                        content = "Loading File = SUCCESS"
-                        send_mail_info(recipients, content)
-        
-                        ## POST config
-                        # 1- Récup les configfiles correspondants en utilisant les "persons"
-                        family_file = find_json_file(path_input_data, persons, checksum, "family")
-                        print("Fichier famille trouvé : ", family_file)
-                        
-                        interp_file = find_json_file(path_input_data, persons, checksum, "interpretation")
-                        print("Fichier interpretation trouvé : ", interp_file)
-
-                        
-                        # 2- POST l'un après l'autre des fichiers 
-                        file_families = family_file
-                        file_files = file_files
-                        file_interpretations = interp_file
-                        
-                        diagho_api_post_config(url_diagho_api_config, file_families)
-                        diagho_api_post_config(url_diagho_api_config, file_files)
-                        diagho_api_post_config(url_diagho_api_config, file_interpretations)
-                    
-                    else:
-                        # ==> loading_status == Fail
-                        content = "Loading File = FAIL"
-                        send_mail_alert(recipients, content)
-                        return
-                        
-                else:
-                    # md5 non valide : ALERTE
-                    content = "MD5 = FAIL"
-                    send_mail_alert(recipients, content)
-                    
-            
-            # If file == BED:
-            elif biofile.endswith('.bed'):
-                print("   BIOFILE type: BED")
-                
-                ## POST
-                ## TODO #3 API post biofile BED                
-                
-            else:
-                print("BIOFILE: wrong format.")
-                content = "BIOFILE: wrong format."
-                send_mail_alert(recipients, content)            
-        else:
-            # Le biofile attendu n'existe pas. 
-            print("Le BIOFILE : ", biofile, " n'existe pas.")
-            content = "Le BIOFILE : ", biofile, " n'existe pas."
+        # Si le biofile n'existe pas : alerte   
+        if not os.path.exists(biofile):
+            content = f"Biofile: {biofile} does not exist."
+            logging.error(content)
             send_mail_alert(recipients, content)
+            continue
+        
+        logging.info(f"Biofile {biofile} found.")
+        
+        # Récupérer le checksum du biofile
+        checksum_current_biofile = md5(biofile)
+        
+        # Si c'est un VCF :
+        if biofile.endswith('.vcf') or biofile.endswith('.vcf.gz'):
+            process_vcf_file(biofile, checksum_current_biofile, config, recipients, file, persons)
             
-            logging.error(f"Biofile: {biofile} doesn't exist.")
-
-
-
-
-                
-    
-
-
-
-## A UTILISER AVANT !!
-def split_families_with_root(json_data, output_dir):
-    # Assure que le répertoire de sortie existe
-    os.makedirs(output_dir, exist_ok=True)
-    
-    # Parcours chaque famille dans le JSON
-    for family in json_data['families']:
-        # Génère le nom de fichier en utilisant l'identifiant de la famille
-        filename = f"{family['identifier']}.family.json"
-        file_path = os.path.join(output_dir, filename)
+        # Si c'est un BED :
+        elif biofile.endswith('.bed'):
+            logging.info(f"Processing BED file: {biofile}")
+            # TODO: #11 Implémenter le traitement pour les fichiers BED
+        else:
+            content = f"BIOFILE: wrong format for file: {biofile}."
+            logging.error(content)
+            send_mail_alert(recipients, content)
         
-        # Enveloppe chaque famille dans une structure avec la clé "families"
-        family_data = {"families": [family]}
-        
-        # Écrit les données de la famille dans un fichier JSON
-        with open(file_path, 'w') as file:
-            json.dump(family_data, file, indent=4)
-        print(f"Famille {family['identifier']} sauvegardée dans {file_path}")
 
-
-# json_data = pd.read_json("/ngs/datagen/diagho/DIAGHO-UPLOADER/TEST_DATA/diagho_EXOME-77.interpretations.json")        
-def split_interpretations_with_root(json_data, output_dir):
-    # Assure que le répertoire de sortie existe
-    os.makedirs(output_dir, exist_ok=True)
-    
-    # Parcours chaque famille dans le JSON
-    for interpretation in json_data['interpretations']:
-        # Génère le nom de fichier en utilisant l'identifiant de la famille
-        filename = f"{interpretation['project']}.{interpretation['indexCase']}.interpretation.json"
-        file_path = os.path.join(output_dir, filename)
-        
-        # Enveloppe chaque famille dans une structure avec la clé "families"
-        interpretation_data = {"interpretations": [interpretation]}
-        
-        # Écrit les données de la famille dans un fichier JSON
-        with open(file_path, 'w') as file:
-            json.dump(interpretation_data, file, indent=4)
-        print(f"Interpretation {interpretation['title']} sauvegardée dans {file_path}")
-    
-def md5(filepath):
+def process_vcf_file(biofile, checksum_current_biofile, config, recipients, files_file, persons):
     """
-    Calculate MD5sum for file.
+    Processus de traitement pour les fichiers VCF.
 
-    Arguments:
-        filepath : absolute path of the file
+    Args:
+        biofile (str): Chemin vers le fichier biofile.
+        checksum_current_biofile (str): Checksum calculé du fichier biofile.
+        config (dict): Configuration du système.
+        recipients (list): Liste des destinataires des alertes par email.
+        file (str): Fichier d'entrée initial.
+        persons (list): Liste des identifiants de personnes liées au fichier.
 
     Returns:
-        hash_md5 
+        None
     """
-    hash_md5 = hashlib.md5()
-    with open(filepath, 'rb') as f:
-        for chunk in iter(lambda: f.read(4096), b""):
-            hash_md5.update(chunk)
-    return hash_md5.hexdigest()
+    url_diagho_api_biofiles = config['diagho_api']['biofiles']
+    accession_id = config['accessions']['vcf']
+    checksum_from_api = diagho_api_post_biofile(url_diagho_api_biofiles, biofile, accession_id).get('checksum')
     
-def check_md5sum(checksum1, checksum2):
-    """
-    Compare MD5sum.
-
-    Arguments:
-        checksum1 : 
-        checksum2 : 
-
-    Returns:
-        bool : True/False
-    """
-    print("\nCompare MD5sum :")
-    print("checksum1:", checksum1)
-    print("checksum2:", checksum2)
-    # Vérifier que les deux sommes MD5 ont la même longueur (32 caractères pour MD5)
-    if len(checksum1) != 32 or len(checksum2) != 32:
-        raise ValueError("Les sommes de contrôle MD5 doivent avoir 32 caractères.")
-    # Comparer les deux sommes MD5
-    return checksum1.lower() == checksum2.lower()
-
-
+    # Si l'upload ne fonctionne pas : alerte
+    if not checksum_from_api:
+        content = "Failed to upload biofile and obtain checksum from API."
+        logging.error(content)
+        send_mail_alert(recipients, content)
+        return
+    
+    # Vérification du checksum du fichier uploadé avec le checksum calculé avant
+    # Si OK : continuer
+    if check_md5sum(checksum_from_api, checksum_current_biofile):
+        max_retries = config['check_loading']['max_retries']
+        delay = config['check_loading']['delay']
+        loading_status = check_loading_status(url_diagho_api_biofiles, checksum_from_api, max_retries, delay)
+        
+        if loading_status:
+            content = "Loading File = SUCCESS"
+            logging.info(content)
+            send_mail_info(recipients, content)
+            
+            # Traitement des fichiers de configuration
+            family_file = find_json_file(config['input_data'], persons, "family")
+            interp_file = find_json_file(config['input_data'], checksum_current_biofile, "interpretation")
+            
+            logging.info(f"Found family file: {family_file}")
+            logging.info(f"Found interpretation file: {interp_file}")
+            
+            if family_file:
+                diagho_api_post_config(config['diagho_api']['config'], family_file)
+            if files_file:
+                diagho_api_post_config(config['diagho_api']['config'], files_file)
+            if interp_file:
+                diagho_api_post_config(config['diagho_api']['config'], interp_file)
+            
+            # TODO #12 Après import des config : bouger les fichier dans le répertoire backup
+        else:
+            content = "Loading File = FAIL"
+            logging.error(content)
+            send_mail_alert(recipients, content)
+    else:
+        content = "MD5 checksum mismatch."
+        logging.error(content)
+        send_mail_alert(recipients, content)
+               
+        
+# Check loading status
 def check_loading_status(url, checksum, max_retries, delay, attempt=0):
     """
     Vérification du statut de chargement.
@@ -386,13 +304,14 @@ def check_loading_status(url, checksum, max_retries, delay, attempt=0):
     
     while status not in [0, 3]:
         print(f"\nTentative {attempt + 1}: Statut de chargement = {status}")
+        logging.warning(f'Attemp {attempt + 1}: loading_status = {status} ... Retry...')
         
         # Attendre avant de réessayer
         print(f"Attente de {delay} secondes...\n")
         time.sleep(delay)
         
         # Récupérer à nouveau le statut de chargement
-        status = diagho_api_get_loadingstatus(url, checksum)
+        status = diagho_api_get_loadingstatus(url, checksum).get('loading')
         print("Nouveau statut =", status)
         
         # Incrémenter le compteur de tentatives
@@ -401,6 +320,7 @@ def check_loading_status(url, checksum, max_retries, delay, attempt=0):
         # Vérifier si le nombre maximal de tentatives est atteint
         if attempt >= max_retries:
             print("Nombre maximal de tentatives atteint. Abandon.")
+            logging.error('GET_LOADING_STATUS: Maximum number of attempts reached.')
             return None
         
     # Vérification des statuts finaux
@@ -408,47 +328,8 @@ def check_loading_status(url, checksum, max_retries, delay, attempt=0):
         return False
     elif status == 3:
         print("Chargement terminé avec succès.")
+        logging.info('Loading completed successfully.')
         return True
     else:
         print(f"Statut inconnu ou non géré: {status}. Abandon.")
         return None
-
-
-
-
-def get_configfiles():
-    """
-    Description.
-
-    Arguments:
-
-    Returns:
-        
-    """
-    print("get_configfiles")
-
-
-
-def check_json_format(file_path):
-    """
-    Description.
-
-    Arguments:
-
-    Returns:
-        
-    """
-    try:
-        with open(file_path, 'r', encoding='utf-8') as file:
-            json.load(file)
-        logging.info(f"File: '{file_path}' is well-formatted.")
-        return True
-    except json.JSONDecodeError as e:
-        logging.error(f"File: '{file_path}' is not well-formatted: {e}")
-        return False
-    except FileNotFoundError:
-        logging.error(f"File: '{file_path}' was not found.")
-        return False
-    except Exception as e:
-        logging.error(f"An unexpected error occurred while checking the file '{file_path}': {e}")
-        return False
