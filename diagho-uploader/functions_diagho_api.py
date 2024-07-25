@@ -4,6 +4,7 @@ import json
 from bs4 import BeautifulSoup
 import requests
 import os
+import time
 import random   # pour les tests
 
 
@@ -139,7 +140,9 @@ def diagho_api_post_biofile(url, file_path, accession_id):
         # Effectuer la requête POST avec le fichier et les données de formulaire
         response = requests.post(url, headers=headers, files=files, data=data)
         response.raise_for_status()  # Vérifie si la requête a réussi (statut 200)
+        time.sleep(3) # sleep 3s 
         try:
+            # Return the checksum
             return response.json().get('checksum')
             # return response.json()  # Retourner la réponse JSON
         except ValueError:
@@ -149,39 +152,6 @@ def diagho_api_post_biofile(url, file_path, accession_id):
     except requests.exceptions.RequestException as e:
         return {"error": str(e)}  # Retourner une erreur de requête si un autre problème survient
 
-
-# # GET api/v1/bio_files/files/ --> checksum
-# def diagho_api_get_md5sum(biofile, url):
-#     """
-#     Description.
-
-#     Arguments:
-
-#     Returns:
-        
-#     """
-#     access_token = get_access_token()
-#     headers = {
-#         'Authorization': f'Bearer {access_token}',  # Remplacez par votre token d'accès
-#         'Accept': 'application/json'
-#     }
-#     try:
-#         # Effectuer la requête GET avec les en-têtes spécifiés
-#         response = requests.get(url, headers=headers)
-#         response.raise_for_status()  # Vérifie si la requête a réussi (statut 200)
-#         # Retourner la réponse JSON ou le texte brut si ce n'est pas du JSON
-#         try:
-#             return response.json()
-#         except ValueError:
-#             return response.text
-#     except requests.exceptions.HTTPError as err:
-#         return {"error": str(err)}
-#     except requests.exceptions.RequestException as e:
-#         return {"error": str(e)}
-    
-    
-#     ## Pour les tests:
-#     return "139361d8c92fd7bba1e26fbe89ebf5eb"
 
 # GET api/v1/bio_files/files/ --> loading
 def diagho_api_get_loadingstatus(url, checksum):
@@ -202,13 +172,16 @@ def diagho_api_get_loadingstatus(url, checksum):
         'Accept': 'application/json'
     }
     try:
-        url = url + "?checksum=" + checksum
+        url2 = url + "?checksum=" + str(checksum)
         # Effectuer la requête GET avec les en-têtes spécifiés
-        response = requests.get(url, headers=headers)
+        response = requests.get(url2, headers=headers)
         response.raise_for_status()  # Vérifie si la requête a réussi (statut 200)
         # Retourner la réponse JSON ou le texte brut si ce n'est pas du JSON
+        
         try:
+            print("bip1")
             results = response.json().get('results', [])
+            print(results)
             return results[0].get('loading')
         except ValueError:
             return {"error": str(e)}
