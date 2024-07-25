@@ -31,6 +31,7 @@ pip install -r requirements.txt
 
 # Copy config file
 cp config/.env.example config.env
+cp config/config.yaml.example config.yaml
 
 ```
 

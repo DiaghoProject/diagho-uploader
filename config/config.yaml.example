@@ -1,0 +1,28 @@
+input_data: ""
+input_biofiles: ""
+backup_data_files: ""
+
+check_biofile:
+  max_retries: 10
+  delay: 5
+  
+check_loading:
+  max_retries: 100
+  delay: 5
+
+emails:
+  recipients: "xxxx@example.fr"
+
+smtp:
+  server: "servmail"
+  port: 25
+  use_tls: false
+  from_email_format: "diagho-uploade-{hostname}@example.fr"
+
+diagho_api:
+  healthcheck: "http://lx026:8080/api/v1/healthcheck"
+  login: "http://lx026:8080/api/v1/auth/login/"
+  username: ""
+  password: ""
+  biofiles: "http://lx026:8080/api/v1/bio_files/files/"
+  config: "http://lx026:8080/api/v1/configurations/configurations/"
