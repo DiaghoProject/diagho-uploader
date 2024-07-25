@@ -7,6 +7,20 @@ import os
 import time
 import random   # pour les tests
 
+from functions import * 
+
+
+config_file = "config/config.yaml"
+
+def load_config(config_file):
+    with open(config_file, 'r') as file:
+        config = yaml.safe_load(file)
+    return config
+
+def alert(content: str):
+    config = load_config(config_file)
+    recipients = config['emails']['recipients']
+    send_mail_alert(recipients, content)
 
 # GET /api/v1/healthcheck 
 def diagho_api_test(url, exit_on_error=False):
@@ -127,9 +141,16 @@ def diagho_api_post_biofile(url, file_path, accession_id):
         checksum: si upload OK, retourne le checksum du fichier uploadé.
     """
     access_token = get_access_token()
+    if not access_token:
+        return {"error": "No access token available"}
+    
     headers = {
         'Authorization': f'Bearer {access_token}'
     }
+    
+    if not os.path.isfile(file_path):
+        return {"error": "File not found"}
+    
     files = {
         'file': (os.path.basename(file_path), open(file_path, 'rb'), 'application/octet-stream')
     }
@@ -137,20 +158,34 @@ def diagho_api_post_biofile(url, file_path, accession_id):
         'accession': accession_id
     }
     try:
-        # Effectuer la requête POST avec le fichier et les données de formulaire
         response = requests.post(url, headers=headers, files=files, data=data)
         response.raise_for_status()  # Vérifie si la requête a réussi (statut 200)
         time.sleep(3) # sleep 3s 
         try:
-            # Return the checksum
-            return response.json().get('checksum')
-            # return response.json()  # Retourner la réponse JSON
+            response_json = response.json()
+            checksum = response_json.get('checksum')
+            if checksum:
+                return {"checksum": checksum}
+            else:
+                content = "FUNCTION: diagho_api_post_biofile:\n\nError: No checksum in response"
+                alert(content)
+                return {"error": "No checksum in response"}
         except ValueError:
+            content = "FUNCTION: diagho_api_post_biofile:\n\nError: Response is not in JSON format"
+            alert(content)
             return {"error": "Response is not in JSON format"}
     except requests.exceptions.HTTPError as err:
+        content = f"FUNCTION: diagho_api_post_biofile:\n\nHTTP Error: {str(err)}"
+        alert(content)
         return {"error": str(err)}  # Retourner une erreur HTTP si la requête échoue
     except requests.exceptions.RequestException as e:
-        return {"error": str(e)}  # Retourner une erreur de requête si un autre problème survient
+        content = f"FUNCTION: diagho_api_post_biofile:\n\nRequest Error: {str(e)}"
+        alert(content)
+        return {"error": str(e)}
+    except Exception as e:
+        content = f"FUNCTION: diagho_api_post_biofile:\n\nUnexpected Error: {str(e)}"
+        alert(content)
+        return {"error": str(e)}
 
 
 # GET api/v1/bio_files/files/ --> loading
