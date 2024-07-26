@@ -3,6 +3,8 @@
 import json
 import hashlib
 import inspect
+import os
+import shutil
 
 # mail ---
 import smtplib
@@ -35,6 +37,14 @@ def alert(content: str):
     recipients = config['emails']['recipients']
     send_mail_alert(recipients, content)
     
+
+def copy_and_remove_file(file_path, target_directory):
+    if not os.path.exists(target_directory):
+        os.makedirs(target_directory)
+    shutil.copy(file_path, target_directory)
+    print(f"File copied to: {target_directory}")
+    os.remove(file_path)
+    print(f"File removed from: {file_path}")
 
 # Pretty print json string
 def pretty_print_json_string(string):
