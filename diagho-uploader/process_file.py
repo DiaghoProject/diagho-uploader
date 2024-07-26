@@ -210,6 +210,8 @@ def diagho_process_file(file, config):
         elif biofile.endswith('.bed'):
             logging.info(f"Processing BED file: {biofile}")
             # TODO: #11 Implémenter le traitement pour les fichiers BED
+            process_bed_file(biofile, checksum_current_biofile, config, recipients, file, persons)
+            
         else:
             content = f"BIOFILE: wrong format for file: {biofile}."
             logging.error(content)
@@ -254,6 +256,8 @@ def process_vcf_file(biofile, checksum_current_biofile, config, recipients, file
             logging.info(content)
             send_mail_info(recipients, content)
             
+            time.sleep(10)
+            
             # Traitement des fichiers de configuration
             family_file = find_json_file(config['input_data'], persons, "family")
             interp_file = find_json_file(config['input_data'], checksum_current_biofile, "interpretation")
@@ -263,10 +267,16 @@ def process_vcf_file(biofile, checksum_current_biofile, config, recipients, file
             
             if family_file:
                 diagho_api_post_config(config['diagho_api']['config'], family_file)
+                time.sleep(10)
+                copy_and_remove_file(family_file, config['backup_data_files'])
             if files_file:
                 diagho_api_post_config(config['diagho_api']['config'], files_file)
+                time.sleep(10)
+                copy_and_remove_file(files_file, config['backup_data_files'])
             if interp_file:
                 diagho_api_post_config(config['diagho_api']['config'], interp_file)
+                time.sleep(10)
+                copy_and_remove_file(interp_file, config['backup_data_files'])
             
             # TODO #12 Après import des config : bouger les fichier dans le répertoire backup
         else:
@@ -278,7 +288,82 @@ def process_vcf_file(biofile, checksum_current_biofile, config, recipients, file
         logging.error(content)
         send_mail_alert(recipients, content)
                
+
+def process_bed_file(biofile, checksum_current_biofile, config, recipients, files_file, persons):
+    """
+    Process a BED file.
+
+    Arguments:
+        biofile (str): Path to the BED file.
+        checksum_current_biofile (str): MD5 checksum of the current BED file.
+        config (dict): Configuration dictionary.
+        recipients (list): List of email recipients for notifications.
+        file (str): Path to the input JSON or TSV file.
+        persons (list): List of person identifiers associated with the file.
+    """
+    logging.info(f"Processing BED file: {biofile}")
+    
+    url_diagho_api_biofiles = config['diagho_api']['biofiles']
+    url_diagho_api_config = config['diagho_api']['config']
+    
+    # Check if the BED file exists
+    if not os.path.exists(biofile):
+        content = f"BIOFILE: {biofile} doesn't exist."
+        logging.error(content)
+        send_mail_alert(recipients, content)
+        return
+    
+    logging.info(f"BED file: {biofile} exists.")
+    
+    # Get MD5 checksum from the current BED file
+    checksum_from_api = diagho_api_post_biofile(url_diagho_api_biofiles, biofile, 1)
+    
+    # Compare checksums
+    check_md5 = check_md5sum(checksum_from_api, checksum_current_biofile)
+    
+    if check_md5:
+        # If checksums are identical, proceed with processing
+        logging.info("MD5 checksum matches for BED file.")
         
+        # Check loading status
+        max_retries = config['check_loading']['max_retries']
+        delay = config['check_loading']['delay']
+        loading_status = check_loading_status(url_diagho_api_biofiles, checksum_from_api, max_retries, delay)
+        
+        if loading_status:
+            # If loading status is successful
+            content = "Loading BED file = SUCCESS"
+            logging.info(content)
+            send_mail_info(recipients, content)
+            
+            # POST config files
+            family_file = find_json_file(config['input_data'], persons, checksum_from_api, "family")
+            interp_file = find_json_file(config['input_data'], persons, checksum_from_api, "interpretation")
+            
+            logging.info(f"Family file found: {family_file}")
+            logging.info(f"Interpretation file found: {interp_file}")
+            
+            if family_file:
+                diagho_api_post_config(config['diagho_api']['config'], family_file)
+                copy_and_remove_file(family_file, config['backup_data_files'])
+            if files_file:
+                diagho_api_post_config(config['diagho_api']['config'], files_file)
+                copy_and_remove_file(files_file, config['backup_data_files'])
+            if interp_file:
+                diagho_api_post_config(config['diagho_api']['config'], interp_file)
+                copy_and_remove_file(interp_file, config['backup_data_files'])
+        else:
+            # If loading status fails
+            content = "Loading BED file = FAIL"
+            logging.error(content)
+            send_mail_alert(recipients, content)
+    else:
+        # MD5 checksum does not match
+        content = "MD5 checksum mismatch for BED file."
+        logging.error(content)
+        send_mail_alert(recipients, content)
+
+
 # Check loading status
 def check_loading_status(url, checksum, max_retries, delay, attempt=0):
     """
@@ -304,7 +389,7 @@ def check_loading_status(url, checksum, max_retries, delay, attempt=0):
     
     while status not in [0, 3]:
         print(f"\nTentative {attempt + 1}: Statut de chargement = {status}")
-        logging.warning(f'Attemp {attempt + 1}: loading_status = {status} ... Retry...')
+        logging.warning(f'Attempt {attempt + 1}: loading_status = {status} ... Retry...')
         
         # Attendre avant de réessayer
         print(f"Attente de {delay} secondes...\n")
