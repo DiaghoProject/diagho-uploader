@@ -41,7 +41,7 @@ class MyHandler(FileSystemEventHandler):
             send_mail_info(recipients, content)
             ## -----------------------
             
-            if file_path.endswith('.tsv') or file_path.endswith('.files.json'):
+            if file_path.endswith('.tsv') or file_path.endswith('.file.json'):
                 print(("File format : TSV or JSON"))
                 self.copy_file(file_path)
                 
@@ -52,7 +52,7 @@ class MyHandler(FileSystemEventHandler):
                 
                 time.sleep(3)
                 
-                self.remove_file(file_path)
+                # self.remove_file(file_path)
                 
             else:
                 print(f"Ignored file: {file_path}")
