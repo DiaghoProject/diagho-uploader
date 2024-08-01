@@ -52,7 +52,7 @@ class MyHandler(FileSystemEventHandler):
                 
                 time.sleep(3)
                 
-                # self.remove_file(file_path)
+                self.remove_file(file_path)
                 
             else:
                 print(f"Ignored file: {file_path}")
