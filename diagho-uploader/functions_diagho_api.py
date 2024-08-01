@@ -6,6 +6,7 @@ import requests
 import os
 import time
 import inspect
+import yaml
 
 from functions import * 
 
@@ -23,7 +24,7 @@ def alert(content: str):
     send_mail_alert(recipients, content)
 
 # GET /api/v1/healthcheck 
-def diagho_api_test(url, exit_on_error=False):
+def diagho_api_test(config_file, exit_on_error=False):
     """
     Tests the health of the API by performing a GET request to the URL.
 
@@ -34,6 +35,8 @@ def diagho_api_test(url, exit_on_error=False):
     Returns:
         bool: True if the request is successful (status code 200), False otherwise.
     """
+    config = load_config(config_file)
+    url = config['diagho_api']['healthcheck']
     try:
         response = requests.get(url)
         response.raise_for_status() # Raises an HTTPError for bad responses (4xx or 5xx)
@@ -433,7 +436,9 @@ def diagho_api_post_config(url, file):
         response.raise_for_status()  # Vérifie si la requête a réussi (statut 200)
         
         try:
-            return response.json()  # Retourner la réponse JSON
+            # return response.json()  # Retourner la réponse JSON
+            # return response.status_code
+            return {"status_code": response.status_code, "json_response": response.json()}
         except ValueError:
             content = f"FUNCTION: {function_name}:\n\nError: Response is not in JSON format"
             alert(content)
