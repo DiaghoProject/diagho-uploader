@@ -1,6 +1,6 @@
 #! /bin/bash
 source /home/${USER}/miniconda3/etc/profile.d/conda.sh
-
+source diagho-inputs/config.sh
 
 # Arguments:
 BATCHID="EXOME-71"
