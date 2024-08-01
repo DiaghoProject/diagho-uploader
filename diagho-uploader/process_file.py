@@ -137,10 +137,10 @@ def diagho_process_file(file, config):
     path_biofiles = config['input_biofiles']
     get_biofile_max_retries = config['check_biofile']['max_retries']
     get_biofile_delay = config['check_biofile']['delay']
-    url_diagho_api_healthcheck = config['diagho_api']['healthcheck']
+    # url_diagho_api_healthcheck = config['diagho_api']['healthcheck']
     
     # Vérification de l'API Diagho
-    if not diagho_api_test(url_diagho_api_healthcheck):
+    if not diagho_api_test(config_file):
         content = "Failed to connect to Diagho API. Exit."
         send_mail_alert(recipients, content)
         logging.error(content)
@@ -272,7 +272,7 @@ def process_vcf_file(biofile, checksum_current_biofile, config, recipients, file
             if files_file:
                 diagho_api_post_config(config['diagho_api']['config'], files_file)
                 time.sleep(10)
-                copy_and_remove_file(files_file, config['backup_data_files'])
+                # copy_and_remove_file(files_file, config['backup_data_files'])
             if interp_file:
                 diagho_api_post_config(config['diagho_api']['config'], interp_file)
                 time.sleep(10)
