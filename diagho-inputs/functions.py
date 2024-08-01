@@ -4,6 +4,7 @@
 import json
 import hashlib
 import subprocess
+import inspect
 import dateutil
 import os
 from subprocess import Popen, PIPE
@@ -211,22 +212,6 @@ def get_VCF_info(pattern, directory):
                 }
     return None
 
-    # ## TODO #5 modifier avec le fichier TSV qui contient les noms des VCFS
-    # process = subprocess.Popen(('find', directory, '-type', 'f', '-name', '*'+str(pattern)+'*.vcf.gz'), stdout=PIPE, stderr=None)
-    # file = process.communicate()[0].decode("utf-8")
-    # # print("file:", file)
-    # if file:
-    #     absolutePath = file
-    #     process2 = subprocess.Popen(('basename', absolutePath), stdout=PIPE, stderr=None)
-    #     filename = process2.communicate()[0].decode("utf-8")
-        
-    #     result = {}
-    #     result = {
-    #         'filename' : filename.rstrip(),
-    #         'path' : absolutePath.rstrip(),
-    #     }
-    #     return result
-
 
 def get_filename(familyID, directory):
     """Get filename.
@@ -250,29 +235,32 @@ def get_absolutePathFile(fname, directory):
 
     
 
+# Calcul MD5
 def md5(filepath):
-    """md5 for file.
-
-    Parameters
-    ----------
-    
     """
-    # hash_md5 = hashlib.md5()
-    # with open(fname, "rb") as f:
-    #     for chunk in iter(lambda: f.read(4096), b""):
-    #         hash_md5.update(chunk)
-    # return hash_md5.hexdigest()
+    Calcule le hash MD5 d'un fichier.
+
+    Arguments:
+        filepath (str): Chemin absolu du fichier.
+
+    Returns:
+        str: Le hash MD5 du fichier sous forme de chaîne hexadécimale, ou None en cas d'erreur. 
+    """
+    function_name = inspect.currentframe().f_code.co_name
     
     hash_md5 = hashlib.md5()
-    with open(filepath, 'rb') as f:
-        for chunk in iter(lambda: f.read(4096), b""):
-            hash_md5.update(chunk)
-    return hash_md5.hexdigest()
+    try:
+        with open(filepath, 'rb') as f:
+            for chunk in iter(lambda: f.read(8192), b""):
+                hash_md5.update(chunk)
+        return hash_md5.hexdigest()
+    except (IOError, FileNotFoundError) as e:
+        content = f"FUNCTION: {function_name}:\n\nErreur lors de l'ouverture ou de la lecture du fichier : {e}"
+        print(f"Erreur lors de l'ouverture ou de la lecture du fichier : {e}")
+        return None
     
 
 
-
-## A UTILISER AVANT !!
 def split_families_with_root(json_file, output_dir):
     with open(json_file, 'r') as f:
         json_data = json.load(f)
@@ -318,7 +306,6 @@ def split_files_with_root(json_file, output_dir):
             json.dump(file_data, file_out, indent=4)
         print(f"Fichier {file['filename']} sauvegardé dans {file_path}")
 
-# json_data = pd.read_json("/ngs/datagen/diagho/DIAGHO-UPLOADER/TEST_DATA/diagho_EXOME-77.interpretations.json")        
 def split_interpretations_with_root(json_file, output_dir):
     with open(json_file, 'r') as f:
         json_data = json.load(f)
