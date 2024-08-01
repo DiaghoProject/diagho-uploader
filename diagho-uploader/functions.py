@@ -28,14 +28,20 @@ logging.basicConfig(
 config_file = "config/config.yaml"
 
 def load_config(config_file):
-    with open(config_file, 'r') as file:
-        config = yaml.safe_load(file)
-    return config
+    try:
+        with open(config_file, 'r') as file:
+            config = yaml.safe_load(file)
+        return config
+    except Exception as e:
+        print("Error loading config:", str(e))
 
 def alert(content: str):
-    config = load_config(config_file)
-    recipients = config['emails']['recipients']
-    send_mail_alert(recipients, content)
+    try:
+        config = load_config(config_file)
+        recipients = config['emails']['recipients']
+        send_mail_alert(recipients, content)
+    except Exception as e:
+        print("Error sending alert:", str(e))
     
 
 def copy_and_remove_file(file_path, target_directory):
@@ -113,10 +119,12 @@ def send_mail(recipients: str, subject: str, content: str, config='config/config
 def send_mail_alert(recipients: str, content: str):
     subject = "[ALERT] TEST Diagho-Uploader"
     send_mail(recipients, subject, content)
+
     
 def send_mail_info(recipients: str, content: str):
     subject = "[INFO] TEST Diagho-Uploader"
     send_mail(recipients, subject, content)
+
 
 # Calcul MD5
 def md5(filepath):
