@@ -225,6 +225,7 @@ def diagho_create_json_interpretations(input_file, output_file, vcfs_directory):
     - vcfs_directory: répertoire où se trouvent les fichiers VCF
     
     """
+    print("test")
     # Charger les données d'entrée depuis le fichier JSON
     with open(input_file, 'r') as f:
         data = json.load(f)
@@ -235,6 +236,7 @@ def diagho_create_json_interpretations(input_file, output_file, vcfs_directory):
     
     # Pour chaque échantillon dans les données
     for sample, sample_data in data.items():
+        
         # Récupérer les informations du sample
         v_sample_id = sample_data.get('sample', '')
         v_person_id = sample_data.get('person_id', '')
@@ -249,14 +251,17 @@ def diagho_create_json_interpretations(input_file, output_file, vcfs_directory):
         v_is_affected_boolean = (v_is_affected == "Affected" or v_is_affected == 1)
         v_assignee = sample_data.get('assignee', '')
         
+        print(v_sample_id)
+        
         # Cas où le patient est tout seul : il est son propre cas index
-        if not v_father_id or not v_mother_id:
+        if not v_is_index and not v_father_id and not v_mother_id:
             v_is_index = 1
         
         # Cas index
-        if v_is_index:
+        print("v_is_index", v_is_index)
+        if v_is_index == "1":
             v_index_case_id = v_person_id
-            dict_index_case_by_family[v_family_id] = v_index_case_id
+            dict_index_case_by_family[v_family_id] = v_index_case_id        
         
         # Obtenir les informations du fichier VCF correspondant au pattern de la famille
         file_info = get_VCF_info(v_family_id, vcfs_directory)
