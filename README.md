@@ -30,10 +30,11 @@ source venv/bin/activate
 pip install -r requirements.txt
 
 # Copy config file
-cp config/.env.example config.env
 cp config/config.yaml.example config.yaml
 
 ```
+
+- Compléter le fichier `config.yaml`
 
 
 ## Utilisation
@@ -46,5 +47,10 @@ python diagho-uploader/file_watcher.py
 
 ```
 
-- Déposer un fichier "files.json" dans le répertoire **input_data**
+2 répertoires :
+- **input_biofiles** : va contenir les VCF.gz
+- **input_data** : va contenir les fichiers JSON (informations sur les échantillons)
+
+
+- Déposer un fichier **file.json** dans le répertoire **input_data**
 - **input_data** doit contenir aussi les fichiers JSON : families + interpretations (1 fichier par famille/interpretation)
