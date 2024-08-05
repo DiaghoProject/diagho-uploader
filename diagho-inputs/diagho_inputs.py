@@ -254,12 +254,15 @@ def diagho_create_json_interpretations(input_file, output_file, vcfs_directory):
         print(v_sample_id)
         
         # Cas où le patient est tout seul : il est son propre cas index
-        if not v_is_index and not v_father_id and not v_mother_id:
+        if (v_is_index == "" or v_is_index == 0) and not v_father_id and not v_mother_id:
             v_is_index = 1
         
         # Cas index
-        print("v_is_index", v_is_index)
-        if v_is_index == "1":
+        print("IS INDEX:", v_is_index)
+        print("v_is_index", type(v_is_index))
+        print("v_is_index", type(int(v_is_index)))
+        if int(v_is_index) == 1:
+            print("Cas index !!")
             v_index_case_id = v_person_id
             dict_index_case_by_family[v_family_id] = v_index_case_id        
         
@@ -279,9 +282,6 @@ def diagho_create_json_interpretations(input_file, output_file, vcfs_directory):
             "isAffected": v_is_affected_boolean,
             "checksum": checksum
         }
-        
-        #### POUR TEST !!!
-        v_assignee = "alokchine"
         
         # Insertion de la famille dans le dict_interpretations
         if v_family_id not in dict_interpretations:
@@ -381,19 +381,16 @@ def main():
     
     ## Familles
     output_file = os.path.join(output_directory, output_prefix + ".families.json")
-    # output_file = output_directory + "/" + output_prefix + ".families.json"
     diagho_create_json_families(file_json_simple, output_file)
     split_families_with_root(output_file, output_directory)
         
     ## Files
     output_file = os.path.join(output_directory, output_prefix + ".files.json")
-    # output_file = output_directory + "/" + output_prefix + ".files.json"
     diagho_create_json_files(file_json_simple, output_file, vcfs_directory)
     split_files_with_root(output_file, output_directory)
         
     ## Interprétations
     output_file = os.path.join(output_directory, output_prefix + ".files.json")
-    # output_file = output_directory + "/" + output_prefix +  ".interpretations.json"
     diagho_create_json_interpretations(file_json_simple, output_file, vcfs_directory)
     split_interpretations_with_root(output_file, output_directory)
     
