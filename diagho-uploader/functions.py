@@ -72,12 +72,12 @@ def pretty_print_json_string(string):
 # Send mail
 def send_mail(recipients: str, subject: str, content: str, config='config/config.yaml'):
     """
-    Send email.
+    Sends an email.
 
-    Arguments:
-        recipients : un ou plusieurs destinataires, séparés par des virgules
-        subject : objet du mail
-        content : contenu du mail
+    Args:
+        recipients (str): One or more recipients, separated by commas.
+        subject (str): Subject of the email.
+        content (str): Content of the email.
     """
     
     # Lire la configuration dans fichier YAML
@@ -129,13 +129,13 @@ def send_mail_info(recipients: str, content: str):
 # Calcul MD5
 def md5(filepath):
     """
-    Calcule le hash MD5 d'un fichier.
+    Computes the MD5 hash of a file.
 
-    Arguments:
-        filepath (str): Chemin absolu du fichier.
+    Args:
+        filepath (str): Absolute path to the file.
 
     Returns:
-        str: Le hash MD5 du fichier sous forme de chaîne hexadécimale, ou None en cas d'erreur. 
+        str: The MD5 hash of the file as a hexadecimal string, or None in case of an error.
     """
     function_name = inspect.currentframe().f_code.co_name
     
@@ -154,17 +154,17 @@ def md5(filepath):
 # Compare MD5  
 def check_md5sum(checksum1, checksum2):
     """
-    Compare deux sommes de contrôle MD5.
+    Compares two MD5 checksums.
 
     Args:
-        checksum1 (str): La première somme de contrôle MD5.
-        checksum2 (str): La deuxième somme de contrôle MD5.
+        checksum1 (str): The first MD5 checksum.
+        checksum2 (str): The second MD5 checksum.
 
     Returns:
-        bool: True si les sommes de contrôle MD5 sont identiques, sinon False.
+        bool: True if the MD5 checksums are identical, False otherwise.
 
     Raises:
-        ValueError: Si l'une des sommes de contrôle MD5 n'a pas la longueur attendue de 32 caractères.
+        ValueError: If either of the MD5 checksums does not have the expected length of 32 characters.
     """
     print("\nCompare MD5sum :")
     print("checksum1:", checksum1)
@@ -182,13 +182,13 @@ def check_md5sum(checksum1, checksum2):
 # Check JSON format
 def check_json_format(file_path):
     """
-    Vérifie si le fichier donné est bien formaté en JSON.
+    Checks if the given file is properly formatted in JSON.
 
     Args:
-        file_path (str): Chemin vers le fichier JSON à vérifier.
+        file_path (str): Path to the JSON file to check.
 
     Returns:
-        bool: True si le fichier est bien formaté en JSON, False sinon.
+        bool: True if the file is properly formatted in JSON, False otherwise.
     """
         
     try:
