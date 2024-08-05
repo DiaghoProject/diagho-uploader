@@ -258,11 +258,7 @@ def diagho_create_json_interpretations(input_file, output_file, vcfs_directory):
             v_is_index = 1
         
         # Cas index
-        print("IS INDEX:", v_is_index)
-        print("v_is_index", type(v_is_index))
-        print("v_is_index", type(int(v_is_index)))
         if int(v_is_index) == 1:
-            print("Cas index !!")
             v_index_case_id = v_person_id
             dict_index_case_by_family[v_family_id] = v_index_case_id        
         
