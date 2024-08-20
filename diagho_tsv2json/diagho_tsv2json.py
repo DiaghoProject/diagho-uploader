@@ -178,6 +178,7 @@ def diagho_create_json_files(input_file, output_file, vcfs_directory):
         v_sample_id = sample_info['sample']
         v_person_id = sample_info['person_id']
         v_family_id = sample_info['family_id']
+        v_bam_path = sample_info['bam_path']
         
         # Obtenir les informations du fichier VCF correspondant au pattern de la famille
         # file_info = get_VCF_info(v_family_id, vcfs_directory)
@@ -194,6 +195,7 @@ def diagho_create_json_files(input_file, output_file, vcfs_directory):
         dict_sample = {
             "name": v_sample_id,
             "person": v_person_id,
+            "bamPath": v_bam_path
         }
         
         filename = sample_info['filename']
