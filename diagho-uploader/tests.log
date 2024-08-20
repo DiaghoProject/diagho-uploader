@@ -1,0 +1,8 @@
+============================= test session starts ==============================
+platform linux -- Python 3.9.16, pytest-8.3.2, pluggy-1.5.0
+rootdir: /home/nouyou/pipelines/diagho-uploader
+collected 11 items
+
+diagho_uploader_test.py ...........                                      [100%]
+
+============================== 11 passed in 0.83s ==============================
