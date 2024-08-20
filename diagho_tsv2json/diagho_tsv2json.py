@@ -249,6 +249,7 @@ def diagho_create_json_interpretations(input_file, output_file, vcfs_directory):
         v_is_affected = sample_data.get('is_affected', '')
         v_is_affected_boolean = (v_is_affected == "Affected" or v_is_affected == 1)
         v_assignee = sample_data.get('assignee', '')
+        v_interpretation_title = sample_data.get('interpretation_title', '')
                 
         # Cas où le patient est tout seul : il est son propre cas index
         if (v_is_index == "" or v_is_index == 0) and not v_father_id and not v_mother_id:
@@ -307,15 +308,17 @@ def diagho_create_json_interpretations(input_file, output_file, vcfs_directory):
         # Mettre à jour le dict_interpretations avec dict_data
         dict_interpretations[v_family_id]['datas'] = [dict_data]
         
+        dict_interpretations[v_family_id]['title'] = v_interpretation_title
+        
         # Définir le titre de l'interprétation et le cas index
         if v_family_id in dict_index_case_by_family and dict_index_case_by_family[v_family_id]:
             v_index_case = dict_index_case_by_family[v_family_id]
-            if v_person_note:
-                v_interpretation_title = f"{v_index_case} - {v_person_note}"
-            else:
-                v_interpretation_title = f"{v_index_case}"
+            # if v_person_note:
+            #     v_interpretation_title = f"{v_index_case} - {v_person_note}"
+            # else:
+            #     v_interpretation_title = f"{v_index_case}"
             dict_interpretations[v_family_id]['indexCase'] = v_index_case
-            dict_interpretations[v_family_id]['title'] = v_interpretation_title
+            # dict_interpretations[v_family_id]['title'] = v_interpretation_title
         
         # Récupérer le slug du projet
         v_project_slug = v_project.lower().replace(" ", "-")
