@@ -17,7 +17,7 @@ TARGET_DIRECTORY="${DIR_DIAGHO}/DIAGHO-UPLOADER/input_data"
 # INPUT_FILE="/ngs/datagen/diagho/cytogen/input_files/TEST/test2.tsv"
 # DIR_VCFS="/ngs/datagen/diagho/DIAGHO-UPLOADER/input_biofiles"
 # OUTPUT_DIR="/ngs/datagen/diagho/cytogen/input_files/${BATCHID}/"
-# OUTPUT_PREFIX="${BATCHID}"
+# OUTPUT_PREFIX="${BATCHID}"s
 # TARGET_DIRECTORY="/ngs/datagen/diagho/DIAGHO-UPLOADER/input_data"
 
 
