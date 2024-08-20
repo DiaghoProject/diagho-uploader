@@ -180,15 +180,15 @@ def diagho_create_json_files(input_file, output_file, vcfs_directory):
         v_family_id = sample_info['family_id']
         
         # Obtenir les informations du fichier VCF correspondant au pattern de la famille
-        file_info = get_VCF_info(v_family_id, vcfs_directory)
+        # file_info = get_VCF_info(v_family_id, vcfs_directory)
         
-        if file_info:
-            filename = file_info['filename']
-            path = file_info['path']
-            checksum = md5(path)
-        else:
-            filename = ""
-            checksum = ""
+        # if file_info:
+        #     filename = file_info['filename']
+        #     path = file_info['path']
+        #     checksum = md5(path)
+        # else:
+        #     filename = ""
+        #     checksum = ""
         
         # Créer le dictionnaire pour le sample
         dict_sample = {
@@ -196,6 +196,8 @@ def diagho_create_json_files(input_file, output_file, vcfs_directory):
             "person": v_person_id,
         }
         
+        filename = sample_info['filename']
+        checksum = sample_info['checksum']
         # Si le fichier VCF n'est pas encore dans le dictionnaire des fichiers
         if filename not in dict_files:
             dict_files[filename] = {
@@ -261,15 +263,17 @@ def diagho_create_json_interpretations(input_file, output_file, vcfs_directory):
             dict_index_case_by_family[v_family_id] = v_index_case_id        
         
         # Obtenir les informations du fichier VCF correspondant au pattern de la famille
-        file_info = get_VCF_info(v_family_id, vcfs_directory)
-        if file_info:
-            filename = file_info['filename']
-            path = file_info['path']
-            checksum = md5(path)
-        else:
-            filename = ""
-            checksum = ""
+        # file_info = get_VCF_info(v_family_id, vcfs_directory)
+        # if file_info:
+        #     filename = file_info['filename']
+        #     path = file_info['path']
+        #     checksum = md5(path)
+        # else:
+        #     filename = ""
+        #     checksum = ""
         
+        filename = sample_data.get('filename')
+        checksum = sample_data.get('checksum')
         # Créer le dictionnaire pour le sample
         dict_sample_interpretation = {
             "name": v_sample_id,
