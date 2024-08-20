@@ -1,6 +1,18 @@
 #! /bin/bash
 source /home/${USER}/miniconda3/etc/profile.d/conda.sh
+
+###########################
+# Env python :
 conda activate python-3.10
+
+# Ou :
+# Create venv
+python -m venv venv
+# Activate venv
+source venv/bin/activate
+# Install dependences
+pip install -r requirements.txt
+###########################
 
 # Arguments:
 BATCHID="TEST"                                                              # utilisé pour nommer les fichiers de sortie
