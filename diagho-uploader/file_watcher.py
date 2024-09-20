@@ -11,11 +11,11 @@ from process_file import *
 
 import logging
 logging.basicConfig(
-    level=logging.DEBUG,                     # Définir le niveau de log minimum
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', # Format du message
+    level=logging.DEBUG,                                                # Définir le niveau de log minimum
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',      # Format du message
     handlers=[
-        logging.FileHandler('app.log'),     # Enregistrer les logs dans un fichier
-        logging.StreamHandler()             # Afficher les logs sur la console
+        logging.FileHandler('app.log'),                                 # Enregistrer les logs dans un fichier
+        logging.StreamHandler()                                         # Afficher les logs sur la console
     ]
 )
 
@@ -41,7 +41,7 @@ class MyHandler(FileSystemEventHandler):
             send_mail_info(recipients, content)
             ## -----------------------
             
-            if file_path.endswith('.tsv') or file_path.endswith('.file.json'):
+            if file_path.endswith('.tsv') or file_path.endswith('.file.json') or file_path.endswith('.files.json'):
                 print(("File format : TSV or JSON"))
                 self.copy_file(file_path)
                 
@@ -87,18 +87,22 @@ def load_config(config_file):
     return config
 
 def main():
+    # Load configuration file
     config = load_config("config/config.yaml")
+    
+    # Directories : JSON files, VCFs/BEDs file, backup
     path_input = config.get("input_data", ".")
     path_biofiles = config.get("input_biofiles", ".")
     path_backup = config.get("backup_data_files")
     if not os.path.exists(path_backup):
         os.makedirs(path_backup)
 
-
+    # Define wtacher
     event_handler = MyHandler(target_directory=path_backup, path_biofiles=path_biofiles, config=config)
     observer = Observer()
     observer.schedule(event_handler, path_input, recursive=False)
 
+    # Start wtacher
     observer.start()
     print(f"Watching directory: {path_input}")
     try:
