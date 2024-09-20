@@ -7,6 +7,7 @@ import os
 import time
 import inspect
 import yaml
+import re
 
 from functions import * 
 
@@ -260,7 +261,7 @@ def diagho_api_post_login(config):
         return {"error": str(e)}
 
 
-# POST api/v1/bio_files/files/
+# POST api/v1/bio_files/files/snv/
 def diagho_api_post_biofile(url, file_path, accession_id, config):
     """
     Requête POST pour se uploader un bio_file.
@@ -292,35 +293,62 @@ def diagho_api_post_biofile(url, file_path, accession_id, config):
     data = {
         'accession': accession_id
     }
+    
     try:
         response = requests.post(url, headers=headers, files=files, data=data)
-        response.raise_for_status()  # Vérifie si la requête a réussi (statut 200)
+        print(response.text)
+        # response.raise_for_status()  # Vérifie si la requête a réussi (statut 200)
         time.sleep(3) # sleep 3s 
         try:
             response_json = response.json()
-            checksum = response_json.get('checksum')
-            if checksum:
+                        
+            if isinstance(response_json, dict):
+                # return response.text
+                checksum = response_json.get('checksum')
                 return {"checksum": checksum}
             else:
+                # Fichier déjà envoyer, récupérer son id
+                match = re.search(r'ID:\s*(\d+)', response.text)
+                if match:
+                    file_id = match.group(1)
+                    print(f"ID récupéré : {file_id}")
+                    
+                    url2 = "http://lx026:8080/api/v1/bio_files/files"
+                    # TODO #16 mettre ça en config
+                    url_with_params = f"{url2}/{file_id}"
+                    response2 = requests.get(url_with_params, headers=headers)
+                    response2_json = response2.json()
+                    checksum = response2_json.get('checksum')
+                    
+                    return {"checksum": checksum}
+                else:
+                    print("Aucun ID de fichier trouvé dans la réponse.")
+                
                 content = f"FUNCTION: {function_name}:\n\nError: No checksum in response"
                 alert(content, config)
+                print(content)
                 return {"error": "No checksum in response"}
         except ValueError:
             content = f"FUNCTION: {function_name}:\n\nError: Response is not in JSON format"
             alert(content, config)
+            print(content)
             return {"error": "Response is not in JSON format"}
     except requests.exceptions.HTTPError as err:
         content = f"FUNCTION: {function_name}:\n\nHTTP Error: {str(err)}"
         alert(content, config)
+        print(content)
         return {"error": str(err)}  # Retourner une erreur HTTP si la requête échoue
     except requests.exceptions.RequestException as e:
         content = f"FUNCTION: {function_name}:\n\nRequest Error: {str(e)}"
         alert(content, config)
+        print(content)
         return {"error": str(e)}
     except Exception as e:
         content = f"FUNCTION: {function_name}:\n\nUnexpected Error: {str(e)}"
         alert(content, config)
+        print(content)
         return {"error": str(e)}
+
 
 
 # GET api/v1/bio_files/files/ --> loading
@@ -350,8 +378,11 @@ def diagho_api_get_loadingstatus(url, checksum, config):
     # Construire l'URL avec le paramètre checksum
     url_with_params = f"{url}?checksum={checksum}"
     
+    print("url_with_params:", url_with_params)
+    
     try:
         response = requests.get(url_with_params, headers=headers)
+        print(response.text)
         response.raise_for_status()  # Vérifie si la requête a réussi (statut 200)
         
         try:
