@@ -10,21 +10,12 @@ import yaml
 
 from functions import * 
 
-
-config_file = "config/config.yaml"
-
-def load_config(config_file):
-    with open(config_file, 'r') as file:
-        config = yaml.safe_load(file)
-    return config
-
-def alert(content: str):
-    config = load_config(config_file)
+def alert(content: str, config):
     recipients = config['emails']['recipients']
     send_mail_alert(recipients, content)
 
 # GET /api/v1/healthcheck 
-def diagho_api_test(config_file, exit_on_error=False):
+def diagho_api_test(config, exit_on_error=False):
     """
     Tests the health of the API by performing a GET request to the URL.
 
@@ -35,12 +26,11 @@ def diagho_api_test(config_file, exit_on_error=False):
     Returns:
         bool: True if the request is successful (status code 200), False otherwise.
     """
-    config = load_config(config_file)
     url = config['diagho_api']['healthcheck']
     try:
         response = requests.get(url)
         response.raise_for_status() # Raises an HTTPError for bad responses (4xx or 5xx)
-        print(">>> OK")
+        print(">>> API CONNECTION : OK")
         return True
     except requests.exceptions.HTTPError as http_err:
         print(">>> ERROR: HTTP error occurred.")
@@ -55,13 +45,12 @@ def diagho_api_test(config_file, exit_on_error=False):
     return False
 
 
-def diagho_api_login(config_file):
+def diagho_api_login(config):
     """
     Gère le processus de connexion à l'API Diagho.
-
     Cette fonction vérifie si l'utilisateur est déjà connecté en utilisant un access token.
     Si l'utilisateur n'est pas connecté, elle appelle diagho_api_post_login pour se connecter.
-
+    
     Args:
         config_file (str): Chemin vers le fichier de configuration contenant les informations de connexion.
 
@@ -72,44 +61,44 @@ def diagho_api_login(config_file):
     
     try:
         # Charger les informations de configuration
-        config = load_config(config_file)
         username = config['diagho_api']['username']
         password = config['diagho_api']['password']
         
         # Validation des identifiants
         if not username or not password:
             content = f"FUNCTION: {function_name}:\n\nError: Username or password is missing"
-            alert(content)
+            alert(content, config)
             return {"error": "Username or password is missing"}
-        
+        else:
+            print("Username and Password are OK.")
         # Obtenir l'access token actuel
-        access_token = get_access_token()
-        
+        access_token = get_access_token(config)
+                
         # Vérifier si l'utilisateur est déjà connecté
-        if diagho_api_get_connected_user(config_file, access_token):
+        if diagho_api_get_connected_user(config, access_token):
             print("User already connected.")
             return {"status": "User already connected"}
         else:
             # Tenter une nouvelle connexion
-            return diagho_api_post_login(config_file)
+            return diagho_api_post_login(config)
         
     except FileNotFoundError:
         content = f"FUNCTION: {function_name}:\n\nError: Configuration file not found"
-        alert(content)
+        alert(content, config)
         return {"error": "Configuration file not found"}
     except KeyError as e:
         content = f"FUNCTION: {function_name}:\n\nError: Missing key in configuration - {str(e)}"
-        alert(content)
+        alert(content, config)
         return {"error": f"Missing key in configuration: {str(e)}"}
     except Exception as e:
         content = f"FUNCTION: {function_name}:\n\nUnexpected Error: {str(e)}"
-        alert(content)
+        alert(content, config)
         return {"error": f"Unexpected error: {str(e)}"}
         
     
 
 # GET /api/v1/accounts/users/me/
-def diagho_api_get_connected_user(config_file, access_token):
+def diagho_api_get_connected_user(config, access_token):
     """
     Vérifie si l'utilisateur connecté à l'API est le même que celui spécifié dans la configuration.
 
@@ -123,7 +112,6 @@ def diagho_api_get_connected_user(config_file, access_token):
     Raises:
         Exception: Si une erreur se produit lors de la récupération des informations utilisateur ou de la configuration.
     """
-    config = load_config(config_file)
     url = config['diagho_api']['get_user']
     if not access_token:
         return {"error": "No access token available"}
@@ -138,7 +126,6 @@ def diagho_api_get_connected_user(config_file, access_token):
         user_data = response.json()
         user_username = user_data.get('username')
         
-        config = load_config(config_file)
         username = config['diagho_api']['username']
         
         if user_username == username:
@@ -179,7 +166,7 @@ def store_tokens(tokens, filename='tokens.json'):
         return {"error": str(e)}
 
        
-def get_access_token(filename='tokens.json'):
+def get_access_token(config, filename='tokens.json'):
     """
     Charge les tokens depuis un fichier JSON.
 
@@ -190,10 +177,10 @@ def get_access_token(filename='tokens.json'):
         dict: Dictionnaire contenant les tokens chargés.
     """
     if not os.path.isfile(filename):
+        print("bb")
         print("Token not found... Re-authentification...")
-        config = load_config(config_file)
         url = config['diagho_api']['login']
-        diagho_api_post_login(config_file)
+        diagho_api_post_login(config)
         
     try:
         with open(filename, 'r') as file:
@@ -209,7 +196,7 @@ def get_access_token(filename='tokens.json'):
     except Exception as e:
         return {"error": str(e)}
         
-def diagho_api_post_login(config_file):
+def diagho_api_post_login(config):
     """
     Requête POST pour se connecter à l'API et stocke la réponse dans un fichier JSON.
 
@@ -223,7 +210,6 @@ def diagho_api_post_login(config_file):
     """
     function_name = inspect.currentframe().f_code.co_name
     
-    config = load_config(config_file)
     username = config['diagho_api']['username']
     password = config['diagho_api']['password']
     url = config['diagho_api']['login']
@@ -231,7 +217,7 @@ def diagho_api_post_login(config_file):
     # Validation des paramètres
     if not username or not password:
         content = f"FUNCTION: {function_name}:\n\nError: Username or password is missing"
-        alert(content)
+        alert(content, config)
         return {"error": "Username or password is missing"}
     
     headers = {
@@ -253,29 +239,29 @@ def diagho_api_post_login(config_file):
             return response_json
         except ValueError:
             content = f"FUNCTION: {function_name}:\n\nError: Response is not in JSON format"
-            alert(content)
+            alert(content, config)
             return {"error": "Response is not in JSON format"}
         except Exception as e:
             content = f"FUNCTION: {function_name}:\n\nError: Failed to store tokens - {str(e)}"
-            alert(content)
+            alert(content, config)
             return {"error": "Failed to store tokens"}
         
     except requests.exceptions.HTTPError as err:
         content = f"FUNCTION: {function_name}:\n\nHTTP Error: {str(err)}"
-        alert(content)
+        alert(content, config)
         return {"error": str(err)}
     except requests.exceptions.RequestException as e:
         content = f"FUNCTION: {function_name}:\n\nRequest Error: {str(e)}"
-        alert(content)
+        alert(content, config)
         return {"error": str(e)}
     except Exception as e:
         content = f"FUNCTION: {function_name}:\n\nUnexpected Error: {str(e)}"
-        alert(content)
+        alert(content, config)
         return {"error": str(e)}
 
 
 # POST api/v1/bio_files/files/
-def diagho_api_post_biofile(url, file_path, accession_id):
+def diagho_api_post_biofile(url, file_path, accession_id, config):
     """
     Requête POST pour se uploader un bio_file.
 
@@ -289,7 +275,7 @@ def diagho_api_post_biofile(url, file_path, accession_id):
     """
     function_name = inspect.currentframe().f_code.co_name
     
-    access_token = get_access_token()
+    access_token = get_access_token(config)
     if not access_token:
         return {"error": "No access token available"}
     
@@ -317,28 +303,28 @@ def diagho_api_post_biofile(url, file_path, accession_id):
                 return {"checksum": checksum}
             else:
                 content = f"FUNCTION: {function_name}:\n\nError: No checksum in response"
-                alert(content)
+                alert(content, config)
                 return {"error": "No checksum in response"}
         except ValueError:
             content = f"FUNCTION: {function_name}:\n\nError: Response is not in JSON format"
-            alert(content)
+            alert(content, config)
             return {"error": "Response is not in JSON format"}
     except requests.exceptions.HTTPError as err:
         content = f"FUNCTION: {function_name}:\n\nHTTP Error: {str(err)}"
-        alert(content)
+        alert(content, config)
         return {"error": str(err)}  # Retourner une erreur HTTP si la requête échoue
     except requests.exceptions.RequestException as e:
         content = f"FUNCTION: {function_name}:\n\nRequest Error: {str(e)}"
-        alert(content)
+        alert(content, config)
         return {"error": str(e)}
     except Exception as e:
         content = f"FUNCTION: {function_name}:\n\nUnexpected Error: {str(e)}"
-        alert(content)
+        alert(content, config)
         return {"error": str(e)}
 
 
 # GET api/v1/bio_files/files/ --> loading
-def diagho_api_get_loadingstatus(url, checksum):
+def diagho_api_get_loadingstatus(url, checksum, config):
     """
     GET pour obtenir le loading_status du fichier (checksum).
 
@@ -352,7 +338,7 @@ def diagho_api_get_loadingstatus(url, checksum):
     """
     function_name = inspect.currentframe().f_code.co_name
     
-    access_token = get_access_token()
+    access_token = get_access_token(config)
     if not access_token:
         return {"error": "No access token available"}
     
@@ -372,36 +358,36 @@ def diagho_api_get_loadingstatus(url, checksum):
             results = response.json().get('results', [])
             if not results:
                 content = f"FUNCTION: {function_name}:\n\nError: No results found in response"
-                alert(content)
+                alert(content, config)
                 return {"error": "No results found in response"}
             
             loading = results[0].get('loading')
             if loading is None:
                 content = f"FUNCTION: {function_name}:\n\nError: 'loading' field not found in results"
-                alert(content)
+                alert(content, config)
                 return {"error": "'loading' field not found in results"}
             
             return {"loading": loading}
         except ValueError:
             content = f"FUNCTION: {function_name}:\n\nError: Response is not in JSON format"
-            alert(content)
+            alert(content, config)
             return {"error": str(e)}
     except requests.exceptions.HTTPError as err:
         content = f"FUNCTION: {function_name}:\n\nHTTP Error: {str(err)}"
-        alert(content)
+        alert(content, config)
         return {"error": str(err)}
     except requests.exceptions.RequestException as e:
         content = f"FUNCTION: {function_name}:\n\nRequest Error: {str(e)}"
-        alert(content)
+        alert(content, config)
         return {"error": str(e)}
     except Exception as e:
         content = f"FUNCTION: {function_name}:\n\nUnexpected Error: {str(e)}"
-        alert(content)
+        alert(content, config)
         return {"error": str(e)}
 
 
 # POST api/v1/configurations/configurations/
-def diagho_api_post_config(url, file):
+def diagho_api_post_config(url, file, config):
     """
     Requête POST pour se uploader un config_file (JSON).
     
@@ -414,7 +400,7 @@ def diagho_api_post_config(url, file):
     """
     function_name = inspect.currentframe().f_code.co_name
     
-    access_token = get_access_token()
+    access_token = get_access_token(config)
     if not access_token:
         return {"error": "No access token available"}
     
@@ -429,7 +415,7 @@ def diagho_api_post_config(url, file):
                 json_data = json.load(json_file)
             except json.JSONDecodeError:
                 content = f"FUNCTION: {function_name}:\n\nError: Config file '{file}' is not valid JSON"
-                alert(content)
+                alert(content, config)
                 return {"error": "Config file is not valid JSON"}
             
         response = requests.post(url, headers=headers, json=json_data)
@@ -441,14 +427,14 @@ def diagho_api_post_config(url, file):
             return {"status_code": response.status_code, "json_response": response.json()}
         except ValueError:
             content = f"FUNCTION: {function_name}:\n\nError: Response is not in JSON format"
-            alert(content)
+            alert(content, config)
             return {"error": "Response is not in JSON format"}
     except requests.exceptions.HTTPError as err:
         content = f"FUNCTION: {function_name}:\n\nHTTP Error: {str(err)}"
-        alert(content)
+        alert(content, config)
         return {"error": str(err)}  # Retourner une erreur HTTP si la requête échoue
     except requests.exceptions.RequestException as e:
         content = f"FUNCTION: {function_name}:\n\nRequest Error: {str(e)}"
-        alert(content)
+        alert(content, config)
         return {"error": str(e)}  # Retourner une erreur de requête si un autre problème survient
     
