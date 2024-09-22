@@ -3,6 +3,7 @@
 import json
 import pandas as pd
 import os
+import multiprocessing
 
 import time
 
@@ -47,6 +48,7 @@ def find_json_file(directory, search_value=None, file_type=None):
         
         # Lecture du fichier JSON
         try:
+            print("fichier à tester:", file_path)
             with open(file_path, 'r') as file:
                 data = json.load(file)
         except (IOError, json.JSONDecodeError) as e:
@@ -118,7 +120,41 @@ def get_files_infos(json_input):
         return {}
     
     
-   
+def process_biofile(config, biofile):
+    recipients = config['emails']['recipients']
+    get_biofile_max_retries = config['check_biofile']['max_retries']
+    get_biofile_delay = config['check_biofile']['delay']
+    
+    # Tant que le biofile n'existe pas...
+    # On boucle toutes les X secondes pendant un certain nombre de fois max
+    # attempt = 1
+    # while not os.path.exists(biofile) and attempt <= get_biofile_max_retries:
+    #     logging.warning(f"Biofile {biofile} not found, attempt {attempt}")
+    #     print("Wait biofile:", biofile, " ... tentative n°", attempt)
+    #     time.sleep(get_biofile_delay)
+    #     attempt += 1
+        
+    # # Si le biofile n'existe pas : alerte   
+    # if not os.path.exists(biofile):
+    #     content = f"Biofile: {biofile} does not exist."
+    #     logging.error(content)
+    #     send_mail_alert(recipients, content)
+    #     return
+    
+    print("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+    print("Biofile trouvé")
+    print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
+    print(f"Biofile {biofile} found.")
+    logging.info(f"Biofile {biofile} found.")
+        
+    # Récupérer le checksum du biofile
+    print("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+    print("Calcul du checksum")
+    print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
+    checksum_current_biofile = md5(biofile)    
+    print(f"Checksum : {checksum_current_biofile}")
+        
+       
 
 # Fonction principale : process JSON file
 def diagho_process_file(file, config):
@@ -163,7 +199,7 @@ def diagho_process_file(file, config):
     diagho_api_login(config)
     
     # Récup le token
-    access_token = get_access_token(config, 'tokens.json', )
+    access_token = get_access_token(config)
     print(f"Access token: {access_token}")
     logging.info(f"Access token: {access_token}")
     
@@ -233,6 +269,8 @@ def diagho_process_file(file, config):
             send_mail_alert(recipients, content)
             continue
         
+        # process_biofile(config, biofile)
+        
         print("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
         print("8. Biofile trouvé")
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
@@ -264,6 +302,13 @@ def diagho_process_file(file, config):
             content = f"BIOFILE: wrong format for file: {biofile}."
             logging.error(content)
             send_mail_alert(recipients, content)
+    
+    print(f"All biofiles have been loaded in Diagho")
+    
+    # Upload JSON file  
+    file_to_import = file
+    print("import file config: ", file_to_import)
+    diagho_api_post_config(config['diagho_api']['config'], file_to_import, config)
         
 
 def process_vcf_file(biofile, checksum_current_biofile, config, recipients, files_file, persons):
@@ -305,52 +350,65 @@ def process_vcf_file(biofile, checksum_current_biofile, config, recipients, file
     
     # Vérification du checksum du fichier uploadé avec le checksum calculé avant
     # Si OK : continuer
-    if check_md5sum(checksum_from_api, checksum_current_biofile):
-        print(f"Les checksum sont identiques")
-        
-        print("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-        print("11. Check du Loading Status")
-        print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
-        max_retries = config['check_loading']['max_retries']
-        delay = config['check_loading']['delay']
-        loading_status = check_loading_status(config, url_diagho_api_loading_status, checksum_current_biofile, max_retries, delay)
-        
-        if loading_status:
-            content = "Loading File = SUCCESS"
-            logging.info(content)
-            send_mail_info(recipients, content)
-            
-            time.sleep(10)
-            
-            # Traitement des fichiers de configuration
-            family_file = find_json_file(config['input_data'], persons, "family")
-            interp_file = find_json_file(config['input_data'], checksum_current_biofile, "interpretation")
-            
-            logging.info(f"Found family file: {family_file}")
-            logging.info(f"Found interpretation file: {interp_file}")
-            
-            if family_file:
-                diagho_api_post_config(config['diagho_api']['config'], family_file, config)
-                time.sleep(10)
-                copy_and_remove_file(family_file, config['backup_data_files'])
-            if files_file:
-                diagho_api_post_config(config['diagho_api']['config'], files_file, config)
-                time.sleep(10)
-                # copy_and_remove_file(files_file, config['backup_data_files'])
-            if interp_file:
-                diagho_api_post_config(config['diagho_api']['config'], interp_file, config)
-                time.sleep(10)
-                copy_and_remove_file(interp_file, config['backup_data_files'])
-            
-            # TODO #12 Après import des config : bouger les fichier dans le répertoire backup
-        else:
-            content = "Loading File = FAIL"
-            logging.error(content)
-            send_mail_alert(recipients, content)
-    else:
+    if not check_md5sum(checksum_from_api, checksum_current_biofile):
         content = "MD5 checksum mismatch."
         logging.error(content)
         send_mail_alert(recipients, content)
+        print(f"{content}")
+        return
+    
+    # if check_md5sum(checksum_from_api, checksum_current_biofile):
+    print(f"Les checksum sont identiques")
+        
+    print("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+    print("11. Check du Loading Status")
+    print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
+    
+    max_retries = config['check_loading']['max_retries']
+    delay = config['check_loading']['delay']
+    loading_status = check_loading_status(config, url_diagho_api_loading_status, checksum_current_biofile, max_retries, delay)
+        
+    if loading_status:
+        content = "Loading File = SUCCESS"
+        logging.info(content)
+        send_mail_info(recipients, content)
+        print(f"{content}")
+            
+        time.sleep(10)
+            
+            # Traitement des fichiers de configuration
+            # pretty_print_json_string(persons)
+            # family_file = find_json_file(config['input_data'], persons, "family")
+            # interp_file = find_json_file(config['input_data'], checksum_current_biofile, "interpretation")
+            
+            # file_to_import = files_file
+            # print("import file config: ", file_to_import)
+            # diagho_api_post_config(config['diagho_api']['config'], file_to_import, config)
+            
+            # logging.info(f"Found family file: {family_file}")
+            # logging.info(f"Found interpretation file: {interp_file}")
+            
+            # if family_file:
+            #     diagho_api_post_config(config['diagho_api']['config'], family_file, config)
+            #     time.sleep(10)
+            #     copy_and_remove_file(family_file, config['backup_data_files'])
+            # if files_file:
+            #     diagho_api_post_config(config['diagho_api']['config'], files_file, config)
+            #     time.sleep(10)
+            #     # copy_and_remove_file(files_file, config['backup_data_files'])
+            # if interp_file:
+            #     diagho_api_post_config(config['diagho_api']['config'], interp_file, config)
+            #     time.sleep(10)
+            #     copy_and_remove_file(interp_file, config['backup_data_files'])
+            
+    else:
+        content = "Loading File = FAIL"
+        logging.error(content)
+        send_mail_alert(recipients, content)
+    # else:
+    #     content = "MD5 checksum mismatch."
+    #     logging.error(content)
+    #     send_mail_alert(recipients, content)
                
 
 def process_bed_file(biofile, checksum_current_biofile, config, recipients, files_file, persons):
@@ -401,8 +459,8 @@ def process_bed_file(biofile, checksum_current_biofile, config, recipients, file
             send_mail_info(recipients, content)
             
             # POST config files
-            family_file = find_json_file(config['input_data'], persons, checksum_from_api, "family")
-            interp_file = find_json_file(config['input_data'], persons, checksum_from_api, "interpretation")
+            family_file = find_json_file(config['input_data'], persons, checksum_current_biofile, "family")
+            interp_file = find_json_file(config['input_data'], persons, checksum_current_biofile, "interpretation")
             
             logging.info(f"Family file found: {family_file}")
             logging.info(f"Interpretation file found: {interp_file}")
