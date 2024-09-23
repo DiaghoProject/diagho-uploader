@@ -264,6 +264,114 @@ def diagho_create_json_biofiles(input_file, output_file, biofiles_directory):
     write_final_JSON_file(dict_biofiles, "files", output_file)
 
 
+# Create JSON file : INTERPRETATION
+def diagho_create_json_interpretations(input_file, output_file, biofiles_directory):
+    """
+    Crée un fichier JSON contenant les informations d'interprétation pour chaque famille.
+    
+    Parameters:
+    - input_file: chemin du fichier JSON d'entrée contenant les informations des échantillons
+    - output_file: chemin du fichier JSON de sortie à générer
+    - vcfs_directory: répertoire où se trouvent les fichiers VCF
+    
+    """
+    # Charger les données d'entrée depuis le fichier JSON
+    with open(input_file, 'r') as f:
+        data = json.load(f)
+    
+    # Initialisation des structures de données
+    dict_interpretations = {}
+    dict_index_case_by_family = {}
+    
+    # Pour chaque échantillon dans les données
+    for sample, sample_data in data.items():
+        
+        # Récupérer les informations du sample
+        v_sample_id = sample_data.get('sample', '')
+        v_person_id = sample_data.get('person_id', '')
+        v_family_id = sample_data.get('family_id', '')
+        v_is_index = sample_data.get('is_index', 0)
+        v_biofile_type = sample_data.get('file_type', 0)
+        v_project = sample_data.get('project', '')
+        v_priority = sample_data.get('priority', '')
+        v_is_affected = sample_data.get('is_affected', '')
+        v_is_affected_boolean = (v_is_affected == "Affected" or v_is_affected == 1 or v_is_affected == "true"  or v_is_affected == "True")
+        v_assignee = sample_data.get('assignee', '')
+        v_interpretation_title = sample_data.get('interpretation_title', '')
+                
+        # Cas index
+        v_is_index = sample_data.get('is_index', '')
+        if v_is_index == "":
+            v_is_index = 0
+        if int(v_is_index) == 1:
+            v_index_case_id = v_person_id
+            dict_index_case_by_family[v_family_id] = v_index_case_id        
+        
+        # Calcul du checksum
+        filename = sample_data.get('filename', '')
+        biofile_path = os.path.join(biofiles_directory, filename)
+        checksum = md5(biofile_path)
+        
+        # Créer le dictionnaire pour le sample
+        dict_sample_interpretation = {
+            "name": v_sample_id,
+            "isAffected": v_is_affected_boolean,
+            "checksum": checksum
+        }
+        
+        # Insertion de la famille dans le dict_interpretations
+        if v_family_id not in dict_interpretations:
+            dict_interpretations[v_family_id] = {
+                "family": v_family_id,
+                "indexCase": "",
+                "project": "",
+                "title": "",
+                "assignee": v_assignee,
+                "priority": v_priority,
+                "datas": []
+            }
+        
+        # Initialiser ou récupérer la liste des samples dans le dict_data
+        if not dict_interpretations[v_family_id]['datas']:
+            list_samples_interpretation = []
+        else:
+            for data_entry in dict_interpretations[v_family_id]['datas']:
+                list_samples_interpretation = data_entry['samples']
+        
+        # Ajouter le sample courant à la liste
+        list_samples_interpretation.append(dict_sample_interpretation)
+                
+        # Mettre à jour dict_data avec la liste des samples
+        dict_data = {
+            "type": v_biofile_type,
+            # "title": "", # TODO #20 Voir comment inclure le titre de l'onglet si on part du TSV en input
+            "samples": list_samples_interpretation
+        }
+                
+        # Mettre à jour le dict_interpretations avec dict_data
+        dict_interpretations[v_family_id]['datas'] = [dict_data]
+        dict_interpretations[v_family_id]['title'] = v_interpretation_title
+        
+        # Définir le titre de l'interprétation et le cas index
+        if v_family_id in dict_index_case_by_family:
+            # récupérer le cas index pour la famille
+            v_index_case = dict_index_case_by_family[v_family_id]
+            dict_interpretations[v_family_id]['indexCase'] = v_index_case
+            
+            # si la colonne interpretation_title est vide, on met le numéro du cas index:
+            if v_interpretation_title == "":
+                dict_interpretations[v_family_id]['title'] = v_index_case
+        
+        # Récupérer le slug du projet
+        v_project_slug = v_project.lower().replace(" ", "-")
+        dict_interpretations[v_family_id]['project'] = v_project_slug
+        
+        # Supprimer les valeurs de chaîne de caractères vides
+        dict_interpretations[v_family_id] = remove_empty_keys(dict_interpretations[v_family_id])
+    
+    # Écrire le résultat dans un fichier JSON de sortie
+    write_final_JSON_file(dict_interpretations, "interpretations", output_file)
+
 if __name__ == '__main__':
     main()
     
