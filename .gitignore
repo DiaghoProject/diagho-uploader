@@ -19,3 +19,5 @@ config/config.yaml
 README.save.md
 nohup.out
 app.log
+logs/
+tokens.json
