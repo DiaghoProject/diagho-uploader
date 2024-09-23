@@ -285,6 +285,8 @@ def diagho_api_post_biofile(url, biofile_path, biofile_type, param, config):
     """
     function_name = inspect.currentframe().f_code.co_name
     
+    filename = os.path.basename(biofile_path)
+    
     access_token = get_access_token(config)
     if not access_token:
         return {"error": "No access token available"}   
@@ -293,55 +295,55 @@ def diagho_api_post_biofile(url, biofile_path, biofile_type, param, config):
     }
     
     if not os.path.isfile(biofile_path):
-        logging.getLogger("API_POST_BIOFILE").error(f"Biofile not found: {biofile_path}")
+        logging.getLogger("API_POST_BIOFILE").error(f"{filename} - Biofile not found: {biofile_path}")
         return {"error": "Biofile not found"}
     
     files = {
         'file': (os.path.basename(biofile_path), open(biofile_path, 'rb'), 'application/octet-stream')
     }
     if biofile_type == "SNV":
-        logging.getLogger("API_POST_BIOFILE").info(f"Biofile type: {biofile_type}")
-        logging.getLogger("API_POST_BIOFILE").info(f"Use accession_id: {param}")
+        logging.getLogger("API_POST_BIOFILE").info(f"{filename} - Biofile type: {biofile_type}")
+        logging.getLogger("API_POST_BIOFILE").info(f"{filename} - Use accession_id: {param}")
         data = {
             'accession': param
         }
     elif biofile_type == "CNV":
-        logging.getLogger("API_POST_BIOFILE").info(f"Biofile type: {biofile_type}")
-        logging.getLogger("API_POST_BIOFILE").info(f"Use assembly_name: {param}")
+        logging.getLogger("API_POST_BIOFILE").info(f"{filename} - Biofile type: {biofile_type}")
+        logging.getLogger("API_POST_BIOFILE").info(f"{filename} - Use assembly_name: {param}")
         data = {
             'assembly': param
         }
     else:
-        logging.getLogger("API_POST_BIOFILE").error(f"Invalid biofile_type.")
+        logging.getLogger("API_POST_BIOFILE").error(f"{filename} - Invalid biofile_type.")
         return {"error": "Unknown Biofile type"}
     
     try:
+        logging.getLogger("API_POST_BIOFILE").warning(f"{filename} - URL POST_BIOFILE: {url}")
         response = requests.post(url, headers=headers, files=files, data=data)
-        print(response.text)
         time.sleep(3)
         try:
             response_json = response.json()
             # Si le POST a réussi, on récupère un dict         
             if isinstance(response_json, dict):
                 checksum = response_json.get('checksum')
-                logging.getLogger("API_POST_BIOFILE").info(f"POST Biofile completed.")
-                logging.getLogger("API_POST_BIOFILE").info(f"Get checksum: {checksum}")
+                logging.getLogger("API_POST_BIOFILE").info(f"{filename} - POST Biofile completed.")
+                logging.getLogger("API_POST_BIOFILE").info(f"{filename} - Get checksum: {checksum}")
                 return {"checksum": checksum}
             else:
                 # Si fichier déjà envoyé précédemment, on récupère son ID
-                logging.getLogger("API_POST_BIOFILE").info(f"Biofile aloready uploaded.")
+                logging.getLogger("API_POST_BIOFILE").info(f"{filename} -  Biofile already uploaded.")
                 match = re.search(r'ID:\s*(\d+)', response.text)
                 if match:
                     file_id = match.group(1)
                     print(f"ID récupéré : {file_id}")
-                    logging.getLogger("API_POST_BIOFILE").info(f"Get file_id: {file_id}")
+                    logging.getLogger("API_POST_BIOFILE").info(f"{filename} - Get file_id: {file_id}")
                     
                     url_get_biofile = config['diagho_api']['get_biofile']
                     url_with_params = f"{url_get_biofile}/{file_id}"
                     response2 = requests.get(url_with_params, headers=headers)
                     response2_json = response2.json()
                     checksum = response2_json.get('checksum')
-                    logging.getLogger("API_POST_BIOFILE").info(f"Get checksum: {checksum}")
+                    logging.getLogger("API_POST_BIOFILE").info(f"{filename} - Get checksum: {checksum}")
                     return {"checksum": checksum}
                 else:
                     print("Aucun ID de fichier trouvé dans la réponse.")
@@ -391,6 +393,9 @@ def diagho_api_get_loadingstatus(url, checksum, config):
     
     # Construire l'URL avec le paramètre checksum
     url_with_params = f"{url}?checksum={checksum}"
+    print(url_with_params)
+    logging.getLogger("API_GET_LOADING_STATUS").warning(f"URL: {url_with_params}")
+
     
     try:
         response = requests.get(url_with_params, headers=headers)
