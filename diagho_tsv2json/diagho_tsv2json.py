@@ -181,15 +181,15 @@ def diagho_create_json_files(input_file, output_file, vcfs_directory):
         v_bam_path = sample_info['bam_path']
         
         # Obtenir les informations du fichier VCF correspondant au pattern de la famille
-        # file_info = get_VCF_info(v_family_id, vcfs_directory)
+        file_info = get_VCF_info(v_family_id, vcfs_directory)
         
-        # if file_info:
-        #     filename = file_info['filename']
-        #     path = file_info['path']
-        #     checksum = md5(path)
-        # else:
-        #     filename = ""
-        #     checksum = ""
+        if file_info:
+            filename = file_info['filename']
+            path = file_info['path']
+            checksum = md5(path)
+        else:
+            filename = ""
+            checksum = ""
         
         # Créer le dictionnaire pour le sample
         dict_sample = {
@@ -242,11 +242,14 @@ def diagho_create_json_interpretations(input_file, output_file, vcfs_directory):
         
         # Récupérer les informations du sample
         v_sample_id = sample_data.get('sample', '')
+        
+        print(v_sample_id)
         v_person_id = sample_data.get('person_id', '')
         v_family_id = sample_data.get('family_id', '')
         v_mother_id = sample_data.get('mother_id', '')
         v_father_id = sample_data.get('father_id', '')
         v_is_index = sample_data.get('is_index', 0)
+        v_biofile_type = sample_data.get('file_type', 0)
         v_person_note = sample_data.get('note', '')
         v_project = sample_data.get('project', '')
         v_priority = sample_data.get('priority', '')
@@ -255,24 +258,23 @@ def diagho_create_json_interpretations(input_file, output_file, vcfs_directory):
         v_assignee = sample_data.get('assignee', '')
         v_interpretation_title = sample_data.get('interpretation_title', '')
                 
-        # Cas où le patient est tout seul : il est son propre cas index
-        if (v_is_index == "" or v_is_index == 0) and not v_father_id and not v_mother_id:
-            v_is_index = 1
-        
         # Cas index
+        if v_is_index == "":
+            v_is_index = 0
+        
         if int(v_is_index) == 1:
             v_index_case_id = v_person_id
             dict_index_case_by_family[v_family_id] = v_index_case_id        
         
         # Obtenir les informations du fichier VCF correspondant au pattern de la famille
-        # file_info = get_VCF_info(v_family_id, vcfs_directory)
-        # if file_info:
-        #     filename = file_info['filename']
-        #     path = file_info['path']
-        #     checksum = md5(path)
-        # else:
-        #     filename = ""
-        #     checksum = ""
+        file_info = get_VCF_info(v_family_id, vcfs_directory)
+        if file_info:
+            filename = file_info['filename']
+            path = file_info['path']
+            checksum = md5(path)
+        else:
+            filename = ""
+            checksum = ""
         
         filename = sample_data.get('filename')
         checksum = sample_data.get('checksum')
@@ -307,7 +309,7 @@ def diagho_create_json_interpretations(input_file, output_file, vcfs_directory):
                 
         # Mettre à jour dict_data avec la liste des samples
         dict_data = {
-            "type": 0,  # TODO #1 Modifier le type si besoin 
+            "type": v_biofile_type,
             "samples": list_samples_interpretation
         }
                 
@@ -351,6 +353,7 @@ def combine_json_files(file_families, file_vcfs, file_interpretations, output_fi
     combined_data = {**data1, **data2, **data3}
     
     ## Ecrire le JSON
+    combined_data = clean_dict(combined_data)
     with open(output_file,'w') as formatted_file: 
         json.dump(combined_data, formatted_file, indent=4)
     print(f"Write file: {output_file}")
