@@ -9,15 +9,15 @@ from watchdog.events import FileSystemEventHandler
 
 from process_file import *
 
-import logging
-logging.basicConfig(
-    level=logging.DEBUG,                                                # Définir le niveau de log minimum
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',      # Format du message
-    handlers=[
-        logging.FileHandler('app.log'),                                 # Enregistrer les logs dans un fichier
-        logging.StreamHandler()                                         # Afficher les logs sur la console
-    ]
-)
+# import logging
+# # logging.basicConfig(
+# #     level=logging.DEBUG,                                                # Définir le niveau de log minimum
+# #     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',      # Format du message
+# #     handlers=[
+# #         logging.FileHandler('app.log'),                                 # Enregistrer les logs dans un fichier
+# #         logging.StreamHandler()                                         # Afficher les logs sur la console
+# #     ]
+# # )
 
 
 class MyHandler(FileSystemEventHandler):
@@ -33,7 +33,7 @@ class MyHandler(FileSystemEventHandler):
         else:
             file_path = event.src_path
             print(f"New file created: {file_path}")
-            logging.info(f"New file created: {file_path}")
+            # logging.info(f"New file created: {file_path}")
             
             ## TEST MAIL -----------------------
             recipients = self.config['emails']['recipients']
@@ -41,7 +41,7 @@ class MyHandler(FileSystemEventHandler):
             send_mail_info(recipients, content)
             ## -----------------------
             
-            if file_path.endswith('.tsv') or file_path.endswith('.file.json') or file_path.endswith('.files.json'):
+            if file_path.endswith('.tsv') or file_path.endswith('.json') :
                 print(("File format : TSV or JSON"))
                 self.copy_file(file_path)
                 
@@ -74,7 +74,7 @@ class MyHandler(FileSystemEventHandler):
     def process_file(self, file_path, config):
         print(f"Processing file: {file_path}")
         try:
-            logging.info(f"Processing file: {file_path}")
+            # logging.info(f"Processing file: {file_path}")
             diagho_process_file(file_path, config)
         except Exception as e:
             print(f"Failed to process file: {e}")
