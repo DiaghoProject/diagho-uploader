@@ -19,4 +19,3 @@ config/config.yaml
 README.save.md
 nohup.out
 app.log
-app*log
