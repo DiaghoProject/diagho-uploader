@@ -56,12 +56,14 @@ def main():
     diagho_create_json_families(file_json_simple, output_file)
         
     # Biofiles 
-    # output_file = os.path.join(output_directory, output_prefix + ".files.json")
-    # diagho_create_json_files(file_json_simple, output_file, vcfs_directory)
+    print(f"Create JSON file for biofiles" )
+    output_file = os.path.join(output_directory, output_prefix + ".biofiles.json")
+    diagho_create_json_biofiles(file_json_simple, output_file, vcfs_directory)
         
     # Interpretations
-    # output_file = os.path.join(output_directory, output_prefix + ".interpretations.json")
-    # diagho_create_json_interpretations(file_json_simple, output_file, vcfs_directory)
+    print(f"Create JSON file for interpretations" )
+    output_file = os.path.join(output_directory, output_prefix + ".interpretations.json")
+    diagho_create_json_interpretations(file_json_simple, output_file, vcfs_directory)
     
     
     # ####################################################
@@ -204,6 +206,62 @@ def diagho_create_json_families(input_file, output_file):
     # Écrire le fichier JSON final
     write_final_JSON_file(dict_families, "families", output_file)
 
+
+# Create JSON file : FILES
+def diagho_create_json_biofiles(input_file, output_file, biofiles_directory):
+    """
+    Crée un fichier JSON contenant les informations sur les fichiers VCF et les échantillons associés.
+    
+    Parameters:
+    - input_file: chemin du fichier JSON d'entrée contenant les informations des échantillons
+    - output_file: chemin du fichier JSON de sortie à générer
+    - vcfs_directory: répertoire où se trouvent les fichiers VCF
+    
+    """
+    # Charger les données d'entrée depuis le fichier JSON
+    with open(input_file, 'r') as f:
+        data = json.load(f)
+        
+    # Initialisation des structures de données
+    dict_biofiles = {}
+        
+    # Pour chaque échantillon dans les données
+    for sample_id, sample_data in data.items():
+        
+        # Récupérer les informations du sample
+        v_sample_id = sample_data.get('sample', '')
+        v_person_id = sample_data.get('person_id', '')
+        v_family_id = sample_data.get('family_id', '')
+        v_bam_path = sample_data.get('bam_path', '')
+        
+        # Calcul du checksum
+        filename = sample_data.get('filename', '')
+        biofile_path = os.path.join(biofiles_directory, filename)
+        checksum = md5(biofile_path)
+        
+        # Créer le dictionnaire pour le sample
+        dict_sample = {
+            "name": v_sample_id,
+            "person": v_person_id,
+            "bamPath": v_bam_path
+        }
+        
+        # Supprimer les valeurs vides du dictionnaire
+        dict_sample = remove_empty_keys(dict_sample)
+        
+        # Si le biofile n'est pas encore dans le dict_biofiles
+        if filename not in dict_biofiles:
+            dict_biofiles[filename] = {
+                "filename": filename,
+                "samples": [dict_sample],
+                "checksum": checksum
+            }
+        else:
+            # Ajouter le sample au fichier VCF existant
+            dict_biofiles[filename]["samples"].append(dict_sample)
+                
+    # Écrire le résultat dans un fichier JSON de sortie
+    write_final_JSON_file(dict_biofiles, "files", output_file)
 
 
 if __name__ == '__main__':
