@@ -258,6 +258,15 @@ def process_biofile(config, biofile, biofile_type, biofile_checksum, filename):
     if loading_status:
         logging.getLogger("PROCESSING_BIOFILE").info(f"{filename} - Loading Status = SUCCESS")
         time.sleep(10)
+        
+        # Move biofile in backup folder
+        # Chemin d'origine et chemin de destination
+        source_path = biofile
+        backup_path = config.get("backup_biofiles")
+        destination_path = os.path.join(backup_path, filename)
+        # Déplacer le fichier
+        shutil.move(source_path, destination_path)
+        logging.getLogger("PROCESSING_BIOFILE").warning(f"{filename} - Move biofile to {backup_path}")
     else:
         logging.getLogger("PROCESSING_BIOFILE").info(f"{filename} - Loading Status = FAIL")
 

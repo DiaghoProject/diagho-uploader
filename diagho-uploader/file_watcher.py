@@ -93,7 +93,7 @@ def main():
     # Directories : JSON files, VCFs/BEDs file, backup
     path_input = config.get("input_data", ".")
     path_biofiles = config.get("input_biofiles", ".")
-    path_backup = config.get("backup_data_files")
+    path_backup = config.get("backup_data")
     if not os.path.exists(path_backup):
         os.makedirs(path_backup)
 
