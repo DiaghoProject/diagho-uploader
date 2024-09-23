@@ -43,23 +43,23 @@ def main():
     vcfs_directory = args.vcfs_directory
     
     # STEP 1 : Create simple JSON file
+    print(f"Create simple JSON file" )
     file_json_simple = os.path.join(output_directory, output_prefix + ".simple.json")
-    print(f"Create simple JSON file: {file_json_simple}" )
+    print(f"Write file: {file_json_simple}" )
     diagho_tsv2json(input_file, file_json_simple) 
-   
     
-    # ####################################################
-    # # STEP 2
-    # ####################################################
-    # ## Familles
-    # output_file = os.path.join(output_directory, output_prefix + ".families.json")
-    # diagho_create_json_families(file_json_simple, output_file)
+    print("\n")
+    # STEP 2 : Create each JSON files
+    # Families
+    print(f"Create JSON file for families" )
+    output_file = os.path.join(output_directory, output_prefix + ".families.json")
+    diagho_create_json_families(file_json_simple, output_file)
         
-    # ## VCF Files
+    # Biofiles 
     # output_file = os.path.join(output_directory, output_prefix + ".files.json")
     # diagho_create_json_files(file_json_simple, output_file, vcfs_directory)
         
-    # ## Interprétations
+    # Interpretations
     # output_file = os.path.join(output_directory, output_prefix + ".interpretations.json")
     # diagho_create_json_interpretations(file_json_simple, output_file, vcfs_directory)
     
@@ -78,7 +78,7 @@ def main():
 
 
 
-# tsv2json
+# diagho_tsv2json
 def diagho_tsv2json(input_file, output_file, lowercase_keys=False, encoding='latin1'): 
     """
     Converts a TSV (Tab-Separated Values) file to a JSON file for Diagho.
@@ -97,25 +97,112 @@ def diagho_tsv2json(input_file, output_file, lowercase_keys=False, encoding='lat
     
     try:
         remove_trailing_empty_lines(input_file,encoding)
-        headers = validate_tsv_file(input_file, encoding)       
         
-        with open(input_file, 'r', encoding=encoding) as file:
-            file.readline()  # Skip the first line (header line)
-            
-            dict_final = {}
-            for line in file:
-                fields = line.strip().split('\t')
-                sample_id = fields[headers.index('sample')]
-                dict_sample = {headers[i]: fields[i] for i in range(len(headers))}
-                dict_final[sample_id] = dict_sample
+        # Validate header
+        required_headers = ['filename', 'checksum', 'file_type', 'sample', 'bam_path', 'family_id', 'person_id', 'father_id',
+                    'mother_id', 'sex', 'is_affected', 'last_name', 'first_name', 'date_of_birth', 'hpo', 
+                    'interpretation_title', 'is_index', 'project', 'assignee', 'priority', 'filter_tag', 'note']
+        if validate_tsv_headers(input_file, required_headers):
+            print("TSV headers are valid.")
+        else:
+            print("TSV headers are invalid.")
+    
+        # Read TSV file into a pandas DataFrame
+        df = pd.read_csv(input_file, delimiter='\t', encoding=encoding, dtype=str)  # dtype=str to keep empty fields
         
+        # Replace empty strings with None (optional, can be skipped if you prefer empty strings)
+        df = df.where(pd.notnull(df), "")
+        
+        # Convert DataFrame to dictionary with sample_id as key
+        dict_final = df.set_index('sample', drop=False).to_dict(orient='index')
+        
+        # Write the resulting dictionary to the output JSON file
         with open(output_file, 'w', encoding='utf-8') as output_file:
-            output_file.write(json.dumps(dict_final, indent=4))
+            json.dump(dict_final, output_file, indent=4, ensure_ascii=False)
     
     except ValueError as e:
         print(f"Error: {str(e)}")          
             
 
+# Create JSON file : FAMILIES
+def diagho_create_json_families(input_file, output_file):
+    """
+    Crée un fichier JSON contenant les informations sur les familles.
+    
+    Parameters:
+    - input_file: chemin du fichier JSON d'entrée contenant les informations des échantillons
+    - output_file: chemin du fichier JSON de sortie à générer
+    
+    """
+    # Charger les données à partir du fichier JSON d'entrée
+    with open(input_file, 'r') as f:
+        data = json.load(f)
+    
+    # Initialisation des structures de données
+    dict_families = {}
+    dict_index_case_by_family = {}
+    
+    # Parcourir chaque échantillon (sample) dans les données
+    for sample_id, sample_data in data.items():
+        
+        # Récupérer les informations du sample
+        v_sample_id = sample_data.get('sample', '')
+        v_person_id = sample_data.get('person_id', '')
+        v_family_id = sample_data.get('family_id', '')
+        v_sex = sample_data.get('sex', '').lower()
+        v_last_name = sample_data.get('last_name', '')
+        v_first_name = sample_data.get('first_name', '')
+        
+        # Gestion des caractères spéciaux dans le prénom
+        # v_first_name = replace_special_characters(v_first_name)
+        
+        # Date de naissance
+        dob_str = sample_data.get('date_of_birth', '')
+        v_date_of_birth = parse_date(dob_str)  # Fonction pour parser la date
+        
+        # id des parents
+        v_mother_id = sample_data.get('mother_id', '')
+        v_father_id = sample_data.get('father_id', '')
+        
+        # cas index
+        v_is_index = sample_data.get('is_index', False)
+        
+        # Gestion du cas index
+        if v_is_index:
+            # on récupère le person_id du cas index et on l'ajoute au dict_index_case_by_family
+            v_index_case_id = v_person_id
+            dict_index_case_by_family[v_family_id] = v_index_case_id
+        
+        v_person_note = sample_data.get('note', '')
+        
+        # Créer le dictionnaire représentant la personne
+        dict_person = {
+            "identifier": v_person_id,
+            "sex": v_sex,
+            "firstName": v_first_name,
+            "lastName": v_last_name,
+            "birthday": v_date_of_birth,
+            "motherIdentifier": v_mother_id,
+            "fatherIdentifier": v_father_id,
+            "note": v_person_note
+        }
+        
+        # Supprimer les valeurs vides du dictionnaire de la personne
+        dict_person = remove_empty_keys(dict_person)
+        
+        # Créer ou mettre à jour la famille dans le dictionnaire des familles
+        if v_family_id not in dict_families:
+            # Créer une nouvelle famille
+            dict_families[v_family_id] = {
+                "identifier": v_family_id,
+                "persons": [dict_person]
+            }
+        else:
+            # Ajouter la personne à une famille existante
+            dict_families[v_family_id]["persons"].append(dict_person)
+    
+    # Écrire le fichier JSON final
+    write_final_JSON_file(dict_families, "families", output_file)
 
 
 
