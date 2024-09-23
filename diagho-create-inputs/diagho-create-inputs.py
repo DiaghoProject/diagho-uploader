@@ -34,13 +34,13 @@ def main():
     parser.add_argument('--input_file', type=str, help="Path to the input file (TSV or JSON simple).")
     parser.add_argument('--output_directory', type=str, help="Path to the output directory.")
     parser.add_argument('--output_prefix', type=str, help="Prefix of the output JSON files.")
-    parser.add_argument('--vcfs_directory', type=str, help="Path to the VCFs directory.")
+    parser.add_argument('--biofiles_directory', type=str, help="Path to the Biofiles directory.")
     args = parser.parse_args()
     
     input_file = args.input_file
     output_directory = args.output_directory
     output_prefix = args.output_prefix
-    vcfs_directory = args.vcfs_directory
+    biofiles_directory = args.biofiles_directory
     
     # STEP 1 : Create simple JSON file
     print(f"Create simple JSON file" )
@@ -49,33 +49,27 @@ def main():
     diagho_tsv2json(input_file, file_json_simple) 
     
     print("\n")
+    
     # STEP 2 : Create each JSON files
     # Families
     print(f"Create JSON file for families" )
-    output_file = os.path.join(output_directory, output_prefix + ".families.json")
-    diagho_create_json_families(file_json_simple, output_file)
+    output_file_families = os.path.join(output_directory, output_prefix + ".families.json")
+    diagho_create_json_families(file_json_simple, output_file_families)
         
     # Biofiles 
     print(f"Create JSON file for biofiles" )
-    output_file = os.path.join(output_directory, output_prefix + ".biofiles.json")
-    diagho_create_json_biofiles(file_json_simple, output_file, vcfs_directory)
+    output_file_biofiles = os.path.join(output_directory, output_prefix + ".biofiles.json")
+    diagho_create_json_biofiles(file_json_simple, output_file_biofiles, biofiles_directory)
         
     # Interpretations
     print(f"Create JSON file for interpretations" )
-    output_file = os.path.join(output_directory, output_prefix + ".interpretations.json")
-    diagho_create_json_interpretations(file_json_simple, output_file, vcfs_directory)
+    output_file_interpretations = os.path.join(output_directory, output_prefix + ".interpretations.json")
+    diagho_create_json_interpretations(file_json_simple, output_file_interpretations, biofiles_directory)
     
     
-    # ####################################################
-    # # STEP 3
-    # ####################################################
-    # # Combine les 3 fichiers JSON
-    # file_families = os.path.join(output_directory, output_prefix + ".families.json")
-    # file_vcfs = os.path.join(output_directory, output_prefix + ".files.json")
-    # file_interpretations = os.path.join(output_directory, output_prefix + ".interpretations.json")
-    # output_file = os.path.join(output_directory, output_prefix + ".FINAL.json")
-    
-    # combine_json_files(file_families, file_vcfs, file_interpretations, output_file)
+    # STEP 3 : Combine the 3 JSON files
+    output_file = os.path.join(output_directory, output_prefix + ".FINAL.json")
+    combine_json_files(output_file_families, output_file_biofiles, output_file_interpretations, output_file)
 
 
 
@@ -371,6 +365,27 @@ def diagho_create_json_interpretations(input_file, output_file, biofiles_directo
     
     # Écrire le résultat dans un fichier JSON de sortie
     write_final_JSON_file(dict_interpretations, "interpretations", output_file)
+
+
+def combine_json_files(file_families, file_vcfs, file_interpretations, output_file):
+    
+    # Lire le contenu des trois fichiers JSON
+    with open(file_families, 'r') as f1:
+        data1 = json.load(f1)
+    with open(file_vcfs, 'r') as f2:
+        data2 = json.load(f2)
+    with open(file_interpretations, 'r') as f3:
+        data3 = json.load(f3)
+    
+    # Combiner les données des trois fichiers en un seul dictionnaire
+    combined_data = {**data1, **data2, **data3}
+    
+    ## Ecrire le JSON
+    combined_data = clean_dict(combined_data)
+    with open(output_file,'w') as formatted_file: 
+        json.dump(combined_data, formatted_file, indent=4)
+    print(f"Write combined file: {output_file}")
+
 
 if __name__ == '__main__':
     main()
