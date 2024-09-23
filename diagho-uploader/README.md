@@ -16,7 +16,7 @@ Si un nouveau fichier JSON ou TSV est détecté, demarrage du pipeline.
 ### diagho_process_file
 
 
-#### 1. Récupération de la configuration (chargement du fichier config.yaml)
+#### 1. Récupération de la configuration du pipeline (chargement du fichier config.yaml)
 
 - Récupère les valeurs définies dans la config 
   - URLs des endpoints
@@ -24,7 +24,7 @@ Si un nouveau fichier JSON ou TSV est détecté, demarrage du pipeline.
   - Temps/délai définis par défaut
   - etc.
 
-#### 2. Test de la conexion à l'API Diagho
+#### 2. Test de l'accès à l'API Diagho
 
 #### 3. Connexion API
 - Récupérer le token d'accès
@@ -37,16 +37,15 @@ Si un nouveau fichier JSON ou TSV est détecté, demarrage du pipeline.
 - checksum
 - samples et persons associés
 
-#### 6. Pour chaque filename
+#### 6. Pour chaque filename (biofile)
 - Récupère le chemin complet du *biofile* correspondant (dans **input_biofie**)
+- process_biofile
+
+#### 7. Process Biofile
 - Si le *biofile* n'existe pas : attendre (délai d'attente défini)
 - S'il existe : continuer
 - Calcul du checksum du *biofile*
-- Si c'est un VCF : **process_vcf**
-- Si c'est un BED : **process_bed**
-
-#### 7.1. Process VCF
-- POST du *biofile* 
+- POST du *biofile*  (SNV ou CNV, défini par *biofile_type*)
   - Récupération du checksum
 - Compare le checksum calculé précédemment avec le checksum renvoyé par l'API
   - Si différents --> problem !
@@ -55,15 +54,10 @@ Si un nouveau fichier JSON ou TSV est détecté, demarrage du pipeline.
   - Si statut == 0 --> échec du chargement
   - SI statut == 3 --> success, passer à la suite...
   - Autre statut : attendre et re-checker le statut
-- Quand le statut est à SUCCESS :
-- Récupérer les fichiers JSON (familles et interprétations) correspondants au *filename* en cours de traitement
-  - 2 fichiers à récupérer : *.families.json* et *.interpretations.json*
-- POST de chaque fichiers :
+
+#### 8. Import JSON file
+- Lorsque tous les *biofiles* sont importés
+- Import du fichier JSON qui contient toutes les infos :
   - families
-  - files (le JSON en cours de traitement)
+  - files
   - interpretations
-- Pour chacun de ces 3 fichiers : les déplacer dans le dossier **backup**
-
-
-#### 7.2. Process BED
-- TODO
