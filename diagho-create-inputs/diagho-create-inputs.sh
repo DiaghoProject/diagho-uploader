@@ -22,7 +22,8 @@ mkdir -p $OUTPUT_DIR
 BATCHID="TEST-GM"
 INPUT_DIR="/ngs/datagen/diagho/DIAGHO-CREATE-INPUTS/INPUTS"
 INPUT_FILE="${INPUT_DIR}/diagho_TEST-GM.tsv"
-DIR_VCFS="/ngs/datagen/diagho/DIAGHO-UPLOADER/input_biofiles"
+# DIR_BIOFILES="/ngs/datagen/diagho/DIAGHO-UPLOADER/input_biofiles"
+DIR_BIOFILES="/ngs/datagen/diagho/gm/input_vcfs"
 OUTPUT_DIR="/ngs/datagen/diagho/DIAGHO-CREATE-INPUTS/OUTPUTS/${BATCHID}"
 OUTPUT_PREFIX="${BATCHID}" 
 mkdir -p $OUTPUT_DIR
@@ -32,4 +33,4 @@ python ./diagho-create-inputs/diagho-create-inputs.py \
     --input_file $INPUT_FILE \
     --output_directory $OUTPUT_DIR \
     --output_prefix $OUTPUT_PREFIX \
-    --vcfs_directory $DIR_VCFS
+    --biofiles_directory $DIR_BIOFILES
