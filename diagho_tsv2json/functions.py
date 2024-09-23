@@ -135,6 +135,21 @@ def parse_date(date_str):
         # If parsing fails, return an empty string
         return ""
 
+# Pretty print json string
+def pretty_print_json_string(string):
+    """
+    Pretty print a JSON string.
+
+    Arguments:
+        json_str : str : The JSON string to be pretty printed.
+    """
+    try:
+        json_string = json.dumps(string)
+        json_dict = json.loads(json_string)
+        print(json.dumps(json_dict, indent = 1))
+    except json.JSONDecodeError as e:
+        print(f"Invalid JSON string: {e}")
+     
 
 def remove_empty_string_values(dict_data):
     """
@@ -149,7 +164,48 @@ def remove_empty_string_values(dict_data):
     # Fonction pour supprimer les valeurs vides (chaînes vides) d'un dictionnaire
     return {key: value for key, value in dict_data.items() if value != ""}
 
+def remove_empty_keys(d):
+    """
+    Supprime les clés avec des valeurs vides (None ou "") dans un dictionnaire.
 
+    Args:
+        d (dict): Le dictionnaire à nettoyer.
+
+    Returns:
+        dict: Le dictionnaire nettoyé.
+    """
+    return {k: v for k, v in d.items() if v not in [None, ""]}
+
+def clean_dict(d):
+    """
+    Fonction récursive pour supprimer les clés avec des valeurs vides dans un dictionnaire imbriqué.
+
+    Args:
+        d (dict): Dictionnaire à nettoyer.
+
+    Returns:
+        dict: Dictionnaire nettoyé sans clés ayant des valeurs vides.
+    """
+    if not isinstance(d, dict):
+        return d  # Si ce n'est pas un dictionnaire, retourne la valeur telle qu'elle
+
+    cleaned_dict = {}
+    for key, value in d.items():
+        # Si la valeur est un dictionnaire, on applique la récursion
+        if isinstance(value, dict):
+            nested = clean_dict(value)
+            if nested:  # Ajouter si le dictionnaire imbriqué n'est pas vide
+                cleaned_dict[key] = nested
+        # Si la valeur est une liste, on la nettoie aussi
+        elif isinstance(value, list):
+            nested_list = [clean_dict(item) for item in value if item or item == 0]  # Garder 0, supprimer les vides
+            if nested_list:
+                cleaned_dict[key] = nested_list
+        # Si la valeur n'est pas vide, on l'ajoute
+        elif value or value == 0:  # Garder les valeurs non nulles et 0
+            cleaned_dict[key] = value
+
+    return cleaned_dict
 
 def write_final_JSON_file(data_dict, key_name, output_file):
     """
