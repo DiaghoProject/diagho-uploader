@@ -15,15 +15,41 @@ import socket
 import yaml
 import re
 #---
+
 import logging
-logging.basicConfig(
-    level=logging.INFO,                     # Définir le niveau de log minimum
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', # Format du message
-    handlers=[
-        logging.FileHandler('app.log'),     # Enregistrer les logs dans un fichier
-        logging.StreamHandler()             # Afficher les logs sur la console
-    ]
-)
+from datetime import datetime
+
+# Générer un nom de fichier de log avec un horodatage
+# log_filename = datetime.now().strftime("app_%Y-%m-%d_%H-%M-%S.log")
+
+# logging.basicConfig(
+#     level=logging.INFO,                     # Définir le niveau de log minimum
+#     format='[%(asctime)s][%(levelname)s][%(name)s] %(message)s', # Format du message
+#     # format='[%(name)s][%(levelname)s][%(asctime)s] %(message)s', # Format du message
+#     handlers=[
+#         logging.FileHandler(log_filename),     # Enregistrer les logs dans un fichier
+#         # logging.StreamHandler()             # Afficher les logs sur la console
+#     ]
+# )
+
+def setup_logger():
+    # Générer un nom de fichier de log avec un horodatage
+    logs_directory = "logs"
+    if not os.path.exists(logs_directory):
+        os.makedirs(logs_directory)
+    log_filename = os.path.join(logs_directory, datetime.now().strftime("app_%Y-%m-%d_%H-%M-%S.log"))
+
+    # Configuration du logger
+    logging.basicConfig(
+        level=logging.INFO,
+        format='[%(asctime)s][%(levelname)s][%(name)s] %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S',
+        handlers=[
+            logging.FileHandler(log_filename),  # Nouveau fichier de log
+            logging.StreamHandler()
+        ]
+    )
+
 
 config_file = "config/config.yaml"
 
@@ -194,14 +220,14 @@ def check_json_format(file_path):
     try:
         with open(file_path, 'r', encoding='utf-8') as file:
             json.load(file)
-        logging.info(f"File: '{file_path}' is well-formatted.")
+        logging.getLogger("CHECK_JSON_FORMAT").info(f"File: '{file_path}' is well-formatted.")
         return True
     except json.JSONDecodeError as e:
-        logging.error(f"File: '{file_path}' is not well-formatted: {e}")
+        logging.getLogger("CHECK_JSON_FORMAT").error(f"File: '{file_path}' is not well-formatted: {e}")
         return False
     except FileNotFoundError:
-        logging.error(f"File: '{file_path}' was not found.")
+        logging.getLogger("CHECK_JSON_FORMAT").error(f"File: '{file_path}' was not found.")
         return False
     except Exception as e:
-        logging.error(f"An unexpected error occurred while checking the file '{file_path}': {e}")
+        logging.getLogger("CHECK_JSON_FORMAT").error(f"An unexpected error occurred while checking the file '{file_path}': {e}")
         return False
