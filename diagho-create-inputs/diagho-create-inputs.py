@@ -48,26 +48,26 @@ def main():
     print(f"Write file: {file_json_simple}" )
     diagho_tsv2json(input_file, file_json_simple) 
     
-    print("\n")
     
     # STEP 2 : Create each JSON files
     # Families
-    print(f"Create JSON file for families" )
+    print(f"\nCreate JSON file for families" )
     output_file_families = os.path.join(output_directory, output_prefix + ".families.json")
     diagho_create_json_families(file_json_simple, output_file_families)
         
     # Biofiles 
-    print(f"Create JSON file for biofiles" )
+    print(f"\nCreate JSON file for biofiles" )
     output_file_biofiles = os.path.join(output_directory, output_prefix + ".biofiles.json")
     diagho_create_json_biofiles(file_json_simple, output_file_biofiles, biofiles_directory)
         
     # Interpretations
-    print(f"Create JSON file for interpretations" )
+    print(f"\nCreate JSON file for interpretations" )
     output_file_interpretations = os.path.join(output_directory, output_prefix + ".interpretations.json")
     diagho_create_json_interpretations(file_json_simple, output_file_interpretations, biofiles_directory)
     
     
     # STEP 3 : Combine the 3 JSON files
+    print(f"\nCreate combined JSON file" )
     output_file = os.path.join(output_directory, output_prefix + ".FINAL.json")
     combine_json_files(output_file_families, output_file_biofiles, output_file_interpretations, output_file)
 
@@ -381,7 +381,7 @@ def combine_json_files(file_families, file_vcfs, file_interpretations, output_fi
     combined_data = {**data1, **data2, **data3}
     
     ## Ecrire le JSON
-    combined_data = clean_dict(combined_data)
+    combined_data = remove_empty_keys(combined_data)
     with open(output_file,'w') as formatted_file: 
         json.dump(combined_data, formatted_file, indent=4)
     print(f"Write combined file: {output_file}")
