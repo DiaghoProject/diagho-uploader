@@ -4,6 +4,8 @@ import json
 import pandas as pd
 import os
 import time
+from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
 
 from functions import * 
 from functions_diagho_api import *
@@ -22,7 +24,9 @@ def get_files_infos(json_input):
               contenant le checksum et une liste des identifiants de personnes associés.
     """
     try:
-        input_data = pd.read_json(json_input)
+        # input_data = pd.read_json(json_input)
+        with open(json_input, 'r') as json_file:
+            input_data = json.load(json_file)
         
         # Récup des infos dans un dict
         dict_files = {}
@@ -31,18 +35,25 @@ def get_files_infos(json_input):
             checksum = file['checksum']
             samples = file['samples']
             persons = []
+            print(filename)
             for sample in samples:
                 persons.append(sample["person"])
             dict_files[filename] = {
                 "checksum" : checksum,
                 "persons" : persons
             }
+        pretty_print_json_string(dict_files)
         return dict_files
 
     except ValueError as e:
         print(f"Erreur lors de la lecture du JSON: {e}")
         return {}
-       
+
+# Gère le traitement d'un biofile
+def process_biofile_task(config, biofile, biofile_type, checksum_current_biofile, file):
+    """Fonction qui gère le traitement d'un fichier bio (VCF ou BED)"""
+    logging.getLogger("PROCESSING_BIOFILE").info(f"Starting biofile processing: {biofile}")
+    process_biofile(config, biofile, biofile_type, checksum_current_biofile, file)       
 
 # Fonction principale : process JSON file
 def diagho_process_file(file, config):
@@ -63,7 +74,7 @@ def diagho_process_file(file, config):
     logging.getLogger("START_PROCESSING").info(f"New file detected.")
     logging.getLogger("START_PROCESSING").info(f"Processing file: {file}")
     
-    # Load configuration and URLs
+    # Load configuration
     print("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
     print("Load configuration")
     print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
@@ -85,12 +96,9 @@ def diagho_process_file(file, config):
     print("API Login")
     print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
     diagho_api_login(config)
+    # access_token = get_access_token(config)
     
-    # Get access tocken
-    access_token = get_access_token(config)
-    print(f"Access token: {access_token}")
-    
-    # Process input file
+    # Test file format
     print("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
     print("Test file format : TSV or JSON")
     print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
@@ -108,90 +116,90 @@ def diagho_process_file(file, config):
     print("Test JSON file format")
     print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
     if not check_json_format(file):
-        content = "Failed to process JSON input file."
-        logging.getLogger("CHECK_FORMAT").error(content)
-        send_mail_alert(recipients, content)
+        logging.getLogger("CHECK_FORMAT").error("Failed to process JSON input file.")
         return
     
     # Extract informations about biodiles from input_file
     print("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-    print("Get biodiles informations")
+    print("Get biofiles informations")
     print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
     dict_biofiles = get_files_infos(file)
     
     # Foreach filename...
     print("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-    print("Foreach Biofile...")
+    print("Process each Biofile...")
     print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
-    for filename, file_info in dict_biofiles.items():
-        biofile = os.path.join(path_biofiles, filename)
-        checksum = file_info["checksum"]
-        persons = file_info["persons"]
+    
+    # Paralléliser le traitement des biofiles
+    with ThreadPoolExecutor(max_workers=5) as executor:  # Utiliser 5 threads par exemple
+        futures = []
         
-        print(f"filename           : {filename}")
-        print(f"Processing biofile : {biofile}")
-        print(f"Persons            : {persons}")
+        for filename, file_info in dict_biofiles.items():
+            biofile = os.path.join(path_biofiles, filename)
+            checksum = file_info["checksum"]
+            print(f"filename           : {filename}")
+            print(f"Processing biofile : {biofile}")
 
-        logging.getLogger("PROCESSING_BIOFILE").info(f"Processing biofile: {biofile}")
+            logging.getLogger("PROCESSING_BIOFILE").info(f"Processing biofile: {filename}")
 
-        # Tant que le biofile n'existe pas...
-        # On boucle toutes les X secondes pendant un certain nombre de fois max
-        attempt = 1
-        while not os.path.exists(biofile) and attempt <= get_biofile_max_retries:
-            logging.getLogger("PROCESSING_BIOFILE").warning(f"Biofile {biofile} not found... attempt {attempt}")
-            time.sleep(get_biofile_delay)
-            attempt += 1
-        
-        # Si le biofile n'existe pas : alerte   
-        if not os.path.exists(biofile):
-            logging.getLogger("PROCESSING_BIOFILE").error(f"Biofile: {biofile} does not exist.")
-            continue
-
-        print("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-        print("Biofile found")
-        print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
-        print(f"Biofile {biofile} found.")
-        logging.getLogger("PROCESSING_BIOFILE").info(f"Biofile found: {biofile}")
-        
-        # Calculate biofile checksum
-        print("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-        print("Calculate biofile checksum")
-        print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
-        checksum_current_biofile = md5(biofile)
-        
-        print(f"Checksum : {checksum_current_biofile}")
-        logging.getLogger("PROCESSING_BIOFILE").info(f"Calculated checksum: {checksum_current_biofile}")
-        
-        # Si c'est un VCF :
-        if biofile.endswith('.vcf') or biofile.endswith('.vcf.gz'):
-            print("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-            print("Process VCF")
-            print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
-            biofile_type = "SNV"
-            process_biofile(config, biofile, biofile_type, checksum_current_biofile, file)
+            # Attendre que le biofile soit présent
+            attempt = 1
+            while not os.path.exists(biofile) and attempt <= get_biofile_max_retries:
+                logging.getLogger("PROCESSING_BIOFILE").warning(f"Biofile {biofile} not found... attempt {attempt}")
+                time.sleep(get_biofile_delay)
+                attempt += 1
             
-        # Si c'est un BED :
-        elif biofile.endswith('.bed'):
-            print("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-            print("Process BED")
-            print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
-            process_bed_file(biofile, checksum_current_biofile, config, recipients, file, persons)
-            
-        else:
-            content = f"BIOFILE: wrong format for file: {biofile}."
-            send_mail_alert(recipients, content)
+            # Si le biofile n'existe pas : alerte   
+            if not os.path.exists(biofile):
+                logging.getLogger("PROCESSING_BIOFILE").error(f"Biofile: {biofile} does not exist.")
+                continue
 
+            print("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+            print("Biofile found")
+            print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
+            print(f"Biofile {biofile} found.")
+            logging.getLogger("PROCESSING_BIOFILE").info(f"Biofile found: {biofile}")
+        
+            # Calculate biofile checksum
+            print("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+            print("Calculate biofile checksum")
+            print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
+            checksum_current_biofile = md5(biofile)
+            logging.getLogger("PROCESSING_BIOFILE").info(f"{filename} - Calculated checksum: {checksum_current_biofile}")
+        
+             # Créer une tâche pour chaque biofile
+            if biofile.endswith('.vcf') or biofile.endswith('.vcf.gz'):
+                print("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+                print("Process VCF")
+                print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
+                biofile_type = "SNV"
+                process_biofile(config, biofile, biofile_type, checksum_current_biofile, filename)
+                # futures.append(executor.submit(process_biofile_task, config, biofile, "SNV", checksum_current_biofile, filename))
+            elif biofile.endswith('.bed'):
+                print("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+                print("Process BED")
+                print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
+                biofile_type = "CNV"
+                logging.getLogger("PROCESSING_BIOFILE").error(f"{filename} - CNV import is not working.")
+                ## TODO #18 Attente correction du endpoint pour import des BED
+                # process_biofile(config, biofile, biofile_type, checksum_current_biofile, filename)
+                # futures.append(executor.submit(process_biofile_task, config, biofile, "CNV", checksum_current_biofile, filename))
+            else:
+                logging.getLogger("PROCESSING_BIOFILE").error(f"BIOFILE: wrong format for file: {biofile}.")
+        
+        # Attendre que toutes les tâches soient terminées
+        for future in futures:
+            future.result()
+        
     logging.getLogger("PROCESSING_BIOFILE").info(f"All biofiles have been loaded in Diagho")
     
     # Upload JSON file  
-    file_to_import = file
-    print("import file config: ", file_to_import)
     logging.getLogger("IMPORT_CONFIGURATIONS").info(f"Import JSON: {file}")
     # diagho_api_post_config(config['diagho_api']['config'], file_to_import, config)
 
 
 
-def process_biofile(config, biofile, biofile_type, biofile_checksum, json_file):
+def process_biofile(config, biofile, biofile_type, biofile_checksum, filename):
     """
     Processus de traitement pour les fichiers VCF ou BED.
 
@@ -215,27 +223,27 @@ def process_biofile(config, biofile, biofile_type, biofile_checksum, json_file):
     if biofile_type == "SNV":
         checksum_from_api = diagho_api_post_biofile(url_diagho_api_post_biofile_snv, biofile, biofile_type, accession_id, config).get('checksum')
         print(f"Checksum renvoyé par l'API : {checksum_from_api}")
-        logging.getLogger("PROCESSING_BIOFILE").info(f"VCF file")
-        logging.getLogger("PROCESSING_BIOFILE").info(f"Checksum from API: {checksum_from_api}")
+        logging.getLogger("PROCESSING_BIOFILE").info(f"{filename} - VCF file")
+        logging.getLogger("PROCESSING_BIOFILE").info(f"{filename} - Checksum from API: {checksum_from_api}")
     
     if biofile_type == "CNV":
         checksum_from_api = diagho_api_post_biofile(url_diagho_api_post_biofile_cnv, biofile, biofile_type, assembly, config).get('checksum')
         print(f"Checksum renvoyé par l'API : {checksum_from_api}")
-        logging.getLogger("PROCESSING_BIOFILE").info(f"BED file")
-        logging.getLogger("PROCESSING_BIOFILE").info(f"Checksum from API: {checksum_from_api}")
+        logging.getLogger("PROCESSING_BIOFILE").info(f"{filename} - BED file")
+        logging.getLogger("PROCESSING_BIOFILE").info(f"{filename} - Checksum from API: {checksum_from_api}")
         
     # Si l'upload ne fonctionne pas : alerte
     if not checksum_from_api or checksum_from_api is None:
-        logging.getLogger("PROCESSING_BIOFILE").error("Failed to upload biofile and obtain checksum from API.")
+        logging.getLogger("PROCESSING_BIOFILE").error(f"{filename} - Failed to upload biofile and obtain checksum from API.")
         return
 
     # Vérification du checksum du fichier uploadé avec le checksum calculé avant
     if not check_md5sum(checksum_from_api, biofile_checksum):
-        logging.getLogger("PROCESSING_BIOFILE").error("MD5 checksum mismatch.")
+        logging.getLogger("PROCESSING_BIOFILE").error(f"{filename} - MD5 checksum mismatch.")
         return
     
     # if check_md5sum(checksum_from_api, checksum_current_biofile):
-    logging.getLogger("PROCESSING_VCF").info(f"Checksums are identical. Continue.")
+    logging.getLogger("PROCESSING_BIOFILE").info(f"{filename} - Checksums are identical. Continue.")
         
     print("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
     print("Check Loading Status")
@@ -243,21 +251,21 @@ def process_biofile(config, biofile, biofile_type, biofile_checksum, json_file):
     
     max_retries = config['check_loading']['max_retries']
     delay = config['check_loading']['delay']
-    loading_status = check_loading_status(config, url_diagho_api_loading_status, biofile_checksum, max_retries, delay)
+    loading_status = check_loading_status(config, url_diagho_api_loading_status, biofile_checksum, filename, max_retries, delay)
     
-    logging.getLogger("PROCESSING_BIOFILE").info(f"Check loading status: {loading_status}")
+    logging.getLogger("PROCESSING_BIOFILE").info(f"{filename} - Check loading status: {loading_status}")
     
     if loading_status:
-        logging.getLogger("PROCESSING_BIOFILE").info(f"Loading Status = SUCCESS")
+        logging.getLogger("PROCESSING_BIOFILE").info(f"{filename} - Loading Status = SUCCESS")
         time.sleep(10)
     else:
-        logging.getLogger("PROCESSING_BIOFILE").info(f"Loading Status = FAIL")
+        logging.getLogger("PROCESSING_BIOFILE").info(f"{filename} - Loading Status = FAIL")
 
 
 
 
 # Check loading status
-def check_loading_status(config, url, checksum, max_retries, delay, attempt=0):
+def check_loading_status(config, url, checksum, filename, max_retries, delay, attempt=0):
     """
     Vérification du statut de chargement.
 
@@ -275,11 +283,11 @@ def check_loading_status(config, url, checksum, max_retries, delay, attempt=0):
     """
     # Get loading status :
     status = diagho_api_get_loadingstatus(url, checksum, config).get('loading')
-    logging.getLogger("PROCESSING_BIOFILE").info(f"Loading initial status: {status}")
+    logging.getLogger("PROCESSING_BIOFILE").info(f"{filename} - Loading initial status: {status}")
     
     while status not in [0, 3]:
-        print(f"\nTentative {attempt + 1}: Statut de chargement = {status}")
-        logging.getLogger("PROCESSING_BIOFILE").warning(f'Attempt {attempt + 1}: loading_status = {status} ... Retry...')
+        print(f"\n{filename} -  Tentative {attempt + 1}: Statut de chargement = {status}")
+        logging.getLogger("PROCESSING_BIOFILE").warning(f'{filename} - Attempt {attempt + 1}: loading_status = {status} ... Retry...')
 
         time.sleep(delay)
         
