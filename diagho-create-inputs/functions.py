@@ -264,4 +264,26 @@ def md5(filepath):
         print(f"Erreur lors de l'ouverture ou de la lecture du fichier : {e}")
         return None
 
+
+def get_file_type(input_file):
+    """
+    Determines the type of the input file based on its extension.
     
+    Parameters
+    ----------
+    input_file : str
+        The path to the input file.
+    
+    Returns
+    -------
+    str
+        The file type: 'tsv', 'json', or 'unknown'.
+    """
+    file_extension = os.path.splitext(input_file)[1].lower()  # Get the file extension and convert to lowercase
+    
+    if file_extension == '.tsv':
+        return 'tsv'
+    elif file_extension == '.json':
+        return 'json'
+    else:
+        return 'unknown'

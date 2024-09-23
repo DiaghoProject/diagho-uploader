@@ -42,12 +42,18 @@ def main():
     output_prefix = args.output_prefix
     biofiles_directory = args.biofiles_directory
     
-    # STEP 1 : Create simple JSON file
-    print(f"Create simple JSON file" )
-    file_json_simple = os.path.join(output_directory, output_prefix + ".simple.json")
-    print(f"Write file: {file_json_simple}" )
-    diagho_tsv2json(input_file, file_json_simple) 
+    ## TODO #21 En fonction du type de fichier en entrée : créer le JSON simple
+    input_file_type = get_file_type(input_file)
+    if input_file_type == 'tsv':
+        # STEP 1 : Create simple JSON file
+        print(f"Create simple JSON file" )
+        file_json_simple = os.path.join(output_directory, output_prefix + ".simple.json")
+        print(f"Write file: {file_json_simple}" )
+        diagho_tsv2json(input_file, file_json_simple) 
     
+    else:
+        # le fihcier d'input est le JSON simple
+        file_json_simple = input_file
     
     # STEP 2 : Create each JSON files
     # Families
