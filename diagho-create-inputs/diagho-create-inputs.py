@@ -52,7 +52,7 @@ def main():
         diagho_tsv2json(input_file, file_json_simple) 
     
     else:
-        # le fihcier d'input est le JSON simple
+        # le fichier d'input est le JSON simple
         file_json_simple = input_file
     
     # STEP 2 : Create each JSON files
@@ -103,7 +103,7 @@ def diagho_tsv2json(input_file, output_file, lowercase_keys=False, encoding='lat
         # Validate header
         required_headers = ['filename', 'checksum', 'file_type', 'sample', 'bam_path', 'family_id', 'person_id', 'father_id',
                     'mother_id', 'sex', 'is_affected', 'last_name', 'first_name', 'date_of_birth', 'hpo', 
-                    'interpretation_title', 'is_index', 'project', 'assignee', 'priority', 'filter_tag', 'note']
+                    'interpretation_title', 'is_index', 'project', 'assignee', 'priority', 'filter_tag', 'note', 'assembly', 'data_title']
         if validate_tsv_headers(input_file, required_headers):
             print("TSV headers are valid.")
         else:
@@ -233,11 +233,13 @@ def diagho_create_json_biofiles(input_file, output_file, biofiles_directory):
         v_person_id = sample_data.get('person_id', '')
         v_family_id = sample_data.get('family_id', '')
         v_bam_path = sample_data.get('bam_path', '')
+        assembly = sample_data.get('assembly', '')
         
         # Calcul du checksum
         filename = sample_data.get('filename', '')
         biofile_path = os.path.join(biofiles_directory, filename)
         checksum = md5(biofile_path)
+        
         
         # Créer le dictionnaire pour le sample
         dict_sample = {
@@ -254,7 +256,8 @@ def diagho_create_json_biofiles(input_file, output_file, biofiles_directory):
             dict_biofiles[filename] = {
                 "filename": filename,
                 "samples": [dict_sample],
-                "checksum": checksum
+                "checksum": checksum,
+                "assembly": assembly
             }
         else:
             # Ajouter le sample au fichier VCF existant
@@ -291,13 +294,14 @@ def diagho_create_json_interpretations(input_file, output_file, biofiles_directo
         v_person_id = sample_data.get('person_id', '')
         v_family_id = sample_data.get('family_id', '')
         v_is_index = sample_data.get('is_index', 0)
-        v_biofile_type = sample_data.get('file_type', 0)
+        v_biofile_type = sample_data.get('file_type', "SNV")
         v_project = sample_data.get('project', '')
         v_priority = sample_data.get('priority', '')
         v_is_affected = sample_data.get('is_affected', '')
         v_is_affected_boolean = (v_is_affected == "Affected" or v_is_affected == 1 or v_is_affected == "true"  or v_is_affected == "True")
         v_assignee = sample_data.get('assignee', '')
         v_interpretation_title = sample_data.get('interpretation_title', '')
+        v_data_title = sample_data.get('data_title', '')
                 
         # Cas index
         v_is_index = sample_data.get('is_index', '')
@@ -344,9 +348,11 @@ def diagho_create_json_interpretations(input_file, output_file, biofiles_directo
         # Mettre à jour dict_data avec la liste des samples
         dict_data = {
             "type": v_biofile_type,
-            # "title": "", # TODO #20 Voir comment inclure le titre de l'onglet si on part du TSV en input
+            "title": v_data_title,
             "samples": list_samples_interpretation
         }
+        
+        dict_data = remove_empty_keys(dict_data)
                 
         # Mettre à jour le dict_interpretations avec dict_data
         dict_interpretations[v_family_id]['datas'] = [dict_data]
