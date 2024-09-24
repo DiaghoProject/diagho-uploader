@@ -245,6 +245,8 @@ def diagho_api_post_login(config):
     try:
         response = requests.post(url, headers=headers, json=payload)
         response.raise_for_status()  # Lève une exception si le code de statut n'est pas 200
+        # TODO #23 tentatives + délai à faire
+        # TODO #24 test
         try:
             response_json = response.json()
             store_tokens(response_json)  # Stocker les tokens dans un fichier JSON
