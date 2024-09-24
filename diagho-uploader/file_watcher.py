@@ -97,12 +97,12 @@ def main():
     if not os.path.exists(path_backup):
         os.makedirs(path_backup)
 
-    # Define wtacher
+    # Define watcher
     event_handler = MyHandler(target_directory=path_backup, path_biofiles=path_biofiles, config=config)
     observer = Observer()
     observer.schedule(event_handler, path_input, recursive=False)
 
-    # Start wtacher
+    # Start watcher
     observer.start()
     print(f"Watching directory: {path_input}")
     try:
