@@ -1,5 +1,4 @@
 #!/usr/bin/python3
-# -*- coding: latin-1 -*-
 
 import json
 import hashlib
@@ -204,7 +203,7 @@ def remove_empty_keys(d):
 
 
 
-def write_final_JSON_file(data_dict, key_name, output_file):
+def write_final_JSON_file(data_dict, key_name, output_file, encoding='utf-8'):
     """
     Writes the values of a dictionary to a JSON file under a specified key.
 
@@ -214,8 +213,8 @@ def write_final_JSON_file(data_dict, key_name, output_file):
         output_file (str): The path to the output JSON file.
     """
     # Fonction pour écrire le dictionnaire de données dans un fichier JSON
-    with open(output_file, 'w') as f:
-        json.dump({key_name: list(data_dict.values())}, f, indent=4)
+    with open(output_file, 'w', encoding=encoding) as f:
+        json.dump({key_name: list(data_dict.values())}, f, ensure_ascii=False, indent=4)
     print(f"Write file: {output_file}")
         
         

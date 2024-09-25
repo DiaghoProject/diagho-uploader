@@ -1,5 +1,4 @@
 #!/usr/bin/python3
-# -*- coding: latin-1 -*-
 
 import argparse
 import csv
@@ -76,6 +75,8 @@ def main():
     print(f"\nCreate combined JSON file" )
     output_file = os.path.join(output_directory, output_prefix + ".FINAL.json")
     combine_json_files(output_file_families, output_file_biofiles, output_file_interpretations, output_file)
+    
+    # STEP 4 :
 
 
 
@@ -394,9 +395,11 @@ def combine_json_files(file_families, file_vcfs, file_interpretations, output_fi
     
     ## Ecrire le JSON
     combined_data = remove_empty_keys(combined_data)
-    with open(output_file,'w') as formatted_file: 
-        json.dump(combined_data, formatted_file, indent=4)
+    with open(output_file,'w', encoding='utf-8') as formatted_file: 
+        json.dump(combined_data, formatted_file, ensure_ascii=False, indent=4)
     print(f"Write combined file: {output_file}")
+    
+    ## TODO #26 remettre la fonction pour split par famille
 
 
 if __name__ == '__main__':
