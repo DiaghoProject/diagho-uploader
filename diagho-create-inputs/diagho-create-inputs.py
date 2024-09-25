@@ -76,7 +76,12 @@ def main():
     output_file = os.path.join(output_directory, output_prefix + ".FINAL.json")
     combine_json_files(output_file_families, output_file_biofiles, output_file_interpretations, output_file)
     
-    # STEP 4 :
+    # STEP 4 : Remove tmp JSON files
+    print(f"\nRemove tmp JSON files" )
+    os.remove(file_json_simple)
+    os.remove(output_file_families)
+    os.remove(output_file_biofiles)
+    os.remove(output_file_interpretations)
 
 
 
