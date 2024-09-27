@@ -19,7 +19,7 @@ def alert(content: str, config):
     send_mail_alert(recipients, content)
 
 # GET /api/v1/healthcheck 
-def diagho_api_healthcheck(config, exit_on_error=False):
+def diagho_api_healthcheck(diagho_api, exit_on_error=False):
     """
     Tests the health of the API by performing a GET request to the URL.
 
@@ -31,11 +31,13 @@ def diagho_api_healthcheck(config, exit_on_error=False):
         bool: True if the request is successful (status code 200), False otherwise.
     """
     function_name = inspect.currentframe().f_code.co_name
-    url = config['diagho_api']['healthcheck']
+    
+    url = diagho_api['healthcheck']
+
     try:
         response = requests.get(url)
         logging.getLogger("API_HEALTHCHECK").info(f"API healthcheck: OK.")
-        response.raise_for_status() # Raises an HTTPError for bad responses (4xx or 5xx)
+        response.raise_for_status()
         return True
     except requests.exceptions.HTTPError as http_err:
         print(f"Status code: {response.status_code}")
@@ -74,8 +76,6 @@ def diagho_api_login(config):
         # Validation des identifiants
         if not username or not password:
             logging.getLogger("API_LOGIN").error(f"FUNCTION: {function_name}:\n\nError: Username or password is missing")
-            content = f"FUNCTION: {function_name}:\n\nError: Username or password is missing"
-            alert(content, config)
             return {"error": "Username or password is missing"}
 
         # Obtenir l'access token actuel
@@ -84,32 +84,25 @@ def diagho_api_login(config):
         # Vérifier si l'utilisateur est déjà connecté
         if diagho_api_get_connected_user(config, access_token):
             logging.getLogger("API_LOGIN").info(f"User already connected.")
-            print("User already connected.")
             return {"status": "User already connected"}
         else:
             # Tenter une nouvelle connexion
             return diagho_api_post_login(config)
         
     except FileNotFoundError:
-        logging.getLogger("API_LOGIN").error(f"FUNCTION: {function_name}:\n\nError: Configuration file not found")
-        content = f"FUNCTION: {function_name}:\n\nError: Configuration file not found"
-        alert(content, config)
+        logging.getLogger("API_LOGIN").error(f"FUNCTION: {function_name}:Error: Configuration file not found")
         return {"error": "Configuration file not found"}
     except KeyError as e:
-        logging.getLogger("API_LOGIN").error(f"FUNCTION: {function_name}:\n\nError: Missing key in configuration - {str(e)}")
-        content = f"FUNCTION: {function_name}:\n\nError: Missing key in configuration - {str(e)}"
-        alert(content, config)
+        logging.getLogger("API_LOGIN").error(f"FUNCTION: {function_name}:Error: Missing key in configuration - {str(e)}")
         return {"error": f"Missing key in configuration: {str(e)}"}
     except Exception as e:
-        logging.getLogger("API_LOGIN").error(f"FUNCTION: {function_name}:\n\nUnexpected Error: {str(e)}")
-        content = f"FUNCTION: {function_name}:\n\nUnexpected Error: {str(e)}"
-        alert(content, config)
+        logging.getLogger("API_LOGIN").error(f"FUNCTION: {function_name}:Unexpected Error: {str(e)}")
         return {"error": f"Unexpected error: {str(e)}"}
         
     
 
 # GET /api/v1/accounts/users/me/
-def diagho_api_get_connected_user(config, access_token):
+def diagho_api_get_connected_user(config, access_token, diagho_api):
     """
     Vérifie si l'utilisateur connecté à l'API est le même que celui spécifié dans la configuration.
 
@@ -123,7 +116,8 @@ def diagho_api_get_connected_user(config, access_token):
     Raises:
         Exception: Si une erreur se produit lors de la récupération des informations utilisateur ou de la configuration.
     """
-    url = config['diagho_api']['get_user']
+    url = diagho_api['get_user']
+
     if not access_token:
         return {"error": "No access token available"}
     headers = {
@@ -210,7 +204,7 @@ def get_access_token(config, filename='tokens.json'):
         logging.getLogger("API_GET_ACCESS_TOKEN").error(f"{str(e)}")
         return {"error": str(e)}
         
-def diagho_api_post_login(config):
+def diagho_api_post_login(config, diagho_api):
     """
     Requête POST pour se connecter à l'API et stocke la réponse dans un fichier JSON.
 
@@ -226,7 +220,8 @@ def diagho_api_post_login(config):
     
     username = config['diagho_api']['username']
     password = config['diagho_api']['password']
-    url = config['diagho_api']['login']
+    
+    url = diagho_api['login']
     
     # Validation des paramètres
     if not username or not password:
@@ -245,8 +240,7 @@ def diagho_api_post_login(config):
     try:
         response = requests.post(url, headers=headers, json=payload)
         response.raise_for_status()  # Lève une exception si le code de statut n'est pas 200
-        # TODO #23 tentatives + délai à faire
-        # TODO #24 test  
+        # TODO #23 tentatives + délai à faire 
         try:
             response_json = response.json()
             store_tokens(response_json)  # Stocker les tokens dans un fichier JSON
@@ -259,21 +253,15 @@ def diagho_api_post_login(config):
             return {"error": "Failed to store tokens"}
         
     except requests.exceptions.HTTPError as err:
-        content = f"FUNCTION: {function_name}:\n\nHTTP Error: {str(err)}"
-        alert(content, config)
         return {"error": str(err)}
     except requests.exceptions.RequestException as e:
-        content = f"FUNCTION: {function_name}:\n\nRequest Error: {str(e)}"
-        alert(content, config)
         return {"error": str(e)}
     except Exception as e:
-        content = f"FUNCTION: {function_name}:\n\nUnexpected Error: {str(e)}"
-        alert(content, config)
         return {"error": str(e)}
 
 
 # POST api/v1/bio_files/files/snv/ ou api/v1/bio_files/files/cnv/
-def diagho_api_post_biofile(url, biofile_path, biofile_type, param, config):
+def diagho_api_post_biofile(url, biofile_path, biofile_type, param, config, diagho_api):
     """
     Requête POST pour uploader un biofile.
 
@@ -325,6 +313,7 @@ def diagho_api_post_biofile(url, biofile_path, biofile_type, param, config):
         time.sleep(3)
         try:
             response_json = response.json()
+            
             # Si le POST a réussi, on récupère un dict         
             if isinstance(response_json, dict):
                 checksum = response_json.get('checksum')
@@ -340,7 +329,7 @@ def diagho_api_post_biofile(url, biofile_path, biofile_type, param, config):
                     print(f"ID récupéré : {file_id}")
                     logging.getLogger("API_POST_BIOFILE").info(f"{filename} - Get file_id: {file_id}")
                     
-                    url_get_biofile = config['diagho_api']['get_biofile']
+                    url_get_biofile = diagho_api['get_biofile']
                     url_with_params = f"{url_get_biofile}/{file_id}"
                     response2 = requests.get(url_with_params, headers=headers)
                     response2_json = response2.json()
@@ -350,9 +339,6 @@ def diagho_api_post_biofile(url, biofile_path, biofile_type, param, config):
                 else:
                     print("Aucun ID de fichier trouvé dans la réponse.")
                 
-                content = f"FUNCTION: {function_name}:\n\nError: No checksum in response"
-                alert(content, config)
-                print(content)
                 return {"error": "No checksum in response"}
         except ValueError:
             logging.getLogger("API_POST_BIOFILE").error(f"FUNCTION: {function_name}:\n\nError: Response is not in JSON format")
@@ -406,22 +392,22 @@ def diagho_api_get_loadingstatus(url, checksum, config):
         try:
             results = response.json().get('results', [])
             if not results:
-                logging.getLogger("API_GET_LOADING_STATUS").error(f"FUNCTION: {function_name}:\n\nError: No results found in response")
+                logging.getLogger("API_GET_LOADING_STATUS").error(f"FUNCTION: {function_name}:Error: No results found in response")
                 return {"error": "No results found in response"}
             
             loading = results[0].get('loading')
             if loading is None:
-                logging.getLogger("API_GET_LOADING_STATUS").error(f"FUNCTION: {function_name}:\n\nError: 'loading' field not found in results")
+                logging.getLogger("API_GET_LOADING_STATUS").error(f"FUNCTION: {function_name}:Error: 'loading' field not found in results")
                 return {"error": "'loading' field not found in results"}
             return {"loading": loading}
         except ValueError:
-            logging.getLogger("API_GET_LOADING_STATUS").error(f"FUNCTION: {function_name}:\n\nError: Response is not in JSON format")
+            logging.getLogger("API_GET_LOADING_STATUS").error(f"FUNCTION: {function_name}:Error: Response is not in JSON format")
             return {"error": str(e)}
     except requests.exceptions.HTTPError as err:
-        logging.getLogger("API_GET_LOADING_STATUS").error(f"FUNCTION: {function_name}:\n\nHTTP Error: {str(err)}")
+        logging.getLogger("API_GET_LOADING_STATUS").error(f"FUNCTION: {function_name}:HTTP Error: {str(err)}")
         return {"error": str(err)}
     except requests.exceptions.RequestException as e:
-        logging.getLogger("API_GET_LOADING_STATUS").error(f"FUNCTION: {function_name}:\n\nRequest Error: {str(e)}")
+        logging.getLogger("API_GET_LOADING_STATUS").error(f"FUNCTION: {function_name}:Request Error: {str(e)}")
         return {"error": str(e)}
     except Exception as e:
         logging.getLogger("API_GET_LOADING_STATUS").error(f"FUNCTION: {function_name}:\n\nUnexpected Error: {str(e)}")
@@ -450,29 +436,34 @@ def diagho_api_post_config(url, file, config):
         'Authorization': f'Bearer {access_token}',
         'Accept': 'application/json',
         'Content-Type': 'application/json'
-    }            
+    }    
+
     try:
         with open(file, 'r') as json_file:
             try:
                 json_data = json.load(json_file)
+                pretty_print_json_string(json_data)
             except json.JSONDecodeError:
-                logging.getLogger("API_POST_CONFIGURATION").error(f"FUNCTION: {function_name}:\n\nError: Config file '{file}' is not valid JSON")
+                logging.getLogger("API_POST_CONFIGURATION").error(f"FUNCTION: {function_name}:Error: Config file '{file}' is not valid JSON")
                 return {"error": "Config file is not valid JSON"}
             
         response = requests.post(url, headers=headers, json=json_data)
         # response.raise_for_status()  # Vérifie si la requête a réussi (statut 200)
         
         try:
+            response = requests.post(url, headers=headers, json=json_data)
             logging.getLogger("API_POST_CONFIGURATION").info(f"JSON file {file} posted succesfully.")
             logging.getLogger("API_POST_CONFIGURATION").info(f"status_code: {response.status_code}, json_response: {response.json()}")
             return {"status_code": response.status_code, "json_response": response.json()}
         except ValueError:
-            logging.getLogger("API_POST_CONFIGURATION").error(f"FUNCTION: {function_name}:\n\nError: Response is not in JSON format")
+            logging.getLogger("API_POST_CONFIGURATION").error(f"FUNCTION: {function_name}:Error: Response is not in JSON format")
             return {"error": "Response is not in JSON format"}
     except requests.exceptions.HTTPError as err:
-        logging.getLogger("API_POST_CONFIGURATION").error(f"FUNCTION: {function_name}:\n\nHTTP Error: {str(err)}")
-        return {"error": str(err)}  # Retourner une erreur HTTP si la requête échoue
+        logging.getLogger("API_POST_CONFIGURATION").error(f"FUNCTION: {function_name}:HTTP Error: {str(err)}")
+        logging.getLogger("API_POST_CONFIGURATION").error(f"status_code: {response.status_code}")
+        logging.getLogger("API_POST_CONFIGURATION").error(f"json_response: {response.json()}")
+        return {"error": str(err)}
     except requests.exceptions.RequestException as e:
-        logging.getLogger("API_POST_CONFIGURATION").error(f"FUNCTION: {function_name}:\n\nRequest Error: {str(e)}")
+        logging.getLogger("API_POST_CONFIGURATION").error(f"FUNCTION: {function_name}:Request Error: {str(e)}")
         return {"error": str(e)}  # Retourner une erreur de requête si un autre problème survient
     
