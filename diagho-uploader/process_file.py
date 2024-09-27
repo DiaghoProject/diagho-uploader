@@ -33,6 +33,7 @@ def get_files_infos(json_input):
         for file in input_data['files']:
             filename = file['filename']
             checksum = file['checksum']
+            assembly = file['assembly']
             samples = file['samples']
             persons = []
             print(filename)
@@ -40,6 +41,7 @@ def get_files_infos(json_input):
                 persons.append(sample["person"])
             dict_files[filename] = {
                 "checksum" : checksum,
+                "assembly" : assembly,
                 "persons" : persons
             }
         pretty_print_json_string(dict_files)
@@ -50,10 +52,16 @@ def get_files_infos(json_input):
         return {}
 
 # Gère le traitement d'un biofile
-def process_biofile_task(config, biofile, biofile_type, checksum_current_biofile, file):
+def process_biofile_task(config, biofile, biofile_type, checksum_current_biofile, file, assembly, json_input, diagho_api):
     """Fonction qui gère le traitement d'un fichier bio (VCF ou BED)"""
-    logging.getLogger("PROCESSING_BIOFILE").info(f"Starting biofile processing: {biofile}")
-    process_biofile(config, biofile, biofile_type, checksum_current_biofile, file)       
+    logging.getLogger("PROCESSING_BIOFILE").info(log_message(json_input, biofile,f"Starting biofile processing: {biofile}"))
+    process_biofile(config, biofile, biofile_type, checksum_current_biofile, file, assembly, json_input, diagho_api)       
+    
+# Création d'un message de logging plus clair
+def log_message(json_file, biofile, message):
+    if not biofile:
+        return f"{json_file} - {message}"
+    return f"{json_file} : {biofile} - {message}"
 
 # Fonction principale : process JSON file
 def diagho_process_file(file, config):
@@ -69,10 +77,16 @@ def diagho_process_file(file, config):
     """
     print(f"Processing file: {file}")
     
+    # Mail when new file is detected
+    recipients = config['emails']['recipients']
+    content = "Test Email - New file created"
+    send_mail_info(recipients, content)
+    
     # Create logfile
-    setup_logger()
-    logging.getLogger("START_PROCESSING").info(f"New file detected.")
-    logging.getLogger("START_PROCESSING").info(f"Processing file: {file}")
+    json_input = os.path.basename(file)
+    logging.getLogger("START_PROCESSING").info(log_message("--------------------", "", "------------------------------------------------------------"))
+    logging.getLogger("START_PROCESSING").info(log_message(json_input, "", "New file detected"))
+    logging.getLogger("START_PROCESSING").info(log_message(json_input, "", f"Processing file: {file}"))
     
     # Load configuration
     print("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
@@ -83,12 +97,27 @@ def diagho_process_file(file, config):
     get_biofile_max_retries = config['check_biofile']['max_retries']
     get_biofile_delay = config['check_biofile']['delay']
     
+    # TODO #22 Revoir les URL à partir d'une seule
+    # Load API endpoints
+    url_diagho_api = config['diagho_api']['url']
+    diagho_api = {
+        'healthcheck': url_diagho_api + 'healthcheck',
+        'login': url_diagho_api + 'login/',
+        'get_user': url_diagho_api + 'accounts/users/me',
+        'get_biofile': url_diagho_api + 'bio_files/files',
+        'post_biofile_snv': url_diagho_api + 'bio_files/files/snv/',
+        'post_biofile_cnv': url_diagho_api + 'bio_files/files/cnv/',
+        'loading_status': url_diagho_api + 'bio_files/files/',
+        'config': url_diagho_api + 'configurations/configurations/'
+    }
+    
+    
     # Check Diagho API
     print("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
     print("API healthcheck")
     print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
-    if not diagho_api_healthcheck(config):
-        logging.getLogger("API_HEALTHCHECK").error(f"Failed to connect to Diagho API. Exit.")
+    if not diagho_api_healthcheck(diagho_api):
+        logging.getLogger("API_HEALTHCHECK").error(log_message(json_input, "", f"Failed to connect to Diagho API. Exit."))
         return
         
     # API Login
@@ -96,19 +125,18 @@ def diagho_process_file(file, config):
     print("API Login")
     print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
     diagho_api_login(config)
-    # access_token = get_access_token(config)
-    
+        
     # Test file format
     print("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
     print("Test file format : TSV or JSON")
     print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
     if file.endswith('.tsv'):
-        logging.getLogger("START_PROCESSING").info(f"TSV file detected. Parsing TSV to JSON for file: {file}")
+        logging.getLogger("START_PROCESSING").info(log_message(json_input, "", f"TSV file detected. Parsing TSV to JSON for file: {file}"))
         # TODO: #10 Parser TSV en JSON
     elif file.endswith('.json'):
-        logging.getLogger("START_PROCESSING").info(f"JSON file detected: {file}")
+        logging.getLogger("START_PROCESSING").info(log_message(json_input, "", f"JSON file detected: {file}"))
     else:
-        logging.getLogger("START_PROCESSING").info(f"Unsupported file format for file: {file}")
+        logging.getLogger("START_PROCESSING").info(log_message(json_input, "", f"Unsupported file format for file: {file}"))
         return
     
     # Check JSON format
@@ -116,10 +144,10 @@ def diagho_process_file(file, config):
     print("Test JSON file format")
     print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
     if not check_json_format(file):
-        logging.getLogger("CHECK_FORMAT").error("Failed to process JSON input file.")
+        logging.getLogger("CHECK_FORMAT").error(log_message(json_input, "", f"Failed to process JSON input file: {file}"))
         return
     
-    # Extract informations about biodiles from input_file
+    # Extract informations about biofiles from input_file
     print("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
     print("Get biofiles informations")
     print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
@@ -137,35 +165,36 @@ def diagho_process_file(file, config):
         for filename, file_info in dict_biofiles.items():
             biofile = os.path.join(path_biofiles, filename)
             checksum = file_info["checksum"]
+            assembly = file_info["assembly"]
             print(f"filename           : {filename}")
             print(f"Processing biofile : {biofile}")
 
-            logging.getLogger("PROCESSING_BIOFILE").info(f"Processing biofile: {filename}")
+            logging.getLogger("PROCESSING_BIOFILE").info(log_message(json_input, filename, f"Processing biofile: {filename}"))
 
             # Attendre que le biofile soit présent
             attempt = 1
             while not os.path.exists(biofile) and attempt <= get_biofile_max_retries:
-                logging.getLogger("PROCESSING_BIOFILE").warning(f"Biofile {biofile} not found... attempt {attempt}")
+                logging.getLogger("PROCESSING_BIOFILE").warning(log_message(json_input, filename, f"Biofile {biofile} not found... attempt {attempt}"))
                 time.sleep(get_biofile_delay)
                 attempt += 1
             
             # Si le biofile n'existe pas : alerte   
             if not os.path.exists(biofile):
-                logging.getLogger("PROCESSING_BIOFILE").error(f"Biofile: {biofile} does not exist.")
+                logging.getLogger("PROCESSING_BIOFILE").error(log_message(json_input, filename, f"Biofile: {biofile} does not exist."))
                 continue
 
             print("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
             print("Biofile found")
             print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
             print(f"Biofile {biofile} found.")
-            logging.getLogger("PROCESSING_BIOFILE").info(f"Biofile found: {biofile}")
+            logging.getLogger("PROCESSING_BIOFILE").info(log_message(json_input, filename, f"Biofile found: {biofile}"))
         
             # Calculate biofile checksum
             print("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
             print("Calculate biofile checksum")
             print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
             checksum_current_biofile = md5(biofile)
-            logging.getLogger("PROCESSING_BIOFILE").info(f"{filename} - Calculated checksum: {checksum_current_biofile}")
+            logging.getLogger("PROCESSING_BIOFILE").info(log_message(json_input, filename, f"Calculated checksum: {checksum_current_biofile}"))
         
              # Créer une tâche pour chaque biofile
             if biofile.endswith('.vcf') or biofile.endswith('.vcf.gz'):
@@ -173,108 +202,117 @@ def diagho_process_file(file, config):
                 print("Process VCF")
                 print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
                 biofile_type = "SNV"
-                process_biofile(config, biofile, biofile_type, checksum_current_biofile, filename)
-                # futures.append(executor.submit(process_biofile_task, config, biofile, "SNV", checksum_current_biofile, filename))
+                # process_biofile(config, biofile, biofile_type, checksum_current_biofile, filename)
+                futures.append(executor.submit(process_biofile_task, config, biofile, biofile_type, checksum_current_biofile, filename, assembly, json_input, diagho_api))
             elif biofile.endswith('.bed'):
                 print("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
                 print("Process BED")
                 print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
                 biofile_type = "CNV"
-                logging.getLogger("PROCESSING_BIOFILE").error(f"{filename} - CNV import is not working.")
                 ## TODO #18 Attente correction du endpoint pour import des BED
                 # process_biofile(config, biofile, biofile_type, checksum_current_biofile, filename)
-                # futures.append(executor.submit(process_biofile_task, config, biofile, "CNV", checksum_current_biofile, filename))
+                futures.append(executor.submit(process_biofile_task, config, biofile, biofile_type, checksum_current_biofile, filename, assembly, json_input, diagho_api))
             else:
-                logging.getLogger("PROCESSING_BIOFILE").error(f"BIOFILE: wrong format for file: {biofile}.")
+                logging.getLogger("PROCESSING_BIOFILE").error(log_message(json_input, filename, f"BIOFILE: wrong format for file: {biofile}."))
         
         # Attendre que toutes les tâches soient terminées
         for future in futures:
             future.result()
         
-    logging.getLogger("PROCESSING_BIOFILE").info(f"All biofiles have been loaded in Diagho")
+    logging.getLogger("PROCESSING_BIOFILE").info(log_message(json_input, "", f"All biofiles have been loaded in Diagho"))
     
     # Upload JSON file  
-    logging.getLogger("IMPORT_CONFIGURATIONS").info(f"Import JSON: {file}")
-    # diagho_api_post_config(config['diagho_api']['config'], file_to_import, config)
+    logging.getLogger("IMPORT_CONFIGURATIONS").info(log_message(json_input, "",f"Import JSON: {file}"))
+    diagho_api_post_config(diagho_api['config'], file, config)
 
 
 
-def process_biofile(config, biofile, biofile_type, biofile_checksum, filename):
+def process_biofile(config, biofile, biofile_type, biofile_checksum, filename, assembly, json_input,diagho_api):
     """
     Processus de traitement pour les fichiers VCF ou BED.
 
     Args:
     Returns:
     """
-    print(f"\nStart function : process_vcf\n")
-    logging.getLogger("PROCESSING_VCF").info(f"Processing VCF biofile: {biofile}")
+    print(f"\nStart function : process_biofile\n")
+    logging.getLogger("PROCESSING_VCF").info(log_message(json_input, filename, f"Processing biofile: {biofile}"))
     
-    url_diagho_api_post_biofile_snv = config['diagho_api']['post_biofile_snv']
-    url_diagho_api_post_biofile_cnv = config['diagho_api']['post_biofile_cnv']
-    url_diagho_api_loading_status = config['diagho_api']['loading_status']
-    accession_id = config['accessions']['vcf']
-    assembly = config['assembly']['bed']
+    # URLs
+    url_diagho_api_post_biofile_snv = diagho_api['post_biofile_snv']
+    url_diagho_api_post_biofile_cnv = diagho_api['post_biofile_cnv']
+    url_diagho_api_loading_status = diagho_api['loading_status']
+    
+    # Get accession_id
+    accession_id = config['accessions'][assembly]
+    
     
     # Post du biofile + récupérer le chekcsum
     print("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
     print("POST Biofile")
     print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
     
+    # TODO #25 Accession_ID et Assembly doivent être récupérées dur fichier d'input JSON
+    
     if biofile_type == "SNV":
-        checksum_from_api = diagho_api_post_biofile(url_diagho_api_post_biofile_snv, biofile, biofile_type, accession_id, config).get('checksum')
+        checksum_from_api = diagho_api_post_biofile(url_diagho_api_post_biofile_snv, biofile, biofile_type, accession_id, config, diagho_api).get('checksum')
         print(f"Checksum renvoyé par l'API : {checksum_from_api}")
-        logging.getLogger("PROCESSING_BIOFILE").info(f"{filename} - VCF file")
-        logging.getLogger("PROCESSING_BIOFILE").info(f"{filename} - Checksum from API: {checksum_from_api}")
+        logging.getLogger("PROCESSING_BIOFILE").info(log_message(json_input, filename, f"VCF file"))
+        logging.getLogger("PROCESSING_BIOFILE").info(log_message(json_input, filename, f"Checksum from API: {checksum_from_api}"))
     
     if biofile_type == "CNV":
-        checksum_from_api = diagho_api_post_biofile(url_diagho_api_post_biofile_cnv, biofile, biofile_type, assembly, config).get('checksum')
+        checksum_from_api = diagho_api_post_biofile(url_diagho_api_post_biofile_cnv, biofile, biofile_type, assembly, config, diagho_api).get('checksum')
         print(f"Checksum renvoyé par l'API : {checksum_from_api}")
-        logging.getLogger("PROCESSING_BIOFILE").info(f"{filename} - BED file")
-        logging.getLogger("PROCESSING_BIOFILE").info(f"{filename} - Checksum from API: {checksum_from_api}")
+        logging.getLogger("PROCESSING_BIOFILE").info(log_message(json_input, filename, f"BED file"))
+        logging.getLogger("PROCESSING_BIOFILE").info(log_message(json_input, filename, f"Checksum from API: {checksum_from_api}"))
         
     # Si l'upload ne fonctionne pas : alerte
     if not checksum_from_api or checksum_from_api is None:
-        logging.getLogger("PROCESSING_BIOFILE").error(f"{filename} - Failed to upload biofile and obtain checksum from API.")
+        logging.getLogger("PROCESSING_BIOFILE").error(log_message(json_input, filename, f"Failed to upload biofile and obtain checksum from API."))
         return
 
     # Vérification du checksum du fichier uploadé avec le checksum calculé avant
     if not check_md5sum(checksum_from_api, biofile_checksum):
-        logging.getLogger("PROCESSING_BIOFILE").error(f"{filename} - MD5 checksum mismatch.")
+        logging.getLogger("PROCESSING_BIOFILE").error(log_message(json_input, filename, f"MD5 checksum mismatch."))
         return
     
     # if check_md5sum(checksum_from_api, checksum_current_biofile):
-    logging.getLogger("PROCESSING_BIOFILE").info(f"{filename} - Checksums are identical. Continue.")
+    logging.getLogger("PROCESSING_BIOFILE").info(log_message(json_input, filename, f"Checksums are identical. Continue."))
         
     print("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
     print("Check Loading Status")
     print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
     
+    time.sleep(120)
+    
     max_retries = config['check_loading']['max_retries']
     delay = config['check_loading']['delay']
-    loading_status = check_loading_status(config, url_diagho_api_loading_status, biofile_checksum, filename, max_retries, delay)
+    attempt = 0
+    loading_status = check_loading_status(config, url_diagho_api_loading_status, biofile_checksum, filename, max_retries, delay, attempt, json_input)
     
-    logging.getLogger("PROCESSING_BIOFILE").info(f"{filename} - Check loading status: {loading_status}")
+    if loading_status == 0:
+        logging.getLogger("PROCESSING_BIOFILE").error(log_message(json_input, filename, f"Check loading status: {loading_status}"))
+    else:
+        logging.getLogger("PROCESSING_BIOFILE").info(log_message(json_input, filename, f"Check loading status: {loading_status}"))
     
     if loading_status:
-        logging.getLogger("PROCESSING_BIOFILE").info(f"{filename} - Loading Status = SUCCESS")
+        logging.getLogger("PROCESSING_BIOFILE").info(log_message(json_input, filename, f"Loading Status = SUCCESS"))
         time.sleep(10)
         
         # Move biofile in backup folder
-        # Chemin d'origine et chemin de destination
         source_path = biofile
         backup_path = config.get("backup_biofiles")
         destination_path = os.path.join(backup_path, filename)
         # Déplacer le fichier
         shutil.move(source_path, destination_path)
-        logging.getLogger("PROCESSING_BIOFILE").warning(f"{filename} - Move biofile to {backup_path}")
+        logging.getLogger("PROCESSING_BIOFILE").warning(log_message(json_input, filename, f"Move biofile to {backup_path}"))
     else:
-        logging.getLogger("PROCESSING_BIOFILE").info(f"{filename} - Loading Status = FAIL")
+        logging.getLogger("PROCESSING_BIOFILE").info(log_message(json_input, filename, f"Loading Status = FAIL"))
 
 
 
 
 # Check loading status
-def check_loading_status(config, url, checksum, filename, max_retries, delay, attempt=0):
+def check_loading_status(config, url, checksum, filename, max_retries, delay, attempt, json_input):
     """
     Vérification du statut de chargement.
 
@@ -292,11 +330,11 @@ def check_loading_status(config, url, checksum, filename, max_retries, delay, at
     """
     # Get loading status :
     status = diagho_api_get_loadingstatus(url, checksum, config).get('loading')
-    logging.getLogger("PROCESSING_BIOFILE").info(f"{filename} - Loading initial status: {status}")
+    logging.getLogger("PROCESSING_BIOFILE").info(log_message(json_input, filename, f"Loading initial status: {status}"))
     
     while status not in [0, 3]:
         print(f"\n{filename} -  Tentative {attempt + 1}: Statut de chargement = {status}")
-        logging.getLogger("PROCESSING_BIOFILE").warning(f'{filename} - Attempt {attempt + 1}: loading_status = {status} ... Retry...')
+        logging.getLogger("PROCESSING_BIOFILE").warning(log_message(json_input, filename, f'Attempt {attempt + 1}: loading_status = {status} ... Retry...'))
 
         time.sleep(delay)
         
