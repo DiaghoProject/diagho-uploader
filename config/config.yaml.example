@@ -1,14 +1,15 @@
-input_data: ""
-input_biofiles: ""
-backup_data_files: ""
+input_data: "path/to/input/data"
+input_biofiles: "path/to/input/data"
+backup_data_files: "path/to/backup/data"
+backup_biofiles: "path/to/backup/biofiles"
 
 check_biofile:
-  max_retries: 10
-  delay: 5
+  max_retries: 100
+  delay: 10
   
 check_loading:
-  max_retries: 100
-  delay: 5
+  max_retries: 500
+  delay: 60
 
 emails:
   recipients: "xxxx@example.fr"
@@ -20,9 +21,10 @@ smtp:
   from_email_format: "diagho-uploade-{hostname}@example.fr"
 
 diagho_api:
-  healthcheck: "http://lx026:8080/api/v1/healthcheck"
-  login: "http://lx026:8080/api/v1/auth/login/"
   username: ""
   password: ""
-  biofiles: "http://lx026:8080/api/v1/bio_files/files/"
-  config: "http://lx026:8080/api/v1/configurations/configurations/"
+  url: "http://hostname:8080/api/v1/"
+
+accessions:
+  GRCh37: 1
+  GRCh38: 2
