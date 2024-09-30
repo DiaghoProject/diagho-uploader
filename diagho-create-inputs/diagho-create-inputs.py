@@ -314,7 +314,7 @@ def diagho_create_json_interpretations(input_file, output_file, biofiles_directo
         v_project = sample_data.get('project', '')
         v_priority = sample_data.get('priority', '')
         v_is_affected = sample_data.get('is_affected', '')
-        v_is_affected_boolean = (v_is_affected == "Affected" or v_is_affected == 1 or v_is_affected == "true"  or v_is_affected == "True")
+        v_is_affected_boolean = (v_is_affected == "Affected" or str(v_is_affected) == "1" or v_is_affected == "true"  or v_is_affected == "True")
         v_assignee = sample_data.get('assignee', '')
         v_interpretation_title = sample_data.get('interpretation_title', '')
         v_data_title = sample_data.get('data_title', '')
@@ -350,6 +350,7 @@ def diagho_create_json_interpretations(input_file, output_file, biofiles_directo
                 "priority": v_priority,
                 "datas": []
             }
+        
         
         # Initialiser ou récupérer la liste des samples dans le dict_data
         if not dict_interpretations[v_family_id]['datas']:
