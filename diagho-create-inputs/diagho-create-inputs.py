@@ -118,11 +118,16 @@ def diagho_tsv2json(input_file, output_file, lowercase_keys=False, encoding='lat
         # Read TSV file into a pandas DataFrame
         df = pd.read_csv(input_file, delimiter='\t', encoding=encoding, dtype=str)  # dtype=str to keep empty fields
         
+        
         # Replace empty strings with None (optional, can be skipped if you prefer empty strings)
         df = df.where(pd.notnull(df), "")
         
+        print(df)
+                
         # Convert DataFrame to dictionary with sample_id as key
-        dict_final = df.set_index('sample', drop=False).to_dict(orient='index')
+        # dict_final = df.set_index('sample', drop=False).to_dict(orient='index')
+        dict_final = df.to_dict(orient='index')
+        pretty_print_json_string(dict_final)
         
         # Write the resulting dictionary to the output JSON file
         with open(output_file, 'w', encoding='utf-8') as output_file:
@@ -199,16 +204,18 @@ def diagho_create_json_families(input_file, output_file):
         dict_person = remove_empty_keys(dict_person)
         
         # Créer ou mettre à jour la famille dans le dictionnaire des familles
-        if v_family_id not in dict_families:
-            # Créer une nouvelle famille
-            dict_families[v_family_id] = {
-                "identifier": v_family_id,
-                "persons": [dict_person]
-            }
+        
+        # Vérifier si la famille existe déjà
+        if v_family_id in dict_families:
+            persons = dict_families[v_family_id]["persons"]
+            
+            # Vérifier si la personne avec cet 'identifier' existe déjà
+            if not any(person["identifier"] == dict_person["identifier"] for person in persons):
+                dict_families[v_family_id]["persons"].append(dict_person)
         else:
-            # Ajouter la personne à une famille existante
-            dict_families[v_family_id]["persons"].append(dict_person)
-    
+            # Si la famille n'existe pas, on la crée avec cette personne
+            dict_families[v_family_id] = {"persons": [dict_person]}
+        
     # Écrire le fichier JSON final
     write_final_JSON_file(dict_families, "families", output_file)
 
