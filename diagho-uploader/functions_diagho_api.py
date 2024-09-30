@@ -36,16 +36,11 @@ def diagho_api_healthcheck(diagho_api, exit_on_error=False):
 
     try:
         response = requests.get(url)
-        logging.getLogger("API_HEALTHCHECK").info(f"API healthcheck: OK.")
         response.raise_for_status()
         return True
     except requests.exceptions.HTTPError as http_err:
-        print(f"Status code: {response.status_code}")
-        print(f"Error details: {http_err}")
         logging.getLogger("API_HEALTHCHECK").error(f"API healthcheck: KO - Error details: {http_err}")
     except requests.exceptions.RequestException as req_err:
-        print("ERROR: Request exception occurred.")
-        print(f"Error details: {req_err}")
         logging.getLogger("API_HEALTHCHECK").error(f"API healthcheck: KO - Error details: {req_err}")
     finally:
         if exit_on_error:
@@ -75,7 +70,7 @@ def diagho_api_login(config):
         
         # Validation des identifiants
         if not username or not password:
-            logging.getLogger("API_LOGIN").error(f"FUNCTION: {function_name}:\n\nError: Username or password is missing")
+            logging.getLogger("API_LOGIN").error(f"FUNCTION: {function_name}:Error: Username or password is missing")
             return {"error": "Username or password is missing"}
 
         # Obtenir l'access token actuel
@@ -239,17 +234,17 @@ def diagho_api_post_login(config, diagho_api):
     
     try:
         response = requests.post(url, headers=headers, json=payload)
-        response.raise_for_status()  # Lève une exception si le code de statut n'est pas 200
+        response.raise_for_status() 
         # TODO #23 tentatives + délai à faire 
         try:
             response_json = response.json()
             store_tokens(response_json)  # Stocker les tokens dans un fichier JSON
             return response_json
         except ValueError:
-            logging.getLogger("API_POST_LOGIN").error(f"FUNCTION: {function_name}:\n\nError: Response is not in JSON format")
+            logging.getLogger("API_POST_LOGIN").error(f"FUNCTION: {function_name}:Error: Response is not in JSON format")
             return {"error": "Response is not in JSON format"}
         except Exception as e:
-            logging.getLogger("API_POST_LOGIN").error(f"FUNCTION: {function_name}:\n\nError: Failed to store tokens - {str(e)}")
+            logging.getLogger("API_POST_LOGIN").error(f"FUNCTION: {function_name}:Error: Failed to store tokens - {str(e)}")
             return {"error": "Failed to store tokens"}
         
     except requests.exceptions.HTTPError as err:
@@ -341,16 +336,16 @@ def diagho_api_post_biofile(url, biofile_path, biofile_type, param, config, diag
                 
                 return {"error": "No checksum in response"}
         except ValueError:
-            logging.getLogger("API_POST_BIOFILE").error(f"FUNCTION: {function_name}:\n\nError: Response is not in JSON format")
+            logging.getLogger("API_POST_BIOFILE").error(f"FUNCTION: {function_name}:Error: Response is not in JSON format")
             return {"error": "Response is not in JSON format"}
     except requests.exceptions.HTTPError as err:
-        logging.getLogger("API_POST_BIOFILE").error(f"FUNCTION: {function_name}:\n\nHTTP Error: {str(err)}")
-        return {"error": str(err)}  # Retourner une erreur HTTP si la requête échoue
+        logging.getLogger("API_POST_BIOFILE").error(f"FUNCTION: {function_name}:HTTP Error: {str(err)}")
+        return {"error": str(err)}  
     except requests.exceptions.RequestException as e:
-        logging.getLogger("API_POST_BIOFILE").error(f"FUNCTION: {function_name}:\n\nRequest Error: {str(e)}")
+        logging.getLogger("API_POST_BIOFILE").error(f"FUNCTION: {function_name}:Request Error: {str(e)}")
         return {"error": str(e)}
     except Exception as e:
-        logging.getLogger("API_POST_BIOFILE").error(f"FUNCTION: {function_name}:\n\nUnexpected Error: {str(e)}")
+        logging.getLogger("API_POST_BIOFILE").error(f"FUNCTION: {function_name}:Unexpected Error: {str(e)}")
         return {"error": str(e)}
 
 
@@ -381,13 +376,10 @@ def diagho_api_get_loadingstatus(url, checksum, config):
     
     # Construire l'URL avec le paramètre checksum
     url_with_params = f"{url}?checksum={checksum}"
-    print(url_with_params)
-    logging.getLogger("API_GET_LOADING_STATUS").warning(f"URL: {url_with_params}")
-
-    
+        
     try:
         response = requests.get(url_with_params, headers=headers)
-        response.raise_for_status()  # Vérifie si la requête a réussi (statut 200)
+        response.raise_for_status() 
         
         try:
             results = response.json().get('results', [])
@@ -410,7 +402,7 @@ def diagho_api_get_loadingstatus(url, checksum, config):
         logging.getLogger("API_GET_LOADING_STATUS").error(f"FUNCTION: {function_name}:Request Error: {str(e)}")
         return {"error": str(e)}
     except Exception as e:
-        logging.getLogger("API_GET_LOADING_STATUS").error(f"FUNCTION: {function_name}:\n\nUnexpected Error: {str(e)}")
+        logging.getLogger("API_GET_LOADING_STATUS").error(f"FUNCTION: {function_name}:Unexpected Error: {str(e)}")
         return {"error": str(e)}
 
 
@@ -465,5 +457,5 @@ def diagho_api_post_config(url, file, config):
         return {"error": str(err)}
     except requests.exceptions.RequestException as e:
         logging.getLogger("API_POST_CONFIGURATION").error(f"FUNCTION: {function_name}:Request Error: {str(e)}")
-        return {"error": str(e)}  # Retourner une erreur de requête si un autre problème survient
+        return {"error": str(e)} 
     

@@ -32,12 +32,12 @@ from datetime import datetime
 #     ]
 # )
 
-def setup_logger():
+def setup_logger(filename):
     # Générer un nom de fichier de log avec un horodatage
     logs_directory = "logs"
     if not os.path.exists(logs_directory):
         os.makedirs(logs_directory)
-    log_filename = os.path.join(logs_directory, datetime.now().strftime("app_%Y-%m-%d_%H-%M-%S.log"))
+    log_filename = os.path.join(logs_directory, filename)
 
     # Configuration du logger
     logging.basicConfig(
@@ -206,7 +206,7 @@ def check_md5sum(checksum1, checksum2):
 
 
 # Check JSON format
-def check_json_format(file_path):
+def check_json_format(file_path, json_input):
     """
     Checks if the given file is properly formatted in JSON.
 
@@ -220,7 +220,6 @@ def check_json_format(file_path):
     try:
         with open(file_path, 'r', encoding='utf-8') as file:
             json.load(file)
-        logging.getLogger("CHECK_JSON_FORMAT").info(f"File: '{file_path}' is well-formatted.")
         return True
     except json.JSONDecodeError as e:
         logging.getLogger("CHECK_JSON_FORMAT").error(f"File: '{file_path}' is not well-formatted: {e}")

@@ -79,12 +79,12 @@ def diagho_process_file(file, config):
     
     # Mail when new file is detected
     recipients = config['emails']['recipients']
-    content = "Test Email - New file created"
+    content = f"Processing file: {file}"
     send_mail_info(recipients, content)
     
     # Create logfile
     json_input = os.path.basename(file)
-    logging.getLogger("START_PROCESSING").info(log_message("--------------------", "", "------------------------------------------------------------"))
+    logging.info("------------------------------------------------------------")
     logging.getLogger("START_PROCESSING").info(log_message(json_input, "", "New file detected"))
     logging.getLogger("START_PROCESSING").info(log_message(json_input, "", f"Processing file: {file}"))
     
@@ -97,7 +97,6 @@ def diagho_process_file(file, config):
     get_biofile_max_retries = config['check_biofile']['max_retries']
     get_biofile_delay = config['check_biofile']['delay']
     
-    # TODO #22 Revoir les URL à partir d'une seule
     # Load API endpoints
     url_diagho_api = config['diagho_api']['url']
     diagho_api = {
@@ -110,7 +109,6 @@ def diagho_process_file(file, config):
         'loading_status': url_diagho_api + 'bio_files/files/',
         'config': url_diagho_api + 'configurations/configurations/'
     }
-    
     
     # Check Diagho API
     print("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
@@ -222,6 +220,9 @@ def diagho_process_file(file, config):
     logging.getLogger("PROCESSING_BIOFILE").info(log_message(json_input, "", f"All biofiles have been loaded in Diagho"))
     
     # Upload JSON file  
+    print("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+    print("Upload JSON file")
+    print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
     logging.getLogger("IMPORT_CONFIGURATIONS").info(log_message(json_input, "",f"Import JSON: {file}"))
     diagho_api_post_config(diagho_api['config'], file, config)
 
@@ -255,13 +256,11 @@ def process_biofile(config, biofile, biofile_type, biofile_checksum, filename, a
     
     if biofile_type == "SNV":
         checksum_from_api = diagho_api_post_biofile(url_diagho_api_post_biofile_snv, biofile, biofile_type, accession_id, config, diagho_api).get('checksum')
-        print(f"Checksum renvoyé par l'API : {checksum_from_api}")
         logging.getLogger("PROCESSING_BIOFILE").info(log_message(json_input, filename, f"VCF file"))
         logging.getLogger("PROCESSING_BIOFILE").info(log_message(json_input, filename, f"Checksum from API: {checksum_from_api}"))
     
     if biofile_type == "CNV":
         checksum_from_api = diagho_api_post_biofile(url_diagho_api_post_biofile_cnv, biofile, biofile_type, assembly, config, diagho_api).get('checksum')
-        print(f"Checksum renvoyé par l'API : {checksum_from_api}")
         logging.getLogger("PROCESSING_BIOFILE").info(log_message(json_input, filename, f"BED file"))
         logging.getLogger("PROCESSING_BIOFILE").info(log_message(json_input, filename, f"Checksum from API: {checksum_from_api}"))
         
@@ -333,9 +332,7 @@ def check_loading_status(config, url, checksum, filename, max_retries, delay, at
     logging.getLogger("PROCESSING_BIOFILE").info(log_message(json_input, filename, f"Loading initial status: {status}"))
     
     while status not in [0, 3]:
-        print(f"\n{filename} -  Tentative {attempt + 1}: Statut de chargement = {status}")
         logging.getLogger("PROCESSING_BIOFILE").warning(log_message(json_input, filename, f'Attempt {attempt + 1}: loading_status = {status} ... Retry...'))
-
         time.sleep(delay)
         
         # Récupérer à nouveau le statut de chargement
@@ -346,13 +343,27 @@ def check_loading_status(config, url, checksum, filename, max_retries, delay, at
         
         # Vérifier si le nombre maximal de tentatives est atteint
         if attempt >= max_retries:
-            print("Nombre maximal de tentatives atteint. Abandon.")
             logging.getLogger("PROCESSING_BIOFILE").error('GET_LOADING_STATUS: Maximum number of attempts reached.')
             return None
         
     # Vérification des statuts finaux
     if status == 0:
-        return False
+        
+        # Try again before really failed
+        new_attempt = 0
+        max_new_attempts = 10
+        while new_attempt <= max_new_attempts:
+            status = diagho_api_get_loadingstatus(url, checksum, config).get('loading')
+            time.sleep(30)
+            new_attempt += 1
+            
+        if status == 0:      
+            return False
+        elif status ==3:
+            return True
+        else:
+            return None
+        
     elif status == 3:
         logging.getLogger("PROCESSING_BIOFILE").info('Loading completed successfully.')
         return True
