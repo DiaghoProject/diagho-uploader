@@ -250,12 +250,9 @@ def diagho_create_json_biofiles(input_file, output_file, biofiles_directory):
         v_family_id = sample_data.get('family_id', '')
         v_bam_path = sample_data.get('bam_path', '')
         assembly = sample_data.get('assembly', '')
-
-        # Calcul du checksum
         filename = sample_data.get('filename', '')
-        biofile_path = os.path.join(biofiles_directory, filename)
-        checksum = md5(biofile_path)
-
+        # Récupère le checksum du fichier d'entrée ou le calcul si non renseigné
+        checksum = sample_data.get('checksum') or md5(os.path.join(biofiles_directory, sample_data.get('filename')))
 
         # Créer le dictionnaire pour le sample
         dict_sample = {
