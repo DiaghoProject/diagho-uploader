@@ -298,11 +298,8 @@ def diagho_create_json_interpretations(input_file, output_file, biofiles_directo
     with open(input_file, 'r') as f:
         data = json.load(f)
 
-    # Initialisation des structures de données
+    # Initialisation du dictionnaires d'interprétations
     dict_interpretations = {}
-    dict_index_case_by_family = {}
-    dict_data_snv = {}
-    dict_data_cnv = {}
 
     # Pour chaque échantillon dans les données
     for sample, sample_data in data.items():
@@ -310,7 +307,6 @@ def diagho_create_json_interpretations(input_file, output_file, biofiles_directo
         # Récupérer les informations du sample
         v_sample_id = sample_data.get('sample', '')
         v_person_id = sample_data.get('person_id', '')
-        v_family_id = sample_data.get('family_id', '')
         v_is_index = sample_data.get('is_index', 0)
         v_biofile_type = sample_data.get('file_type', "SNV")
         v_project = sample_data.get('project', '')
@@ -320,129 +316,65 @@ def diagho_create_json_interpretations(input_file, output_file, biofiles_directo
         v_assignee = sample_data.get('assignee', '')
         v_interpretation_title = sample_data.get('interpretation_title', '')
         v_data_title = sample_data.get('data_title', '')
+        # Récupère le checksum du fichier ou le calcul si non renseigné
+        v_checksum = sample_data.get('checksum') or md5(os.path.join(biofiles_directory, sample_data.get('filename')))
 
-        # Cas index
-        v_is_index = sample_data.get('is_index', '')
-        if v_is_index == "":
-            v_is_index = 0
-        if int(v_is_index) == 1:
-            v_index_case_id = v_person_id
-            dict_index_case_by_family[v_family_id] = v_index_case_id
-
-        # Calcul du checksum
-        filename = sample_data.get('filename', '')
-        biofile_path = os.path.join(biofiles_directory, filename)
-        checksum = md5(biofile_path)
-
-        # Créer le dictionnaire pour le sample
-        dict_sample_interpretation = {
-            "name": v_sample_id,
-            "isAffected": v_is_affected_boolean,
-            "checksum": checksum
-        }
-
-        # Insertion de la famille dans le dict_interpretations
-        if v_family_id not in dict_interpretations:
-            dict_interpretations[v_family_id] = {
-                "family": v_family_id,
-                "indexCase": "",
-                "project": "",
-                "title": "",
+        v_interpretation = {
+                "indexCase": v_person_id if v_is_index else "",
+                "project": v_project,
+                "title": v_interpretation_title,
                 "assignee": v_assignee,
                 "priority": v_priority,
-                "datas": []
             }
 
-        if not dict_interpretations[v_family_id]['datas']:
-            dict_interpretations[v_family_id]['datas'] = []
+        v_data_tuple = (v_data_title or v_biofile_type, v_biofile_type, {
+            "sample": v_sample_id,
+            "isAffected": v_is_affected_boolean,
+            "checksum": v_checksum,
+        })
 
+        if v_interpretation_title not in dict_interpretations:
+            dict_interpretations[v_interpretation_title] = v_interpretation
+            dict_interpretations[v_interpretation_title]["datas_tuples"] = [v_data_tuple]
+        else:
+            # Mets à jour les informations ou échoue en cas d'incohérences
+            for key, value in dict_interpretations[v_interpretation_title].items():
+                if key == "datas_tuples":
+                    continue
 
-        # Créer le 'data' en fonction du file_type
-        if v_biofile_type == "SNV":
-            if filename not in dict_data_snv.values():
-                print(filename, ": nouveau fichier !")
-
-                # Init et mettre le premier sample
-                list_samples_interpretation = []
-                list_samples_interpretation.append(dict_sample_interpretation)
-
-            else:
-                print(filename, ": filename est déjà connu")
-                # on récupère la liste des samples existante
-                list_samples_interpretation = dict_data_snv['samples']
-                # on ajoute le sample courant
-                list_samples_interpretation.append(dict_sample_interpretation)
-
-            dict_data_snv = {
-                "filename": filename,
-                "type": v_biofile_type,
-                "title": v_data_title,
-                "samples": list_samples_interpretation
-            }
+                current_value = dict_interpretations[v_interpretation_title][key]
                 
-            
+                if not current_value and value:
+                    dict_interpretations[v_interpretation_title][key] = value
+                
+                if current_value and current_value != value:
+                    raise ValueError(f"Conflict detected for '{key}': Existing value: {current_value}, New value: {value}")
 
-            dict_data_snv = remove_empty_keys(dict_data_snv)
-            
-            # Mettre à jour le dict_interpretations avec dict_data
-            dict_interpretations[v_family_id]['datas'].append(dict_data_snv)
+            dict_interpretations[v_interpretation_title]["datas_tuples"].append(v_data_tuple)
 
-            # pretty_print_json_string(dict_data_snv)
+    for interpretation in dict_interpretations.values():
+        # Vérifie qu'il y a bien un cas index
+        if not interpretation["indexCase"]:
+            raise ValueError(f"No Index case specified for '{interpretation.interpretation_title}")
 
-        if v_biofile_type == "CNV":
-            if filename not in dict_data_cnv.values():
-                dict_data_cnv = {
-                    "filename": filename,
-                    "type": v_biofile_type,
+        datas_dict = {}
+
+        # Créer les objets sample
+        for title, file_type, sample in interpretation["datas_tuples"]:
+            composite_key = (title, file_type)
+
+            if composite_key not in datas_dict:
+                datas_dict[composite_key] = {
+                    "title": title,
+                    "type": file_type,
+                    "samples": []
                 }
+            
+            datas_dict[composite_key]["samples"].append(sample)
 
-            # Initialiser ou récupérer la liste des samples dans le dict_data
-            # if not dict_interpretations[v_family_id]['datas']:
-            #     list_samples_interpretation = []
-            # else:
-            #     for data_entry in dict_interpretations[v_family_id]['datas']:
-            #         if data_entry['filename'] == filename:
-            #             list_samples_interpretation = data_entry['samples']
+        del interpretation["datas_tuples"]
+        interpretation["datas"] = list(datas_dict.values())
 
-            # # Ajouter le sample courant à la liste
-            # list_samples_interpretation.append(dict_sample_interpretation)
-
-            # Mettre à jour dict_data avec la liste des samples
-            # dict_data_cnv = {
-            #     "filename": filename,
-            #     "type": v_biofile_type,
-            #     # "title": v_data_title,
-            #     # "samples": list_samples_interpretation
-            # }
-
-                dict_data_cnv = remove_empty_keys(dict_data_cnv)
-
-                # pretty_print_json_string(dict_data_cnv)
-
-                # Mettre à jour le dict_interpretations avec dict_data
-                dict_interpretations[v_family_id]['datas'].append(dict_data_cnv)
-
-
-
-        # titre de l'interprétation
-        dict_interpretations[v_family_id]['title'] = v_interpretation_title
-
-        # Définir le titre de l'interprétation et le cas index
-        if v_family_id in dict_index_case_by_family:
-            # récupérer le cas index pour la famille
-            v_index_case = dict_index_case_by_family[v_family_id]
-            dict_interpretations[v_family_id]['indexCase'] = v_index_case
-
-            # si la colonne interpretation_title est vide, on met le numéro du cas index:
-            if v_interpretation_title == "":
-                dict_interpretations[v_family_id]['title'] = v_index_case
-
-        # Récupérer le slug du projet
-        v_project_slug = v_project.lower().replace(" ", "-")
-        dict_interpretations[v_family_id]['project'] = v_project_slug
-
-        # Supprimer les valeurs de chaîne de caractères vides
-        dict_interpretations[v_family_id] = remove_empty_keys(dict_interpretations[v_family_id])
 
     # Écrire le résultat dans un fichier JSON de sortie
     write_final_JSON_file(dict_interpretations, "interpretations", output_file)
