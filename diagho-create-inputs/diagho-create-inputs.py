@@ -214,8 +214,11 @@ def diagho_create_json_families(input_file, output_file):
                 dict_families[v_family_id]["persons"].append(dict_person)
         else:
             # Si la famille n'existe pas, on la crée avec cette personne
-            dict_families[v_family_id] = {"persons": [dict_person]}
-        
+            dict_families[v_family_id] = {
+                "identifier": v_family_id,
+                "persons": [dict_person]
+                }
+    
     # Écrire le fichier JSON final
     write_final_JSON_file(dict_families, "families", output_file)
 
