@@ -1,6 +1,8 @@
 #!/usr/bin/python3
 
 import json
+import csv
+import re
 import hashlib
 import subprocess
 import inspect
@@ -76,6 +78,104 @@ def validate_tsv_headers(input_file, required_headers, encoding='latin1'):
     except Exception as e:
         print(f"Error reading the file: {str(e)}")
         return False        
+
+
+def validate_column_value(column_name, value):
+    """
+    Valide la valeur d'une colonne en fonction de conditions spécifiques.
+
+    Args:
+        column_name (str): Le nom de la colonne.
+        value (str): La valeur à valider.
+
+    Returns:
+        bool: True si la valeur est valide, sinon False.
+    """
+    # Conditions spécifiques pour certaines colonnes
+    if column_name == 'filename':
+        return value != ""
+    elif column_name == 'checksum':
+        return value != ""
+    elif column_name == 'file_type':
+        allowed_file_types = ['SNV', 'CNV']
+        return value in allowed_file_types
+    elif column_name == 'date_of_birth':
+        try:
+            # Vérifier que la date est au format YYYY-MM-DD
+            datetime.strptime(value, '%Y-%m-%d')
+            return True
+        except ValueError:
+            return False
+    elif column_name == 'assembly':
+        allowed_assemblies = ['GRCh37', 'GRCh38', 'T2T']
+        return value in allowed_assemblies
+    elif column_name == 'sample':
+        return value != ""
+    elif column_name == 'bam_path':
+        if value != "":
+            return os.path.exists(value)
+        else:
+            return False
+    elif column_name == 'family_id':
+        return value != ""
+    elif column_name == 'person_id':
+        return value != ""
+    elif column_name == 'sample':
+        allowed_sex = ['female', 'male', 'unknown']
+        return value in allowed_sex
+    elif column_name == 'is_affected':
+        allowed_is_affected = ['0', '1']
+        return str(value) in allowed_is_affected
+    elif column_name == 'interpretation_title':
+        return value != ""
+    elif column_name == 'is_index':
+        allowed_is_index = ['0', '1']
+        return str(value) in allowed_is_index
+    elif column_name == 'project':
+        return value != ""
+    else:
+        return True  # Si aucune condition spécifique n'est définie, accepter par défaut
+
+def validate_tsv_columns(file_path, required_headers):
+    """
+    Valide chaque colonne du fichier TSV selon des conditions spécifiques.
+
+    Args:
+        file_path (str): Le chemin vers le fichier TSV.
+        required_headers (list): La liste des colonnes requises.
+
+    Returns:
+        bool: True si toutes les colonnes et valeurs respectent les conditions, sinon False.
+    """
+    with open(file_path, newline='', encoding='utf-8') as tsvfile:
+        reader = csv.DictReader(tsvfile, delimiter='\t')
+        tsv_headers = reader.fieldnames
+
+        if tsv_headers is None:
+            print("Le fichier ne contient pas d'en-tête.")
+            return False
+
+        # Vérifier que toutes les colonnes requises sont présentes
+        missing_columns = [col for col in required_headers if col not in tsv_headers]
+        if missing_columns:
+            print(f"Colonnes manquantes: {missing_columns}")
+            return False
+
+        # Valider chaque ligne du fichier
+        for line_num, row in enumerate(reader, start=2):  # Démarre à 2 pour compter l'en-tête
+            for col in required_headers:
+                if col not in row:
+                    print(f"Colonne manquante '{col}' à la ligne {line_num}")
+                    return False
+                value = row[col]
+                if not validate_column_value(col, value):
+                    print(f"Valeur invalide dans la colonne '{col}' à la ligne {line_num}: {value}")
+                    return False
+
+        return True
+
+
+
 
 def validate_tsv_file(input_file, encoding='latin1'):
     """
