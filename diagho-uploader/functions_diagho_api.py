@@ -439,7 +439,7 @@ def diagho_api_post_config(url, file, config):
                 logging.getLogger("API_POST_CONFIGURATION").error(f"FUNCTION: {function_name}:Error: Config file '{file}' is not valid JSON")
                 return {"error": "Config file is not valid JSON"}
             
-        response = requests.post(url, headers=headers, json=json_data)
+        # response = requests.post(url, headers=headers, json=json_data)
         # response.raise_for_status()  # Vérifie si la requête a réussi (statut 200)
         
         try:
