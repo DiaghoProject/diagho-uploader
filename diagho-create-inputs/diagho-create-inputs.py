@@ -47,7 +47,6 @@ def main():
         # STEP 1 : Create simple JSON file
         print(f"Create simple JSON file" )
         file_json_simple = os.path.join(output_directory, output_prefix + ".simple.json")
-        print(f"Write file: {file_json_simple}" )
         diagho_tsv2json(input_file, file_json_simple)
 
     else:
@@ -102,16 +101,25 @@ def diagho_tsv2json(input_file, output_file, lowercase_keys=False, encoding='lat
     -------
     None
     """
-
+    function_name = inspect.currentframe().f_code.co_name
+    print(f"\n{function_name}\n------------------------------")
+    print(f"input_file :", input_file)
     try:
         remove_trailing_empty_lines(input_file,encoding)
 
         # Validate header
-        required_headers = ['filename', 'checksum', 'file_type', 'sample', 'bam_path', 'family_id', 'person_id', 'father_id','mother_id', 'sex', 'is_affected', 'last_name', 'first_name', 'date_of_birth', 'hpo', 'interpretation_title', 'is_index', 'project', 'assignee', 'priority', 'person_note', 'assembly', 'data_title']
+        required_headers = ['id', 'filename', 'checksum', 'file_type', 'sample', 'bam_path', 'family_id', 'person_id', 'father_id','mother_id', 'sex', 'is_affected', 'last_name', 'first_name', 'date_of_birth', 'hpo', 'interpretation_title', 'is_index', 'project', 'assignee', 'priority', 'person_note', 'assembly', 'data_title']
+
+        # Validate TSV columns
         if validate_tsv_headers(input_file, required_headers):
             print("> TSV headers are valid.")
         else:
             print("> TSV headers are invalid.")
+            
+        if validate_tsv_columns(input_file, required_headers):
+            print("> All columns and values are valid.Toutes les colonnes et valeurs sont valides.")
+        else:
+            print("> Input file contzins errors.")
 
         # Read TSV file into a pandas DataFrame
         df = pd.read_csv(input_file, delimiter='\t', encoding=encoding, dtype=str)  # dtype=str to keep empty fields
@@ -121,13 +129,14 @@ def diagho_tsv2json(input_file, output_file, lowercase_keys=False, encoding='lat
         df = df.where(pd.notnull(df), "")
 
         # Convert DataFrame to dictionary
-        # dict_final = df.set_index('sample', drop=False).to_dict(orient='index')
-        dict_final = df.to_dict(orient='index')
+        dict_final = df.set_index('id', drop=False).to_dict(orient='index')
+        # dict_final = df.to_dict(orient='index')
 
         # Write the resulting dictionary to the output JSON file
-        with open(output_file, 'w', encoding='utf-8') as output_file:
-            json.dump(dict_final, output_file, indent=4, ensure_ascii=False)
-
+        with open(output_file, 'w', encoding='utf-8') as out_file:
+            json.dump(dict_final, out_file, indent=4, ensure_ascii=False)
+        print(f"Write file: {output_file}" )
+        
     except ValueError as e:
         print(f"Error: {str(e)}")
 
@@ -142,6 +151,9 @@ def diagho_create_json_families(input_file, output_file):
     - output_file: chemin du fichier JSON de sortie à générer
 
     """
+    function_name = inspect.currentframe().f_code.co_name
+    print(f"\n{function_name}\n------------------------------")
+    
     # Charger les données à partir du fichier JSON d'entrée
     with open(input_file, 'r') as f:
         data = json.load(f)
