@@ -127,7 +127,7 @@ def diagho_tsv2json(input_file, output_file, lowercase_keys=False, encoding='lat
         # Convert DataFrame to dictionary with sample_id as key
         # dict_final = df.set_index('sample', drop=False).to_dict(orient='index')
         dict_final = df.to_dict(orient='index')
-        pretty_print_json_string(dict_final)
+        # pretty_print_json_string(dict_final)
 
         # Write the resulting dictionary to the output JSON file
         with open(output_file, 'w', encoding='utf-8') as output_file:
@@ -323,7 +323,7 @@ def diagho_create_json_interpretations(input_file, output_file, biofiles_directo
                 "assignee": v_assignee,
                 "priority": v_priority,
             }
-
+        
         v_data_tuple = (v_data_title or v_biofile_type, v_biofile_type, {
             "sample": v_sample_id,
             "isAffected": v_is_affected_boolean,
@@ -355,7 +355,7 @@ def diagho_create_json_interpretations(input_file, output_file, biofiles_directo
     for interpretation in dict_interpretations.values():
         # Vérifie qu'il y a bien un cas index
         if not interpretation["indexCase"]:
-            raise ValueError(f"No Index case specified for '{interpretation["title"]}")
+            raise ValueError(f"No Index case specified for", interpretation["title"])
 
         datas_dict = {}
 
