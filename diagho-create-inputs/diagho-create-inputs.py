@@ -320,7 +320,7 @@ def diagho_create_json_interpretations(input_file, output_file, biofiles_directo
             }
         
         v_data_tuple = (v_data_title or v_biofile_type, v_biofile_type, {
-            "sample": v_sample_id,
+            "name": v_sample_id,
             "isAffected": v_is_affected_boolean,
             "checksum": v_checksum,
         })
