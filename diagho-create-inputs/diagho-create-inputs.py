@@ -107,13 +107,11 @@ def diagho_tsv2json(input_file, output_file, lowercase_keys=False, encoding='lat
         remove_trailing_empty_lines(input_file,encoding)
 
         # Validate header
-        required_headers = ['filename', 'checksum', 'file_type', 'sample', 'bam_path', 'family_id', 'person_id', 'father_id',
-                    'mother_id', 'sex', 'is_affected', 'last_name', 'first_name', 'date_of_birth', 'hpo',
-                    'interpretation_title', 'is_index', 'project', 'assignee', 'priority', 'filter_tag', 'note', 'assembly', 'data_title']
+        required_headers = ['filename', 'checksum', 'file_type', 'sample', 'bam_path', 'family_id', 'person_id', 'father_id','mother_id', 'sex', 'is_affected', 'last_name', 'first_name', 'date_of_birth', 'hpo', 'interpretation_title', 'is_index', 'project', 'assignee', 'priority', 'person_note', 'assembly', 'data_title']
         if validate_tsv_headers(input_file, required_headers):
-            print("TSV headers are valid.")
+            print("> TSV headers are valid.")
         else:
-            print("TSV headers are invalid.")
+            print("> TSV headers are invalid.")
 
         # Read TSV file into a pandas DataFrame
         df = pd.read_csv(input_file, delimiter='\t', encoding=encoding, dtype=str)  # dtype=str to keep empty fields
@@ -122,12 +120,9 @@ def diagho_tsv2json(input_file, output_file, lowercase_keys=False, encoding='lat
         # Replace empty strings with None (optional, can be skipped if you prefer empty strings)
         df = df.where(pd.notnull(df), "")
 
-        print(df)
-
-        # Convert DataFrame to dictionary with sample_id as key
+        # Convert DataFrame to dictionary
         # dict_final = df.set_index('sample', drop=False).to_dict(orient='index')
         dict_final = df.to_dict(orient='index')
-        # pretty_print_json_string(dict_final)
 
         # Write the resulting dictionary to the output JSON file
         with open(output_file, 'w', encoding='utf-8') as output_file:
