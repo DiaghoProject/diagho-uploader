@@ -250,12 +250,9 @@ def diagho_create_json_biofiles(input_file, output_file, biofiles_directory):
         v_family_id = sample_data.get('family_id', '')
         v_bam_path = sample_data.get('bam_path', '')
         assembly = sample_data.get('assembly', '')
-
-        # Calcul du checksum
         filename = sample_data.get('filename', '')
-        biofile_path = os.path.join(biofiles_directory, filename)
-        checksum = md5(biofile_path)
-
+        # Récupère le checksum du fichier d'entrée ou le calcul si non renseigné
+        checksum = sample_data.get('checksum') or md5(os.path.join(biofiles_directory, sample_data.get('filename')))
 
         # Créer le dictionnaire pour le sample
         dict_sample = {
@@ -306,21 +303,21 @@ def diagho_create_json_interpretations(input_file, output_file, biofiles_directo
 
         # Récupérer les informations du sample
         v_sample_id = sample_data.get('sample', '')
-        v_person_id = sample_data.get('person_id', '')
-        v_is_index = sample_data.get('is_index', 0)
+        v_is_index = sample_data.get('is_index', '')
+        v_index_id = sample_data.get('person_id', '') if (v_is_index and v_is_index != "0") else ""
         v_biofile_type = sample_data.get('file_type', "SNV")
-        v_project = sample_data.get('project', '')
-        v_priority = sample_data.get('priority', '')
+        v_project = sample_data.get('project', '').lower().replace(" ", "-")
+        v_priority = sample_data.get('priority', 2)
         v_is_affected = sample_data.get('is_affected', '')
         v_is_affected_boolean = (v_is_affected == "Affected" or str(v_is_affected) == "1" or v_is_affected == "true"  or v_is_affected == "True")
         v_assignee = sample_data.get('assignee', '')
         v_interpretation_title = sample_data.get('interpretation_title', '')
         v_data_title = sample_data.get('data_title', '')
-        # Récupère le checksum du fichier ou le calcul si non renseigné
+        # Récupère le checksum du fichier d'entrée ou le calcul si non renseigné
         v_checksum = sample_data.get('checksum') or md5(os.path.join(biofiles_directory, sample_data.get('filename')))
 
         v_interpretation = {
-                "indexCase": v_person_id if v_is_index else "",
+                "indexCase": v_index_id,
                 "project": v_project,
                 "title": v_interpretation_title,
                 "assignee": v_assignee,
@@ -342,20 +339,23 @@ def diagho_create_json_interpretations(input_file, output_file, biofiles_directo
                 if key == "datas_tuples":
                     continue
 
-                current_value = dict_interpretations[v_interpretation_title][key]
+                if key == "priority":
+                    if value < v_interpretation[key]:
+                        dict_interpretations[v_interpretation_title][key] = v_interpretation[key]
+                    continue
+
+                if not value and v_interpretation[key]:
+                    dict_interpretations[v_interpretation_title][key] = v_interpretation[key]
                 
-                if not current_value and value:
-                    dict_interpretations[v_interpretation_title][key] = value
-                
-                if current_value and current_value != value:
-                    raise ValueError(f"Conflict detected for '{key}': Existing value: {current_value}, New value: {value}")
+                if value and v_interpretation[key] and value != v_interpretation[key]:
+                    raise ValueError(f"Conflict detected for '{key}' of '{v_interpretation_title}': Existing value: '{value}', New value: '{v_interpretation[key]}'")
 
             dict_interpretations[v_interpretation_title]["datas_tuples"].append(v_data_tuple)
 
     for interpretation in dict_interpretations.values():
         # Vérifie qu'il y a bien un cas index
         if not interpretation["indexCase"]:
-            raise ValueError(f"No Index case specified for '{interpretation.interpretation_title}")
+            raise ValueError(f"No Index case specified for '{interpretation["title"]}")
 
         datas_dict = {}
 
