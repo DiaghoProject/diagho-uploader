@@ -377,6 +377,9 @@ def diagho_create_json_interpretations(input_file, output_file, biofiles_directo
 
 
     # Écrire le résultat dans un fichier JSON de sortie
+    dict_interpretations = remove_empty_keys(dict_interpretations)
+    pretty_print_json_string(dict_interpretations)
+    
     write_final_JSON_file(dict_interpretations, "interpretations", output_file)
 
 

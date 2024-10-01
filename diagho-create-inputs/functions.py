@@ -171,7 +171,7 @@ def parse_date(date_str):
         return formatted_date
     except ValueError:
         # If parsing fails, return an empty string
-        return ""
+        return date_str
 
 # Pretty print json string
 def pretty_print_json_string(string):
@@ -199,7 +199,22 @@ def remove_empty_keys(d):
     Returns:
         dict: Le dictionnaire nettoyé.
     """
-    return {k: v for k, v in d.items() if v not in [None, ""]}
+    # return {k: v for k, v in d.items() if v not in [None, ""]}
+    
+    if not isinstance(d, dict):
+        return d  # Si ce n'est pas un dict, retourner la valeur telle quelle
+
+    cleaned_dict = {}
+    for k, v in d.items():
+        if isinstance(v, dict):
+            # Appliquer la fonction récursivement sur les sous-dictionnaires
+            nested_dict = remove_empty_keys(v)
+            if nested_dict:  # Ajouter le sous-dictionnaire seulement s'il n'est pas vide
+                cleaned_dict[k] = nested_dict
+        elif v not in [None, ""]:  # Filtrer les valeurs vides
+            cleaned_dict[k] = v
+
+    return cleaned_dict
 
 
 
