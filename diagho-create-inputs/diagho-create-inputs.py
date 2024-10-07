@@ -101,8 +101,6 @@ def diagho_tsv2json(input_file, output_file, lowercase_keys=False, encoding='lat
     -------
     None
     """
-    function_name = inspect.currentframe().f_code.co_name
-    print(f"\n{function_name}\n------------------------------")
     print(f"input_file :", input_file)
     try:
         remove_trailing_empty_lines(input_file,encoding)
@@ -123,8 +121,7 @@ def diagho_tsv2json(input_file, output_file, lowercase_keys=False, encoding='lat
 
         # Read TSV file into a pandas DataFrame
         df = pd.read_csv(input_file, delimiter='\t', encoding=encoding, dtype=str)  # dtype=str to keep empty fields
-
-
+        
         # Replace empty strings with None (optional, can be skipped if you prefer empty strings)
         df = df.where(pd.notnull(df), "")
 
@@ -150,12 +147,9 @@ def diagho_create_json_families(input_file, output_file):
     - input_file: chemin du fichier JSON d'entrée contenant les informations des échantillons
     - output_file: chemin du fichier JSON de sortie à générer
 
-    """
-    function_name = inspect.currentframe().f_code.co_name
-    print(f"\n{function_name}\n------------------------------")
-    
+    """    
     # Charger les données à partir du fichier JSON d'entrée
-    with open(input_file, 'r') as f:
+    with open(input_file, 'r', encoding='utf-8') as f:
         data = json.load(f)
 
     # Initialisation des structures de données
@@ -172,28 +166,20 @@ def diagho_create_json_families(input_file, output_file):
         v_sex = sample_data.get('sex', '').lower()
         v_last_name = sample_data.get('last_name', '')
         v_first_name = sample_data.get('first_name', '')
-
-        # Gestion des caractères spéciaux dans le prénom
-        # v_first_name = replace_special_characters(v_first_name)
-
-        # Date de naissance
-        dob_str = sample_data.get('date_of_birth', '')
-        v_date_of_birth = parse_date(dob_str)  # Fonction pour parser la date
+        v_date_of_birth = parse_date(sample_data.get('date_of_birth', ''))  # mettre la date au bon format
 
         # id des parents
         v_mother_id = sample_data.get('mother_id', '')
         v_father_id = sample_data.get('father_id', '')
-
-        # cas index
-        v_is_index = sample_data.get('is_index', False)
-
+        
         # Gestion du cas index
+        v_is_index = sample_data.get('is_index', False)
         if v_is_index:
             # on récupère le person_id du cas index et on l'ajoute au dict_index_case_by_family
             v_index_case_id = v_person_id
             dict_index_case_by_family[v_family_id] = v_index_case_id
 
-        v_person_note = sample_data.get('note', '')
+        v_person_note = sample_data.get('person_note', '')
 
         # Créer le dictionnaire représentant la personne
         dict_person = {
@@ -211,11 +197,10 @@ def diagho_create_json_families(input_file, output_file):
         dict_person = remove_empty_keys(dict_person)
 
         # Créer ou mettre à jour la famille dans le dictionnaire des familles
-
         # Vérifier si la famille existe déjà
         if v_family_id in dict_families:
             persons = dict_families[v_family_id]["persons"]
-
+            
             # Vérifier si la personne avec cet 'identifier' existe déjà
             if not any(person["identifier"] == dict_person["identifier"] for person in persons):
                 dict_families[v_family_id]["persons"].append(dict_person)
@@ -240,9 +225,9 @@ def diagho_create_json_biofiles(input_file, output_file, biofiles_directory):
     - output_file: chemin du fichier JSON de sortie à générer
     - vcfs_directory: répertoire où se trouvent les fichiers VCF
 
-    """
+    """    
     # Charger les données d'entrée depuis le fichier JSON
-    with open(input_file, 'r') as f:
+    with open(input_file, 'r', encoding='utf-8') as f:
         data = json.load(f)
 
     # Initialisation des structures de données
@@ -297,7 +282,7 @@ def diagho_create_json_interpretations(input_file, output_file, biofiles_directo
     - output_file: chemin du fichier JSON de sortie à générer
     - vcfs_directory: répertoire où se trouvent les fichiers VCF
 
-    """
+    """    
     # Charger les données d'entrée depuis le fichier JSON
     with open(input_file, 'r') as f:
         data = json.load(f)
@@ -384,9 +369,7 @@ def diagho_create_json_interpretations(input_file, output_file, biofiles_directo
 
 
     # Écrire le résultat dans un fichier JSON de sortie
-    dict_interpretations = remove_empty_keys(dict_interpretations)
-    pretty_print_json_string(dict_interpretations)
-    
+    dict_interpretations = remove_empty_keys(dict_interpretations)    
     write_final_JSON_file(dict_interpretations, "interpretations", output_file)
 
 
