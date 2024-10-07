@@ -101,7 +101,7 @@ def diagho_process_file(file, config):
     url_diagho_api = config['diagho_api']['url']
     diagho_api = {
         'healthcheck': url_diagho_api + 'healthcheck',
-        'login': url_diagho_api + 'login/',
+        'login': url_diagho_api + 'auth/login/',
         'get_user': url_diagho_api + 'accounts/users/me',
         'get_biofile': url_diagho_api + 'bio_files/files',
         'post_biofile_snv': url_diagho_api + 'bio_files/files/snv/',
@@ -122,7 +122,7 @@ def diagho_process_file(file, config):
     print("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
     print("API Login")
     print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
-    diagho_api_login(config)
+    diagho_api_login(config, diagho_api)
         
     # Test file format
     print("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")

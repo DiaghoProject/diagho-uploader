@@ -49,7 +49,7 @@ def diagho_api_healthcheck(diagho_api, exit_on_error=False):
     return False
 
 
-def diagho_api_login(config):
+def diagho_api_login(config, diagho_api):
     """
     Gère le processus de connexion à l'API Diagho.
     Cette fonction vérifie si l'utilisateur est déjà connecté en utilisant un access token.
@@ -77,13 +77,13 @@ def diagho_api_login(config):
         access_token = get_access_token(config)
                 
         # Vérifier si l'utilisateur est déjà connecté
-        if diagho_api_get_connected_user(config, access_token):
+        if diagho_api_get_connected_user(config, access_token, diagho_api):
             logging.getLogger("API_LOGIN").info(f"User already connected.")
             return {"status": "User already connected"}
         else:
             # Tenter une nouvelle connexion
-            return diagho_api_post_login(config)
-        
+            return diagho_api_post_login(config, diagho_api)
+
     except FileNotFoundError:
         logging.getLogger("API_LOGIN").error(f"FUNCTION: {function_name}:Error: Configuration file not found")
         return {"error": "Configuration file not found"}
@@ -136,7 +136,7 @@ def diagho_api_get_connected_user(config, access_token, diagho_api):
         logging.getLogger("API_GET_CONNECTED_USER").error(f"Erreur lors de la connexion à l'API: {e}")
         return False
     except KeyError as e:
-        logging.getLogger("API_GET_CONNECTED_USER").error(f"MIssing key in configuration: {e}")
+        logging.getLogger("API_GET_CONNECTED_USER").error(f"Missing key in configuration: {e}")
         return False
     except json.JSONDecodeError:
         logging.getLogger("API_GET_CONNECTED_USER").error(f"API response invalid.")
@@ -220,7 +220,7 @@ def diagho_api_post_login(config, diagho_api):
     
     # Validation des paramètres
     if not username or not password:
-        logging.getLogger("API_POST_LOGIN").error(f"FUNCTION: {function_name}:\n\nError: Username or password is missing")
+        logging.getLogger("API_POST_LOGIN").error(f"FUNCTION: {function_name}:Error: Username or password is missing")
         return {"error": "Username or password is missing"}
     
     headers = {
@@ -231,10 +231,9 @@ def diagho_api_post_login(config, diagho_api):
         'username': username,
         'password': password
     }
-    
     try:
         response = requests.post(url, headers=headers, json=payload)
-        response.raise_for_status() 
+        # response.raise_for_status() 
         # TODO #23 tentatives + délai à faire 
         try:
             response_json = response.json()
