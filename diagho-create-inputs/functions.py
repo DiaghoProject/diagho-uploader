@@ -147,7 +147,7 @@ def validate_tsv_columns(file_path, required_headers):
     Returns:
         bool: True si toutes les colonnes et valeurs respectent les conditions, sinon False.
     """
-    with open(file_path, newline='', encoding='utf-8') as tsvfile:
+    with open(file_path, newline='', encoding='iso-8859-1') as tsvfile:
         reader = csv.DictReader(tsvfile, delimiter='\t')
         tsv_headers = reader.fieldnames
 
@@ -177,7 +177,7 @@ def validate_tsv_columns(file_path, required_headers):
 
 
 
-def validate_tsv_file(input_file, encoding='latin1'):
+def validate_tsv_file(input_file, encoding='iso-8859-1'):
     """
     Validates the format of a TSV (Tab-Separated Values) file.
     
