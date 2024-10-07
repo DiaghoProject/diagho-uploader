@@ -206,7 +206,7 @@ def check_md5sum(checksum1, checksum2):
 
 
 # Check JSON format
-def check_json_format(file_path, json_input):
+def check_json_format(file_path):
     """
     Checks if the given file is properly formatted in JSON.
 
