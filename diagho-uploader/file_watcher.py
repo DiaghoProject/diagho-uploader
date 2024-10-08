@@ -72,20 +72,21 @@ def watch_directory(path_input, path_backup, path_biofiles, config):
                 print(f"Fichiers créés : {new_files}")
                 
                 for file in new_files:
-                    file_path = os.path.join(path_input, file)
-                    print(f"Processing file: {file_path}")
-                    try:
-                        # Copy file to backup
-                        copy_file(file_path, path_backup)
-                        
-                        # Process file
-                        diagho_process_file(file_path, config)
-                        
-                        # Remove file from directory
-                        remove_file(file_path)
-                        
-                    except Exception as e:
-                        print(f"Failed to process file: {e}")
+                    if file.endswith(".json") :
+                        file_path = os.path.join(path_input, file)
+                        print(f"Processing file: {file_path}")
+                        try:
+                            # Copy file to backup
+                            copy_file(file_path, path_backup)
+                            
+                            # Process file
+                            diagho_process_file(file_path, config)
+                            
+                            # Remove file from directory
+                            remove_file(file_path)
+                            
+                        except Exception as e:
+                            print(f"Failed to process file: {e}")
             
             if modified_files:
                 print(f"Modified files : {modified_files}")
