@@ -4,7 +4,15 @@
 ## Table des Matières
 
 1. [Installation](#installation)
+
 2. [Utilisation](#utilisation)
+
+   2.1 [Création du fichier json d'input](#etape-1--création-du-fichier-json-dinput)
+
+   2.2 [Upload des fichiers dans Diagho](#etape-2--upload-des-fichiers-dans-diagho)
+
+<br>
+<br>
 
 ## Installation
 
@@ -36,6 +44,8 @@ cp config/config.yaml.example config.yaml
 
 - Compléter le fichier `config.yaml`
 
+<br>
+<br>
 
 ## Utilisation
 
@@ -44,6 +54,9 @@ cp config/config.yaml.example config.yaml
 Créer 2 répertoires :
 - **input_biofiles** : va contenir les fichiers VCF et BED
 - **input_data** : va contenir les fichiers JSON (informations sur les échantillons)
+
+<br>
+<br>
 
 ### Etape 1 : création du fichier JSON d'input
 
@@ -82,12 +95,11 @@ Créer 2 répertoires :
 ```bash
 source venv/bin/activate
 
-BATCHID="RUN-001"                               # utilisé pour nommer les fichiers de sortie (généralement le nom du run)
-INPUT_DIR="./input_tsv"                      # répertoire d'input
-INPUT_FILE="${INPUT_DIR}/input_file.tsv"        # ficher d'input TSV (selon le template défini)
-DIR_BIOFILES="./input_biofiles"                 # répertoire où sont stockés les VCFs et les BEDs
-OUTPUT_DIR="./output_json/${BATCHID}"               # répertoire de sortie
-OUTPUT_PREFIX="${BATCHID}"                      # préfix fichiers de sortie (par défaut BATCHID = nom du run)
+BATCHID="RUN-001"                       # utilisé pour nommer les fichiers de sortie (généralement le nom du run)
+INPUT_FILE="path/to/input_file.tsv"     # ficher d'input TSV (selon le template défini)
+DIR_BIOFILES="path/to/input_biofiles"   # répertoire où sont stockés les VCFs et les BEDs
+OUTPUT_DIR="./output_json/${BATCHID}"   # répertoire de sortie
+OUTPUT_PREFIX="${BATCHID}"              # préfix fichier de sortie
 mkdir -p $OUTPUT_DIR
 
 
@@ -101,6 +113,8 @@ python ./diagho-create-inputs/diagho-create-inputs.py \
 
 - Déposer le fichier JSON créé dans le répertoire **input_data** pour la suite
 
+<br>
+<br>
 
 ### Etape 2 : upload des fichiers dans Diagho
 
