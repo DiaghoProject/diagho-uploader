@@ -69,7 +69,7 @@ Créer 2 répertoires :
 | filename      | Nom du fichier (VCF ou BED) |
 | checksum	    | Checksum du fichier (optionnel) |
 | file_type     | **SNV** ou **CNV** |
-| assembly      | **CHRh37** ou **GRCh38** |
+| assembly      | **GRCh37** ou **GRCh38** |
 | sample        | ID du sample |
 | bam_path      | Chemin du fichier bam |
 | family_id     | ID de la famille | 
