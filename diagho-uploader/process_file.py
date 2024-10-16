@@ -225,7 +225,10 @@ def diagho_process_file(file, config):
     print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
     logging.getLogger("IMPORT_CONFIGURATIONS").info(log_message(json_input, "",f"Import JSON: {file}"))
     diagho_api_post_config(diagho_api['config'], file, config)
-
+    
+    
+    
+    
 
 
 def process_biofile(config, biofile, biofile_type, biofile_checksum, filename, assembly, json_input,diagho_api):
@@ -252,15 +255,13 @@ def process_biofile(config, biofile, biofile_type, biofile_checksum, filename, a
     print("POST Biofile")
     print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
     
-    # TODO #25 Accession_ID et Assembly doivent être récupérées dur fichier d'input JSON
-    
     if biofile_type == "SNV":
-        checksum_from_api = diagho_api_post_biofile(url_diagho_api_post_biofile_snv, biofile, biofile_type, accession_id, config, diagho_api).get('checksum')
+        checksum_from_api = diagho_api_post_biofile(url_diagho_api_post_biofile_snv, biofile, biofile_type, accession_id, config, diagho_api, biofile_checksum).get('checksum')
         logging.getLogger("PROCESSING_BIOFILE").info(log_message(json_input, filename, f"VCF file"))
         logging.getLogger("PROCESSING_BIOFILE").info(log_message(json_input, filename, f"Checksum from API: {checksum_from_api}"))
     
     if biofile_type == "CNV":
-        checksum_from_api = diagho_api_post_biofile(url_diagho_api_post_biofile_cnv, biofile, biofile_type, assembly, config, diagho_api).get('checksum')
+        checksum_from_api = diagho_api_post_biofile(url_diagho_api_post_biofile_cnv, biofile, biofile_type, assembly, config, diagho_api, biofile_checksum).get('checksum')
         logging.getLogger("PROCESSING_BIOFILE").info(log_message(json_input, filename, f"BED file"))
         logging.getLogger("PROCESSING_BIOFILE").info(log_message(json_input, filename, f"Checksum from API: {checksum_from_api}"))
         
@@ -351,15 +352,15 @@ def check_loading_status(config, url, checksum, filename, max_retries, delay, at
         
         # Try again before really failed
         new_attempt = 0
-        max_new_attempts = 10
-        while new_attempt <= max_new_attempts:
+        max_new_attempts = 100
+        while new_attempt <= max_new_attempts and status not in [0, 3]:
             status = diagho_api_get_loadingstatus(url, checksum, config).get('loading')
-            time.sleep(30)
+            time.sleep(60)
             new_attempt += 1
             
         if status == 0:      
             return False
-        elif status ==3:
+        elif status == 3:
             return True
         else:
             return None
