@@ -117,7 +117,7 @@ def diagho_tsv2json(input_file, output_file, lowercase_keys=False, encoding='lat
         if validate_tsv_columns(input_file, required_headers):
             print("> All columns and values are valid.Toutes les colonnes et valeurs sont valides.")
         else:
-            print("> Input file contzins errors.")
+            print("> Input file contains errors.")
 
         # Read TSV file into a pandas DataFrame
         df = pd.read_csv(input_file, delimiter='\t', encoding=encoding, dtype=str)  # dtype=str to keep empty fields
