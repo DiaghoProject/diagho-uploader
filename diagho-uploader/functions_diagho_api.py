@@ -255,7 +255,7 @@ def diagho_api_post_login(config, diagho_api):
 
 
 # POST api/v1/bio_files/files/snv/ ou api/v1/bio_files/files/cnv/
-def diagho_api_post_biofile(url, biofile_path, biofile_type, param, config, diagho_api):
+def diagho_api_post_biofile(url, biofile_path, biofile_type, param, config, diagho_api, biofile_checksum):
     """
     Requête POST pour uploader un biofile.
 
@@ -302,41 +302,39 @@ def diagho_api_post_biofile(url, biofile_path, biofile_type, param, config, diag
         return {"error": "Unknown Biofile type"}
     
     try:
-        logging.getLogger("API_POST_BIOFILE").warning(f"{filename} - URL POST_BIOFILE: {url}")
-        response = requests.post(url, headers=headers, files=files, data=data)
-        time.sleep(3)
-        try:
-            response_json = response.json()
-            
-            # Si le POST a réussi, on récupère un dict         
-            if isinstance(response_json, dict):
-                checksum = response_json.get('checksum')
-                logging.getLogger("API_POST_BIOFILE").info(f"{filename} - POST Biofile completed.")
-                logging.getLogger("API_POST_BIOFILE").info(f"{filename} - Get checksum: {checksum}")
-                return {"checksum": checksum}
-            else:
-                # Si fichier déjà envoyé précédemment, on récupère son ID
-                logging.getLogger("API_POST_BIOFILE").info(f"{filename} -  Biofile already uploaded.")
-                match = re.search(r'ID:\s*(\d+)', response.text)
-                if match:
-                    file_id = match.group(1)
-                    print(f"ID récupéré : {file_id}")
-                    logging.getLogger("API_POST_BIOFILE").info(f"{filename} - Get file_id: {file_id}")
-                    
-                    url_get_biofile = diagho_api['get_biofile']
-                    url_with_params = f"{url_get_biofile}/{file_id}"
-                    response2 = requests.get(url_with_params, headers=headers)
-                    response2_json = response2.json()
-                    checksum = response2_json.get('checksum')
+        # Test if biofile is already uploaded with 'biofile_checksum'
+        url_get_biofile = diagho_api['get_biofile']
+        url_with_params = f"{url_get_biofile}/?checksum={biofile_checksum}"
+        logging.getLogger("API_POST_BIOFILE").info(f"{filename} - Test if Biofile is already uploaded.")
+        response = requests.get(url_with_params, headers=headers)
+        biofile_exist = response.json().get('count')
+        logging.getLogger("API_POST_BIOFILE").info(f"{filename} - Biofile exists = {biofile_exist}.")
+        
+        # If doesn't exist : POST biofile
+        if biofile_exist == 0:
+            response = requests.post(url, headers=headers, files=files, data=data)
+            time.sleep(3)
+            try:
+                response_json = response.json()
+                
+                # check if response is a dict  
+                if isinstance(response_json, dict):
+                    checksum = response_json.get('checksum')
+                    logging.getLogger("API_POST_BIOFILE").info(f"{filename} - POST Biofile completed.")
                     logging.getLogger("API_POST_BIOFILE").info(f"{filename} - Get checksum: {checksum}")
                     return {"checksum": checksum}
                 else:
-                    print("Aucun ID de fichier trouvé dans la réponse.")
+                    logging.getLogger("API_POST_BIOFILE").error(f"{filename} - Error with POST biofile response.")                 
+                    return {"error": "Error with POST biofile response."}
                 
-                return {"error": "No checksum in response"}
-        except ValueError:
-            logging.getLogger("API_POST_BIOFILE").error(f"FUNCTION: {function_name}:Error: Response is not in JSON format")
-            return {"error": "Response is not in JSON format"}
+            except ValueError:
+                logging.getLogger("API_POST_BIOFILE").error(f"FUNCTION: {function_name}:Error: Response is not in JSON format")
+                return {"error": "Response is not in JSON format"}
+        else:
+            # Biofile already exist : return checksum
+            logging.getLogger("API_POST_BIOFILE").info(f"{filename} -  ALREADY UPLOADED !")
+            return {"checksum": biofile_checksum}
+        
     except requests.exceptions.HTTPError as err:
         logging.getLogger("API_POST_BIOFILE").error(f"FUNCTION: {function_name}:HTTP Error: {str(err)}")
         return {"error": str(err)}  
