@@ -359,13 +359,78 @@ def diagho_create_json_interpretations(input_file, output_file, biofiles_directo
                 datas_dict[composite_key] = {
                     "title": title,
                     "type": file_type,
-                    "samples": []
+                    "samples": [],
+                    "pretags": []
                 }
+            
+            #########################################################################
+            ## PRETAGS par projet
+            if interpretation['project'] == "vdg":
+                # Pretags VDG
+                dict_pretags = {
+                    "tag": 13,
+                    "filter": 14
+                }
+                if dict_pretags not in datas_dict[composite_key]["pretags"]:
+                    datas_dict[composite_key]["pretags"].append(dict_pretags)
+                    
+            elif interpretation['project'] == "iop":
+                # Pretags IOP_DIAG
+                dict_pretags = {
+                    "tag": 15,
+                    "filter": 16
+                }
+                if dict_pretags not in datas_dict[composite_key]["pretags"]:
+                    datas_dict[composite_key]["pretags"].append(dict_pretags)
+                
+                # Pretags IOP_large
+                dict_pretags = {
+                    "tag": 18,
+                    "filter": 19
+                }
+                if dict_pretags not in datas_dict[composite_key]["pretags"]:
+                    datas_dict[composite_key]["pretags"].append(dict_pretags)
+
+            elif interpretation['project'] == "mrkh":
+                # Pretags MRKH
+                dict_pretags = {
+                    "tag": 16,
+                    "filter": 17
+                }
+                if dict_pretags not in datas_dict[composite_key]["pretags"]:
+                    datas_dict[composite_key]["pretags"].append(dict_pretags)
+                
+            elif interpretation['project'] == "fast":
+                # Pretags PRENAT_DI
+                dict_pretags = {
+                    "tag": 17,
+                    "filter": 18
+                }
+                if dict_pretags not in datas_dict[composite_key]["pretags"]:
+                    datas_dict[composite_key]["pretags"].append(dict_pretags)
+                    
+            else:
+                # Pas de pretags
+                datas_dict[composite_key]["pretags"].append({
+                    "tag": "",
+                    "filter": "", 
+                })
+                
+            #########################################################################
             
             datas_dict[composite_key]["samples"].append(sample)
 
         del interpretation["datas_tuples"]
         interpretation["datas"] = list(datas_dict.values())
+        
+        
+        #########################################################################
+        # Supprimer 'pretags' si aucun pretag
+        for data in interpretation["datas"]:
+            if "pretags" in data:
+                if all(not tag.get("tag") and not tag.get("filter") for tag in data["pretags"]):
+                    del data["pretags"]
+        #########################################################################
 
 
     # Écrire le résultat dans un fichier JSON de sortie
