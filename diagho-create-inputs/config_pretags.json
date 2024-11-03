@@ -1,0 +1,18 @@
+{
+    "vdg": [
+        {"tag": 13, "filter": 14}
+    ],
+    "iop": [
+        {"tag": 15, "filter": 16},
+        {"tag": 18, "filter": 19}
+    ],
+    "mrkh": [
+        {"tag": 16, "filter": 17}
+    ],
+    "fast": [
+        {"tag": 17, "filter": 18}
+    ],
+    "default": [
+        {"tag": "", "filter": ""}
+    ]
+}

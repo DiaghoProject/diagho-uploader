@@ -24,6 +24,8 @@ from datetime import datetime
 # Import des fonctions
 from functions import *
 
+from functions_pretags import *
+
 sys.getdefaultencoding()
 
 
@@ -362,61 +364,9 @@ def diagho_create_json_interpretations(input_file, output_file, biofiles_directo
                     "samples": [],
                     "pretags": []
                 }
-            
-            #########################################################################
-            ## PRETAGS par projet
-            if interpretation['project'] == "vdg":
-                # Pretags VDG
-                dict_pretags = {
-                    "tag": 13,
-                    "filter": 14
-                }
-                if dict_pretags not in datas_dict[composite_key]["pretags"]:
-                    datas_dict[composite_key]["pretags"].append(dict_pretags)
-                    
-            elif interpretation['project'] == "iop":
-                # Pretags IOP_DIAG
-                dict_pretags = {
-                    "tag": 15,
-                    "filter": 16
-                }
-                if dict_pretags not in datas_dict[composite_key]["pretags"]:
-                    datas_dict[composite_key]["pretags"].append(dict_pretags)
                 
-                # Pretags IOP_large
-                dict_pretags = {
-                    "tag": 18,
-                    "filter": 19
-                }
-                if dict_pretags not in datas_dict[composite_key]["pretags"]:
-                    datas_dict[composite_key]["pretags"].append(dict_pretags)
-
-            elif interpretation['project'] == "mrkh":
-                # Pretags MRKH
-                dict_pretags = {
-                    "tag": 16,
-                    "filter": 17
-                }
-                if dict_pretags not in datas_dict[composite_key]["pretags"]:
-                    datas_dict[composite_key]["pretags"].append(dict_pretags)
-                
-            elif interpretation['project'] == "fast":
-                # Pretags PRENAT_DI
-                dict_pretags = {
-                    "tag": 17,
-                    "filter": 18
-                }
-                if dict_pretags not in datas_dict[composite_key]["pretags"]:
-                    datas_dict[composite_key]["pretags"].append(dict_pretags)
-                    
-            else:
-                # Pas de pretags
-                datas_dict[composite_key]["pretags"].append({
-                    "tag": "",
-                    "filter": "", 
-                })
-                
-            #########################################################################
+            # Ajout des pretags en fonction du projet
+            set_pretags_by_project(interpretation, datas_dict, composite_key)
             
             datas_dict[composite_key]["samples"].append(sample)
 
