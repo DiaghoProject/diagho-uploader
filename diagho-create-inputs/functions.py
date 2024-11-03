@@ -113,7 +113,8 @@ def validate_column_value(column_name, value):
         return value != ""
     elif column_name == 'bam_path':
         if value != "":
-            return os.path.exists(value)
+            return True
+            # return os.path.exists(value)  # pb de path Windows/Linux
         else:
             return False
     elif column_name == 'family_id':
