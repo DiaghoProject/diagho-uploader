@@ -362,6 +362,9 @@ def diagho_create_json_interpretations(input_file, output_file, biofiles_directo
                     "title": title,
                     "type": file_type,
                     "samples": [],
+                    "excludeColumns" : [
+                        "ad_allele_1", "ad_allele_2", "gt_allele_1", "gt_allele_2", "name", "gt_phased", "OLD_MULTIALLELIC", "OLD_VARIANT", "columns", "AC", "ADJAF", "AF", "AN", "AQ", "BaseQRankSum", "BIAS", "CALLER", "CIGAR", "CIPOS", "DB", "DP", "DUPRATE", "ExcessHet", "FS", "HIAF", "HICNT", "HICOV", "HOMLEN", "HOMSEQ", "LSEQ", "MLEAC", "MLEAF", "MQ", "MQRankSum", "MSI", "MSILEN", "NM", "ODDRATIO", "OLD_CLUMPED", "PMEAN", "PSTD", "QD", "QSTD", "QUAL", "ReadPosRankSum", "REFBIAS", "RSEQ", "SAMPLE", "SBF", "SHIFT3", "SN", "SOR", "SPANPAIR", "SPLITREAD", "SVLEN", "VARBIAS", "VD"
+                        ],
                     "pretags": []
                 }
                 
