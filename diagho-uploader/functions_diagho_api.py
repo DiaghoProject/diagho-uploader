@@ -9,9 +9,14 @@ import inspect
 import yaml
 import re
 
+
+
 from functions import * 
 
 
+# Problem SSL certificate
+import urllib3
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
 def alert(content: str, config):
@@ -22,7 +27,7 @@ def alert(content: str, config):
 def diagho_api_healthcheck(diagho_api, exit_on_error=False):
     """
     Tests the health of the API by performing a GET request to the URL.
-
+    
     Args:
         url (str): The URL of the API to test.
         exit_on_error (bool): Whether to exit the program on HTTP error. Default is False.
@@ -33,9 +38,9 @@ def diagho_api_healthcheck(diagho_api, exit_on_error=False):
     function_name = inspect.currentframe().f_code.co_name
     
     url = diagho_api['healthcheck']
-
+    
     try:
-        response = requests.get(url)
+        response = requests.get(url, verify=False)
         response.raise_for_status()
         return True
     except requests.exceptions.HTTPError as http_err:
@@ -72,7 +77,6 @@ def diagho_api_login(config, diagho_api):
         if not username or not password:
             logging.getLogger("API_LOGIN").error(f"FUNCTION: {function_name}:Error: Username or password is missing")
             return {"error": "Username or password is missing"}
-
         # Obtenir l'access token actuel
         access_token = get_access_token(config)
                 
@@ -83,7 +87,6 @@ def diagho_api_login(config, diagho_api):
         else:
             # Tenter une nouvelle connexion
             return diagho_api_post_login(config, diagho_api)
-
     except FileNotFoundError:
         logging.getLogger("API_LOGIN").error(f"FUNCTION: {function_name}:Error: Configuration file not found")
         return {"error": "Configuration file not found"}
@@ -112,7 +115,6 @@ def diagho_api_get_connected_user(config, access_token, diagho_api):
         Exception: Si une erreur se produit lors de la récupération des informations utilisateur ou de la configuration.
     """
     url = diagho_api['get_user']
-
     if not access_token:
         return {"error": "No access token available"}
     headers = {
@@ -120,7 +122,7 @@ def diagho_api_get_connected_user(config, access_token, diagho_api):
     }
     
     try:
-        response = requests.get(url, headers=headers)
+        response = requests.get(url, headers=headers, verify=False)
         response.raise_for_status()  # Vérifie si la requête a réussi
         user_data = response.json()
         user_username = user_data.get('username')
@@ -232,7 +234,7 @@ def diagho_api_post_login(config, diagho_api):
         'password': password
     }
     try:
-        response = requests.post(url, headers=headers, json=payload)
+        response = requests.post(url, headers=headers, json=payload, verify=False)
         # response.raise_for_status() 
         # TODO #23 tentatives + délai à faire 
         try:
@@ -306,13 +308,13 @@ def diagho_api_post_biofile(url, biofile_path, biofile_type, param, config, diag
         url_get_biofile = diagho_api['get_biofile']
         url_with_params = f"{url_get_biofile}/?checksum={biofile_checksum}"
         logging.getLogger("API_POST_BIOFILE").info(f"{filename} - Test if Biofile is already uploaded.")
-        response = requests.get(url_with_params, headers=headers)
+        response = requests.get(url_with_params, headers=headers, verify=False)
         biofile_exist = response.json().get('count')
         logging.getLogger("API_POST_BIOFILE").info(f"{filename} - Biofile exists = {biofile_exist}.")
         
         # If doesn't exist : POST biofile
         if biofile_exist == 0:
-            response = requests.post(url, headers=headers, files=files, data=data)
+            response = requests.post(url, headers=headers, files=files, data=data, verify=False)
             time.sleep(3)
             try:
                 response_json = response.json()
@@ -375,7 +377,7 @@ def diagho_api_get_loadingstatus(url, checksum, config):
     url_with_params = f"{url}?checksum={checksum}"
         
     try:
-        response = requests.get(url_with_params, headers=headers)
+        response = requests.get(url_with_params, headers=headers, verify=False)
         response.raise_for_status() 
         
         try:
@@ -440,7 +442,7 @@ def diagho_api_post_config(url, file, config):
         # response.raise_for_status()  # Vérifie si la requête a réussi (statut 200)
         
         try:
-            response = requests.post(url, headers=headers, json=json_data)
+            response = requests.post(url, headers=headers, json=json_data, verify=False)
             logging.getLogger("API_POST_CONFIGURATION").info(f"JSON file {file} posted succesfully.")
             logging.getLogger("API_POST_CONFIGURATION").info(f"status_code: {response.status_code}, json_response: {response.json()}")
             return {"status_code": response.status_code, "json_response": response.json()}
