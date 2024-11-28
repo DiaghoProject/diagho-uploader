@@ -445,7 +445,8 @@ def diagho_api_post_config(url, file, config):
             response = requests.post(url, headers=headers, json=json_data, verify=False)
             logging.getLogger("API_POST_CONFIGURATION").info(f"JSON file {file} posted succesfully.")
             logging.getLogger("API_POST_CONFIGURATION").info(f"status_code: {response.status_code}, json_response: {response.json()}")
-            return {"status_code": response.status_code, "json_response": response.json()}
+            return response
+            # return {"status_code": response.status_code, "json_response": response.json()}
         except ValueError:
             logging.getLogger("API_POST_CONFIGURATION").error(f"FUNCTION: {function_name}:Error: Response is not in JSON format")
             return {"error": "Response is not in JSON format"}

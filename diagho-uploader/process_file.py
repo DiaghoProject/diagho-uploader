@@ -44,6 +44,7 @@ def get_files_infos(json_input):
                 "assembly" : assembly,
                 "persons" : persons
             }
+        # TODO #28 Warning s'il manque des infos 
         pretty_print_json_string(dict_files)
         return dict_files
 
@@ -224,7 +225,10 @@ def diagho_process_file(file, config):
     print("Upload JSON file")
     print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
     logging.getLogger("IMPORT_CONFIGURATIONS").info(log_message(json_input, "",f"Import JSON: {file}"))
-    diagho_api_post_config(diagho_api['config'], file, config)
+    response = diagho_api_post_config(diagho_api['config'], file, config)
+    
+    check_api_response(response, config, json_input, recipients)
+    
     
     
     
@@ -344,7 +348,7 @@ def check_loading_status(config, url, checksum, filename, max_retries, delay, at
         
         # Vérifier si le nombre maximal de tentatives est atteint
         if attempt >= max_retries:
-            logging.getLogger("PROCESSING_BIOFILE").error('GET_LOADING_STATUS: Maximum number of attempts reached.')
+            logging.getLogger("PROCESSING_BIOFILE").error(log_message(json_input, filename, f"GET_LOADING_STATUS: Maximum number of attempts reached."))
             return None
         
     # Vérification des statuts finaux
@@ -366,8 +370,8 @@ def check_loading_status(config, url, checksum, filename, max_retries, delay, at
             return None
         
     elif status == 3:
-        logging.getLogger("PROCESSING_BIOFILE").info('Loading completed successfully.')
+        logging.getLogger("PROCESSING_BIOFILE").info(log_message(json_input, filename, f"Loading completed successfully."))
         return True
     else:
-        logging.getLogger("PROCESSING_BIOFILE").error(f"Unknown status: {status}. Exit.")
+        logging.getLogger("PROCESSING_BIOFILE").error(log_message(json_input, filename, f"Unknown status: {status}. Exit."))
         return None

@@ -99,7 +99,7 @@ def pretty_print_json_string(string):
 def send_mail(recipients: str, subject: str, content: str, config='config/config.yaml'):
     """
     Sends an email.
-
+    
     Args:
         recipients (str): One or more recipients, separated by commas.
         subject (str): Subject of the email.
@@ -230,3 +230,24 @@ def check_json_format(file_path):
     except Exception as e:
         logging.getLogger("CHECK_JSON_FORMAT").error(f"An unexpected error occurred while checking the file '{file_path}': {e}")
         return False
+    
+
+def check_api_response(response, config, json_input, recipients):
+    if response.status_code == 201:
+        recipients = config['emails']['recipients']
+        content = f"JSON file: {json_input}\n\nThe JSON configuration file was posted in Diagho successfully"
+        send_mail_info(recipients, content)
+        
+    if response.status_code == 400:
+        json_response = response.json()
+        print("JSON Response:", json_response)
+        json_string = json.dumps(response)
+        
+        # Vérif si patient déjà dans une famille
+        search_string = "A person with the same identifier already exist, but is present in another family."
+        if search_string in json_string:
+            print("A person with the same identifier already exist, but is present in another family.")
+            persons_content = response['json_response']['errors']['families'][4]['persons']
+            recipients = config['emails']['recipients']
+            content = f"JSON file: {json_input}\n\nA person with the same identifier already exist, but is present in another family :\n{persons_content}"
+            send_mail_alert(recipients, content)
