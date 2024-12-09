@@ -1,18 +1,42 @@
 {
     "vdg": [
-        {"tag": 13, "filter": 14}
+        {"tag": 28, "filter": 48},
+        {"tag": 29, "filter": 49},
+        {"tag": 30, "filter": 50},
+        {"tag": 31, "filter": 54},
+        {"tag": 32, "filter": 55},
+        {"tag": 13, "filter": 53}
     ],
     "iop": [
-        {"tag": 15, "filter": 16},
-        {"tag": 18, "filter": 19}
+        {"tag": 28, "filter": 48},
+        {"tag": 29, "filter": 49},
+        {"tag": 30, "filter": 50},
+        {"tag": 31, "filter": 54},
+        {"tag": 32, "filter": 55},
+        {"tag": 15, "filter": 51},
+        {"tag": 18, "filter": 52}
     ],
     "mrkh": [
-        {"tag": 16, "filter": 17}
+        {"tag": 28, "filter": 48},
+        {"tag": 29, "filter": 49},
+        {"tag": 30, "filter": 50},
+        {"tag": 31, "filter": 54},
+        {"tag": 32, "filter": 55},
+        {"tag": 16, "filter": 56}
     ],
-    "fast": [
-        {"tag": 17, "filter": 18}
+    "fast-dd": [
+        {"tag": 28, "filter": 48},
+        {"tag": 29, "filter": 49},
+        {"tag": 30, "filter": 50},
+        {"tag": 31, "filter": 54},
+        {"tag": 32, "filter": 55},
+        {"tag": 17, "filter": 57}
     ],
     "default": [
-        {"tag": "", "filter": ""}
+        {"tag": 28, "filter": 48},
+        {"tag": 29, "filter": 49},
+        {"tag": 30, "filter": 50},
+        {"tag": 31, "filter": 54},
+        {"tag": 32, "filter": 55}
     ]
 }
