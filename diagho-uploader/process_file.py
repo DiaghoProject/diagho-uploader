@@ -24,33 +24,44 @@ def get_files_infos(json_input):
               contenant le checksum et une liste des identifiants de personnes associés.
     """
     try:
-        # input_data = pd.read_json(json_input)
         with open(json_input, 'r') as json_file:
             input_data = json.load(json_file)
         
         # Récup des infos dans un dict
         dict_files = {}
-        for file in input_data['files']:
-            filename = file['filename']
-            checksum = file['checksum']
-            assembly = file['assembly']
-            samples = file['samples']
+        for file in input_data.get('files', []):  # Gestion d'une clé 'files' absente
+            # Vérifier la présence des clés obligatoires
+            required_keys = ["filename", "checksum", "assembly", "samples"]
+            for key in required_keys:
+                if key not in file:
+                    print(f"Clé manquante détectée : {key}")
+                    logging.error(f"Clé obligatoire manquante : '{key}' dans une des entrées du JSON.")
+                    raise ValueError(f"Clé manquante : '{key}' dans le fichier JSON.")
+            
+            filename = file["filename"]
+            checksum = file["checksum"]
+            assembly = file["assembly"]
+            samples = file["samples"]
+            
+            # Vérifier la structure des samples
             persons = []
-            print(filename)
             for sample in samples:
+                if "person" not in sample:
+                    logging.error(f"Clé obligatoire manquante : 'person' dans un sample associé à '{filename}'.")
+                    raise ValueError(f"Clé manquante : 'person' dans les samples de '{filename}'.")
                 persons.append(sample["person"])
+                
             dict_files[filename] = {
-                "checksum" : checksum,
-                "assembly" : assembly,
-                "persons" : persons
+                "checksum": checksum,
+                "assembly": assembly,
+                "persons": persons,
             }
-        # TODO #28 Warning s'il manque des infos 
-        pretty_print_json_string(dict_files)
+            
         return dict_files
-
-    except ValueError as e:
-        print(f"Erreur lors de la lecture du JSON: {e}")
-        return {}
+    
+    except (ValueError, KeyError, json.JSONDecodeError) as e:
+        logging.error(f"Erreur lors de la lecture ou du traitement du JSON : {e}")
+        raise  # Relancer l'exception pour que le test puisse la capturer
 
 # Gère le traitement d'un biofile
 def process_biofile_task(config, biofile, biofile_type, checksum_current_biofile, file, assembly, json_input, diagho_api):
@@ -219,6 +230,8 @@ def diagho_process_file(file, config):
             future.result()
         
     logging.getLogger("PROCESSING_BIOFILE").info(log_message(json_input, "", f"All biofiles have been loaded in Diagho"))
+    
+    time.sleep(60)
     
     # Upload JSON file  
     print("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
