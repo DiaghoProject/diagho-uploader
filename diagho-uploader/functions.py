@@ -19,18 +19,6 @@ import re
 import logging
 from datetime import datetime
 
-# Générer un nom de fichier de log avec un horodatage
-# log_filename = datetime.now().strftime("app_%Y-%m-%d_%H-%M-%S.log")
-
-# logging.basicConfig(
-#     level=logging.INFO,                     # Définir le niveau de log minimum
-#     format='[%(asctime)s][%(levelname)s][%(name)s] %(message)s', # Format du message
-#     # format='[%(name)s][%(levelname)s][%(asctime)s] %(message)s', # Format du message
-#     handlers=[
-#         logging.FileHandler(log_filename),     # Enregistrer les logs dans un fichier
-#         # logging.StreamHandler()             # Afficher les logs sur la console
-#     ]
-# )
 
 def setup_logger(filename):
     # Générer un nom de fichier de log avec un horodatage
