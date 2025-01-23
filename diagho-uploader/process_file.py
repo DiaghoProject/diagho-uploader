@@ -28,15 +28,24 @@ def get_files_infos(json_input):
         with open(json_input, 'r') as json_file:
             input_data = json.load(json_file)
         
+        required_keys ={
+            "filename": "",
+            "checksum": "",
+            "assembly": ""
+        }
         # Récup des infos dans un dict
         dict_files = {}
         for file in input_data['files']:
+            # Vérifie si toutes les clés sont présente dans le bloc 'files'
+            if not check_required_keys(file, required_keys): 
+                print("Le JSON ne contient pas toutes les clés requises.")
+                return
+            # Récup les infos
             filename = file['filename']
             checksum = file['checksum']
             assembly = file['assembly']
             samples = file['samples']
             persons = []
-            print(filename)
             for sample in samples:
                 persons.append(sample["person"])
             dict_files[filename] = {
@@ -44,13 +53,47 @@ def get_files_infos(json_input):
                 "assembly" : assembly,
                 "persons" : persons
             }
-        # TODO #28 Warning s'il manque des infos 
-        pretty_print_json_string(dict_files)
+        # pretty_print_json_string(dict_files)
         return dict_files
 
     except ValueError as e:
         print(f"Erreur lors de la lecture du JSON: {e}")
         return {}
+
+def check_required_keys(data, required_keys, path=""):
+    """
+    Vérifie si toutes les clés spécifiées dans `required_keys` sont présentes dans `data`.
+    Lève une exception si une clé est manquante.
+    """
+    # Cas d'un dict :
+    if isinstance(required_keys, dict):
+        # Vérifie que data est un dict
+        if not isinstance(data, dict):
+            logging.getLogger("CHECK_JSON_FILE").error(f"Attendu un dict à {path}, mais trouvé {type(data).__name__}")
+            raise KeyError(f"Attendu un dict à {path}, mais trouvé {type(data).__name__}")
+        # Vérifie les clés
+        for key, sub_keys in required_keys.items():
+            if key not in data:
+                logging.getLogger("CHECK_JSON_FILE").error(f"Clé manquante : {path + '.' + key if path else key}")
+                raise KeyError(f"Clé manquante : {path + '.' + key if path else key}")
+            check_required_keys(data[key], sub_keys, path + "." + key if path else key)
+    # Cas d'une list :
+    elif isinstance(required_keys, list):
+        # Vérifie que data est une list
+        if not isinstance(data, list):
+            logging.getLogger("CHECK_JSON_FILE").error(f"Attendu une liste à {path}, mais trouvé {type(data).__name__}")
+            raise KeyError(f"Attendu une liste à {path}, mais trouvé {type(data).__name__}")
+        # Vérifie les éléments de la liste
+        for index, sub_keys in enumerate(required_keys):
+            if len(data) <= index:
+                logging.getLogger("CHECK_JSON_FILE").error(f"Élément manquant dans la liste à {path}[{index}]")
+                raise KeyError(f"Élément manquant dans la liste à {path}[{index}]")
+            check_required_keys(data[index], sub_keys, f"{path}[{index}]")
+    else:
+        # Vérifie que la clé existe, sinon lève une exception
+        if data is None:
+            raise KeyError(f"Clé manquante à {path}")
+
 
 # Gère le traitement d'un biofile
 def process_biofile_task(config, biofile, biofile_type, checksum_current_biofile, file, assembly, json_input, diagho_api):
