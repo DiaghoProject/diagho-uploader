@@ -86,7 +86,7 @@ def watch_directory(path_input, path_backup, path_biofiles, config):
                             remove_file(file_path)
                             
                         except Exception as e:
-                            print(f"Failed to process file: {e}")
+                            print(f"Failed to process file '{file_path}' - Erreur: {e}")
             
             if modified_files:
                 print(f"Modified files : {modified_files}")
