@@ -11,6 +11,10 @@ check_loading:
   max_retries: 500
   delay: 60
 
+check_authent:
+  max_retries: 5
+  delay: 10
+
 emails:
   recipients: "xxxx@example.fr"
 
