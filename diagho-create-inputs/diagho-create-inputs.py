@@ -369,7 +369,7 @@ def diagho_create_json_interpretations(input_file, output_file, biofiles_directo
                 }
                 
             # Ajout des pretags en fonction du projet
-            set_pretags_by_project(interpretation, datas_dict, composite_key)
+            # set_pretags_by_project(interpretation, datas_dict, composite_key)
             
             datas_dict[composite_key]["samples"].append(sample)
 
