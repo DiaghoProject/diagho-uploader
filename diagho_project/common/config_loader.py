@@ -1,16 +1,12 @@
+import yaml
 
-
+def load_config(config_path):
+    """Charge un fichier YAML de configuration et le retourne sous forme de dictionnaire."""
+    with open(config_path, "r") as file:
+        return yaml.safe_load(file)
 
 def load_configuration(config):
-    """
-    Charge les paramètres de configuration nécessaires au fonctionnement du script.
-    
-    Args:
-        config (dict): Dictionnaire contenant les configurations chargées depuis un fichier YAML ou JSON.
-    
-    Returns:
-        dict: Contient les emails, le chemin des biofiles, les paramètres de vérification des biofiles et les endpoints API.
-    """
+    """Charge et structure les paramètres nécessaires à l'utilisation de l'API."""
     return {
         "recipients": config['emails']['recipients'],
         "path_biofiles": config['input_biofiles'],
