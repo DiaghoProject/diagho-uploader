@@ -12,7 +12,7 @@ from functions_diagho_api import *
 
 
 # Récupérer les infos dans le fichier JSON files
-def get_files_infos(json_input):
+def get_files_infos(json_input, recipients):
     """
     Extrait les informations à partir du fichier JSON.
 
@@ -20,11 +20,9 @@ def get_files_infos(json_input):
         json_input (str): Chemin vers un fichier JSON ou une chaîne JSON contenant les informations de fichier.
 
     Returns:
-        dict: Dictionnaire contenant les informations de fichier, où chaque clé est un nom de fichier et chaque valeur est un dictionnaire
-              contenant le checksum et une liste des identifiants de personnes associés.
+        dict: Dictionnaire contenant les informations de fichier.
     """
     try:
-        # input_data = pd.read_json(json_input)
         with open(json_input, 'r') as json_file:
             input_data = json.load(json_file)
         
@@ -35,30 +33,40 @@ def get_files_infos(json_input):
         }
         # Récup des infos dans un dict
         dict_files = {}
-        for file in input_data['files']:
-            # Vérifie si toutes les clés sont présente dans le bloc 'files'
-            if not check_required_keys(file, required_keys): 
-                print("Le JSON ne contient pas toutes les clés requises.")
-                return
-            # Récup les infos
-            filename = file['filename']
-            checksum = file['checksum']
-            assembly = file['assembly']
-            samples = file['samples']
+        for file in input_data.get('files', []):
+            # Vérifier les clés obligatoires
+            required_keys = ["filename", "checksum", "assembly", "samples"]
+            for key in required_keys:
+                if key not in file:
+                    print(f"Clé manquante détectée : {key}")
+                    content = f"Failed to process JSON input file: {file}\n\nMissing key: {key}"
+                    send_mail_alert(recipients, content)
+                    logging.error(f"Clé obligatoire manquante : '{key}' dans une des entrées du JSON.")
+                    raise ValueError(f"Clé manquante : '{key}' dans le fichier JSON.")
+            
+            filename = file["filename"]
+            checksum = file["checksum"]
+            assembly = file["assembly"]
+            samples = file["samples"]
+            
+            # Vérifier la structure des samples
             persons = []
             for sample in samples:
+                if "person" not in sample:
+                    logging.error(f"Clé obligatoire manquante : 'person' dans un sample associé à '{filename}'.")
+                    raise ValueError(f"Clé manquante : 'person' dans les samples de '{filename}'.")
                 persons.append(sample["person"])
+                
             dict_files[filename] = {
-                "checksum" : checksum,
-                "assembly" : assembly,
-                "persons" : persons
+                "checksum": checksum,
+                "assembly": assembly,
+                "persons": persons,
             }
-        # pretty_print_json_string(dict_files)
         return dict_files
-
-    except ValueError as e:
-        print(f"Erreur lors de la lecture du JSON: {e}")
-        return {}
+    
+    except (ValueError, KeyError, json.JSONDecodeError) as e:
+        logging.error(f"Erreur lors de la lecture ou du traitement du JSON : {e}")
+        raise
 
 def check_required_keys(data, required_keys, path=""):
     """
@@ -159,6 +167,8 @@ def diagho_process_file(file, config):
     print("API healthcheck")
     print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
     if not diagho_api_healthcheck(diagho_api):
+        content = f"Failed to connect to Diagho API."
+        send_mail_alert(recipients, content)
         logging.getLogger("API_HEALTHCHECK").error(log_message(json_input, "", f"Failed to connect to Diagho API. Exit."))
         return
         
@@ -186,6 +196,8 @@ def diagho_process_file(file, config):
     print("Test JSON file format")
     print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
     if not check_json_format(file):
+        content = f"Failed to process JSON input file: {file}"
+        send_mail_alert(recipients, content)
         logging.getLogger("CHECK_FORMAT").error(log_message(json_input, "", f"Failed to process JSON input file: {file}"))
         return
     
@@ -193,7 +205,7 @@ def diagho_process_file(file, config):
     print("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
     print("Get biofiles informations")
     print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
-    dict_biofiles = get_files_infos(file)
+    dict_biofiles = get_files_infos(file, recipients)
     
     # Foreach filename...
     print("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
@@ -222,6 +234,8 @@ def diagho_process_file(file, config):
             
             # Si le biofile n'existe pas : alerte   
             if not os.path.exists(biofile):
+                content = f"Failed to process JSON input file: {file}\n\nBiofile: {biofile} does not exist."
+                send_mail_alert(recipients, content)
                 logging.getLogger("PROCESSING_BIOFILE").error(log_message(json_input, filename, f"Biofile: {biofile} does not exist."))
                 continue
 
@@ -263,12 +277,14 @@ def diagho_process_file(file, config):
         
     logging.getLogger("PROCESSING_BIOFILE").info(log_message(json_input, "", f"All biofiles have been loaded in Diagho"))
     
+    time.sleep(60)
+    
     # Upload JSON file  
     print("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
     print("Upload JSON file")
     print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
     logging.getLogger("IMPORT_CONFIGURATIONS").info(log_message(json_input, "",f"Import JSON: {file}"))
-    response = diagho_api_post_config(diagho_api['config'], file, config)
+    response = diagho_api_post_config(diagho_api['config'], file, config, diagho_api)
     
     check_api_response(response, config, json_input, recipients)
     
@@ -314,6 +330,9 @@ def process_biofile(config, biofile, biofile_type, biofile_checksum, filename, a
         
     # Si l'upload ne fonctionne pas : alerte
     if not checksum_from_api or checksum_from_api is None:
+        content = f"Failed to process JSON input file: {json_input}\n\nFailed to upload biofile and obtain checksum from API."
+        recipients = config['emails']['recipients']
+        send_mail_alert(recipients, content)
         logging.getLogger("PROCESSING_BIOFILE").error(log_message(json_input, filename, f"Failed to upload biofile and obtain checksum from API."))
         return
 
@@ -334,7 +353,7 @@ def process_biofile(config, biofile, biofile_type, biofile_checksum, filename, a
     max_retries = config['check_loading']['max_retries']
     delay = config['check_loading']['delay']
     attempt = 0
-    loading_status = check_loading_status(config, url_diagho_api_loading_status, biofile_checksum, filename, max_retries, delay, attempt, json_input)
+    loading_status = check_loading_status(config, url_diagho_api_loading_status, biofile_checksum, filename, max_retries, delay, attempt, json_input, diagho_api)
     
     if loading_status == 0:
         logging.getLogger("PROCESSING_BIOFILE").error(log_message(json_input, filename, f"Check loading status: {loading_status}"))
@@ -359,7 +378,7 @@ def process_biofile(config, biofile, biofile_type, biofile_checksum, filename, a
 
 
 # Check loading status
-def check_loading_status(config, url, checksum, filename, max_retries, delay, attempt, json_input):
+def check_loading_status(config, url, checksum, filename, max_retries, delay, attempt, json_input, diagho_api):
     """
     Vérification du statut de chargement.
 
@@ -376,7 +395,7 @@ def check_loading_status(config, url, checksum, filename, max_retries, delay, at
         None : en cas de dépassement du nombre de tentatives ou statut inconnu
     """
     # Get loading status :
-    status = diagho_api_get_loadingstatus(url, checksum, config).get('loading')
+    status = diagho_api_get_loadingstatus(url, checksum, config, diagho_api).get('loading')
     logging.getLogger("PROCESSING_BIOFILE").info(log_message(json_input, filename, f"Loading initial status: {status}"))
     
     while status not in [0, 3]:
@@ -384,7 +403,7 @@ def check_loading_status(config, url, checksum, filename, max_retries, delay, at
         time.sleep(delay)
         
         # Récupérer à nouveau le statut de chargement
-        status = diagho_api_get_loadingstatus(url, checksum, config).get('loading')
+        status = diagho_api_get_loadingstatus(url, checksum, config, diagho_api).get('loading')
         
         # Incrémenter le compteur de tentatives
         attempt += 1
@@ -401,7 +420,7 @@ def check_loading_status(config, url, checksum, filename, max_retries, delay, at
         new_attempt = 0
         max_new_attempts = 100
         while new_attempt <= max_new_attempts and status not in [0, 3]:
-            status = diagho_api_get_loadingstatus(url, checksum, config).get('loading')
+            status = diagho_api_get_loadingstatus(url, checksum, config, diagho_api).get('loading')
             time.sleep(60)
             new_attempt += 1
             

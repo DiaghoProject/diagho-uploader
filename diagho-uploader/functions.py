@@ -126,17 +126,17 @@ def send_mail(recipients: str, subject: str, content: str, config='config/config
             if use_tls:
                 server.starttls()
             server.sendmail(from_email, recipient_list, message.as_string())
-        print("Email sent successfully")
+        print(f"Email sent successfully to: {recipients}")
     except Exception as e:
         print("Error sending email:", str(e))
         
 def send_mail_alert(recipients: str, content: str):
-    subject = "[ALERT] TEST Diagho-Uploader"
+    subject = "[ALERT] Diagho-Uploader"
     send_mail(recipients, subject, content)
 
     
 def send_mail_info(recipients: str, content: str):
-    subject = "[INFO] TEST Diagho-Uploader"
+    subject = "[INFO] Diagho-Uploader"
     send_mail(recipients, subject, content)
 
 
@@ -238,4 +238,7 @@ def check_api_response(response, config, json_input, recipients):
             persons_content = response['json_response']['errors']['families'][4]['persons']
             recipients = config['emails']['recipients']
             content = f"JSON file: {json_input}\n\nA person with the same identifier already exist, but is present in another family :\n{persons_content}"
+            send_mail_alert(recipients, content)
+        else:
+            content = f"JSON file: {json_input}\n\nError in POST configuration."
             send_mail_alert(recipients, content)
