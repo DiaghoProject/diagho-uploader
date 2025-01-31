@@ -42,7 +42,17 @@ cp config/config.yaml.example config.yaml
 
 ```
 
-- Compléter le fichier `config.yaml`
+- Compléter le fichier `config.yaml` :
+  - **input_data**: répertoire des fichiers JSON
+  - **input_biofiles**: répertoire des biofiles (VCF, BED...)
+  - **backup_data_files**: backup JSON (une fois chargé)
+  - **backup_biofiles**: backup biofiles (une fois chargé)
+  - **emails > recipients** : liste des adresses emails pour recevoir les mails d'info/alerte
+    - si plusieurs : `"user1@example.com,userb@example.com"`
+  - **diagho_api** : renseigner les informations de connexion à l'API
+  - **accessions** : indiquer l'ID d'accession pour GRCh37 et GRCh38
+
+
 
 <br>
 <br>
