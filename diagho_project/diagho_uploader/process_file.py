@@ -10,6 +10,7 @@ from .api_handler import *
 from common.config_loader import *
 from common.file_utils import *
 from common.mail_utils import *
+from common.api_utils import *
 
 
 def diagho_upload_file(**kwargs):
@@ -36,6 +37,8 @@ def diagho_upload_file(**kwargs):
     print(settings["path_biofiles"])  # Chemin des biofiles
     print(settings["diagho_api"]["login"])  # Endpoint pour login
     
+    diagho_api = get_api_endpoints(config)
+    
     
     # Test fichier JSON OK : missing key etc...
     try:
@@ -45,14 +48,19 @@ def diagho_upload_file(**kwargs):
         logging.getLogger("VALIDATE_JSON_INPUT").error(f"Erreur de validation du fichier JSON: {e}")
         send_mail_alert(settings["recipients"], f"Erreur de validation du fichier JSON: {file_path}\n\n{e}")
         print(f"Erreur de validation : {e}")
+        return
         
     
     
     
     # Check Diagho API
-    
-        # Si KO = envoi alerte par mail
-    
+    try:
+        diagho_api_healthcheck(diagho_api)
+    except ValueError as e:
+        send_mail_alert(settings["recipients"], f"Erreur API : {e}")
+        logging.getLogger("API_HEALTHCHECK").error(f"Erreur API : {e}")
+        return
+
     
     # API login
     
@@ -61,6 +69,7 @@ def diagho_upload_file(**kwargs):
     
     
     # Paralléliser le traitement des biofiles
+    logging.getLogger("PROCESS_BIOFILES").info(f"Process each biofile...")
     
     
     
