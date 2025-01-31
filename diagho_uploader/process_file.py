@@ -7,12 +7,12 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 
-from functions import * 
-from functions_diagho_api import *
+from .functions import * 
+from .functions_diagho_api import *
 
 
 # Récupérer les infos dans le fichier JSON files
-def get_files_infos(json_input, recipients):
+def get_files_infos(json_input):
     """
     Extrait les informations à partir du fichier JSON.
 
@@ -20,27 +20,21 @@ def get_files_infos(json_input, recipients):
         json_input (str): Chemin vers un fichier JSON ou une chaîne JSON contenant les informations de fichier.
 
     Returns:
-        dict: Dictionnaire contenant les informations de fichier.
+        dict: Dictionnaire contenant les informations de fichier, où chaque clé est un nom de fichier et chaque valeur est un dictionnaire
+              contenant le checksum et une liste des identifiants de personnes associés.
     """
     try:
         with open(json_input, 'r') as json_file:
             input_data = json.load(json_file)
         
-        required_keys ={
-            "filename": "",
-            "checksum": "",
-            "assembly": ""
-        }
         # Récup des infos dans un dict
         dict_files = {}
-        for file in input_data.get('files', []):
-            # Vérifier les clés obligatoires
+        for file in input_data.get('files', []):  # Gestion d'une clé 'files' absente
+            # Vérifier la présence des clés obligatoires
             required_keys = ["filename", "checksum", "assembly", "samples"]
             for key in required_keys:
                 if key not in file:
                     print(f"Clé manquante détectée : {key}")
-                    content = f"Failed to process JSON input file: {file}\n\nMissing key: {key}"
-                    send_mail_alert(recipients, content)
                     logging.error(f"Clé obligatoire manquante : '{key}' dans une des entrées du JSON.")
                     raise ValueError(f"Clé manquante : '{key}' dans le fichier JSON.")
             
@@ -62,46 +56,12 @@ def get_files_infos(json_input, recipients):
                 "assembly": assembly,
                 "persons": persons,
             }
+            
         return dict_files
     
     except (ValueError, KeyError, json.JSONDecodeError) as e:
         logging.error(f"Erreur lors de la lecture ou du traitement du JSON : {e}")
-        raise
-
-def check_required_keys(data, required_keys, path=""):
-    """
-    Vérifie si toutes les clés spécifiées dans `required_keys` sont présentes dans `data`.
-    Lève une exception si une clé est manquante.
-    """
-    # Cas d'un dict :
-    if isinstance(required_keys, dict):
-        # Vérifie que data est un dict
-        if not isinstance(data, dict):
-            logging.getLogger("CHECK_JSON_FILE").error(f"Attendu un dict à {path}, mais trouvé {type(data).__name__}")
-            raise KeyError(f"Attendu un dict à {path}, mais trouvé {type(data).__name__}")
-        # Vérifie les clés
-        for key, sub_keys in required_keys.items():
-            if key not in data:
-                logging.getLogger("CHECK_JSON_FILE").error(f"Clé manquante : {path + '.' + key if path else key}")
-                raise KeyError(f"Clé manquante : {path + '.' + key if path else key}")
-            check_required_keys(data[key], sub_keys, path + "." + key if path else key)
-    # Cas d'une list :
-    elif isinstance(required_keys, list):
-        # Vérifie que data est une list
-        if not isinstance(data, list):
-            logging.getLogger("CHECK_JSON_FILE").error(f"Attendu une liste à {path}, mais trouvé {type(data).__name__}")
-            raise KeyError(f"Attendu une liste à {path}, mais trouvé {type(data).__name__}")
-        # Vérifie les éléments de la liste
-        for index, sub_keys in enumerate(required_keys):
-            if len(data) <= index:
-                logging.getLogger("CHECK_JSON_FILE").error(f"Élément manquant dans la liste à {path}[{index}]")
-                raise KeyError(f"Élément manquant dans la liste à {path}[{index}]")
-            check_required_keys(data[index], sub_keys, f"{path}[{index}]")
-    else:
-        # Vérifie que la clé existe, sinon lève une exception
-        if data is None:
-            raise KeyError(f"Clé manquante à {path}")
-
+        raise  # Relancer l'exception pour que le test puisse la capturer
 
 # Gère le traitement d'un biofile
 def process_biofile_task(config, biofile, biofile_type, checksum_current_biofile, file, assembly, json_input, diagho_api):
@@ -167,8 +127,6 @@ def diagho_process_file(file, config):
     print("API healthcheck")
     print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
     if not diagho_api_healthcheck(diagho_api):
-        content = f"Failed to connect to Diagho API."
-        send_mail_alert(recipients, content)
         logging.getLogger("API_HEALTHCHECK").error(log_message(json_input, "", f"Failed to connect to Diagho API. Exit."))
         return
         
@@ -196,8 +154,6 @@ def diagho_process_file(file, config):
     print("Test JSON file format")
     print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
     if not check_json_format(file):
-        content = f"Failed to process JSON input file: {file}"
-        send_mail_alert(recipients, content)
         logging.getLogger("CHECK_FORMAT").error(log_message(json_input, "", f"Failed to process JSON input file: {file}"))
         return
     
@@ -205,7 +161,7 @@ def diagho_process_file(file, config):
     print("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
     print("Get biofiles informations")
     print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
-    dict_biofiles = get_files_infos(file, recipients)
+    dict_biofiles = get_files_infos(file)
     
     # Foreach filename...
     print("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
@@ -234,8 +190,6 @@ def diagho_process_file(file, config):
             
             # Si le biofile n'existe pas : alerte   
             if not os.path.exists(biofile):
-                content = f"Failed to process JSON input file: {file}\n\nBiofile: {biofile} does not exist."
-                send_mail_alert(recipients, content)
                 logging.getLogger("PROCESSING_BIOFILE").error(log_message(json_input, filename, f"Biofile: {biofile} does not exist."))
                 continue
 
@@ -284,7 +238,7 @@ def diagho_process_file(file, config):
     print("Upload JSON file")
     print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
     logging.getLogger("IMPORT_CONFIGURATIONS").info(log_message(json_input, "",f"Import JSON: {file}"))
-    response = diagho_api_post_config(diagho_api['config'], file, config, diagho_api)
+    response = diagho_api_post_config(diagho_api['config'], file, config)
     
     check_api_response(response, config, json_input, recipients)
     
@@ -330,9 +284,6 @@ def process_biofile(config, biofile, biofile_type, biofile_checksum, filename, a
         
     # Si l'upload ne fonctionne pas : alerte
     if not checksum_from_api or checksum_from_api is None:
-        content = f"Failed to process JSON input file: {json_input}\n\nFailed to upload biofile and obtain checksum from API."
-        recipients = config['emails']['recipients']
-        send_mail_alert(recipients, content)
         logging.getLogger("PROCESSING_BIOFILE").error(log_message(json_input, filename, f"Failed to upload biofile and obtain checksum from API."))
         return
 
@@ -353,7 +304,7 @@ def process_biofile(config, biofile, biofile_type, biofile_checksum, filename, a
     max_retries = config['check_loading']['max_retries']
     delay = config['check_loading']['delay']
     attempt = 0
-    loading_status = check_loading_status(config, url_diagho_api_loading_status, biofile_checksum, filename, max_retries, delay, attempt, json_input, diagho_api)
+    loading_status = check_loading_status(config, url_diagho_api_loading_status, biofile_checksum, filename, max_retries, delay, attempt, json_input)
     
     if loading_status == 0:
         logging.getLogger("PROCESSING_BIOFILE").error(log_message(json_input, filename, f"Check loading status: {loading_status}"))
@@ -378,7 +329,7 @@ def process_biofile(config, biofile, biofile_type, biofile_checksum, filename, a
 
 
 # Check loading status
-def check_loading_status(config, url, checksum, filename, max_retries, delay, attempt, json_input, diagho_api):
+def check_loading_status(config, url, checksum, filename, max_retries, delay, attempt, json_input):
     """
     Vérification du statut de chargement.
 
@@ -395,7 +346,7 @@ def check_loading_status(config, url, checksum, filename, max_retries, delay, at
         None : en cas de dépassement du nombre de tentatives ou statut inconnu
     """
     # Get loading status :
-    status = diagho_api_get_loadingstatus(url, checksum, config, diagho_api).get('loading')
+    status = diagho_api_get_loadingstatus(url, checksum, config).get('loading')
     logging.getLogger("PROCESSING_BIOFILE").info(log_message(json_input, filename, f"Loading initial status: {status}"))
     
     while status not in [0, 3]:
@@ -403,7 +354,7 @@ def check_loading_status(config, url, checksum, filename, max_retries, delay, at
         time.sleep(delay)
         
         # Récupérer à nouveau le statut de chargement
-        status = diagho_api_get_loadingstatus(url, checksum, config, diagho_api).get('loading')
+        status = diagho_api_get_loadingstatus(url, checksum, config).get('loading')
         
         # Incrémenter le compteur de tentatives
         attempt += 1
@@ -420,7 +371,7 @@ def check_loading_status(config, url, checksum, filename, max_retries, delay, at
         new_attempt = 0
         max_new_attempts = 100
         while new_attempt <= max_new_attempts and status not in [0, 3]:
-            status = diagho_api_get_loadingstatus(url, checksum, config, diagho_api).get('loading')
+            status = diagho_api_get_loadingstatus(url, checksum, config).get('loading')
             time.sleep(60)
             new_attempt += 1
             
