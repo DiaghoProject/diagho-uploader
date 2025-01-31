@@ -239,3 +239,38 @@ def check_api_response(response, config, json_input, recipients):
             recipients = config['emails']['recipients']
             content = f"JSON file: {json_input}\n\nA person with the same identifier already exist, but is present in another family :\n{persons_content}"
             send_mail_alert(recipients, content)
+            
+
+
+# Charger le fichier config.yaml
+def load_configuration(config):    
+    # Récupérer les valeurs nécessaires
+    try:
+        recipients = config['emails']['recipients']
+        path_biofiles = config['input_biofiles']
+        get_biofile_max_retries = config['check_biofile']['max_retries']
+        get_biofile_delay = config['check_biofile']['delay']
+        
+        # Charger les API endpoints
+        url_diagho_api = config['diagho_api']['url']
+        diagho_api = {
+            'healthcheck': url_diagho_api + 'healthcheck',
+            'login': url_diagho_api + 'auth/login/',
+            'get_user': url_diagho_api + 'accounts/users/me',
+            'get_biofile': url_diagho_api + 'bio_files/files',
+            'post_biofile_snv': url_diagho_api + 'bio_files/files/snv/',
+            'post_biofile_cnv': url_diagho_api + 'bio_files/files/cnv/',
+            'loading_status': url_diagho_api + 'bio_files/files/',
+            'config': url_diagho_api + 'configurations/configurations/'
+        }
+    except KeyError as e:
+        print(f"Clé manquante dans la configuration : {e}")
+        return None
+    
+    return {
+        'recipients': recipients,
+        'path_biofiles': path_biofiles,
+        'get_biofile_max_retries': get_biofile_max_retries,
+        'get_biofile_delay': get_biofile_delay,
+        'diagho_api': diagho_api
+    }
