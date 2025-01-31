@@ -239,3 +239,6 @@ def check_api_response(response, config, json_input, recipients):
             recipients = config['emails']['recipients']
             content = f"JSON file: {json_input}\n\nA person with the same identifier already exist, but is present in another family :\n{persons_content}"
             send_mail_alert(recipients, content)
+        else:
+            content = f"JSON file: {json_input}\n\nError in POST configuration."
+            send_mail_alert(recipients, content)
