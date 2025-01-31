@@ -12,7 +12,7 @@ from functions_diagho_api import *
 
 
 # Récupérer les infos dans le fichier JSON files
-def get_files_infos(json_input):
+def get_files_infos(json_input, recipients):
     """
     Extrait les informations à partir du fichier JSON.
 
@@ -35,6 +35,8 @@ def get_files_infos(json_input):
             for key in required_keys:
                 if key not in file:
                     print(f"Clé manquante détectée : {key}")
+                    content = f"Failed to process JSON input file: {file}\n\nMissing key: {key}"
+                    send_mail_alert(recipients, content)
                     logging.error(f"Clé obligatoire manquante : '{key}' dans une des entrées du JSON.")
                     raise ValueError(f"Clé manquante : '{key}' dans le fichier JSON.")
             
@@ -61,7 +63,7 @@ def get_files_infos(json_input):
     
     except (ValueError, KeyError, json.JSONDecodeError) as e:
         logging.error(f"Erreur lors de la lecture ou du traitement du JSON : {e}")
-        raise  # Relancer l'exception pour que le test puisse la capturer
+        raise
 
 # Gère le traitement d'un biofile
 def process_biofile_task(config, biofile, biofile_type, checksum_current_biofile, file, assembly, json_input, diagho_api):
@@ -127,6 +129,8 @@ def diagho_process_file(file, config):
     print("API healthcheck")
     print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
     if not diagho_api_healthcheck(diagho_api):
+        content = f"Failed to connect to Diagho API."
+        send_mail_alert(recipients, content)
         logging.getLogger("API_HEALTHCHECK").error(log_message(json_input, "", f"Failed to connect to Diagho API. Exit."))
         return
         
@@ -154,6 +158,8 @@ def diagho_process_file(file, config):
     print("Test JSON file format")
     print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
     if not check_json_format(file):
+        content = f"Failed to process JSON input file: {file}"
+        send_mail_alert(recipients, content)
         logging.getLogger("CHECK_FORMAT").error(log_message(json_input, "", f"Failed to process JSON input file: {file}"))
         return
     
@@ -161,7 +167,7 @@ def diagho_process_file(file, config):
     print("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
     print("Get biofiles informations")
     print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
-    dict_biofiles = get_files_infos(file)
+    dict_biofiles = get_files_infos(file, recipients)
     
     # Foreach filename...
     print("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
@@ -190,6 +196,8 @@ def diagho_process_file(file, config):
             
             # Si le biofile n'existe pas : alerte   
             if not os.path.exists(biofile):
+                content = f"Failed to process JSON input file: {file}\n\nBiofile: {biofile} does not exist."
+                send_mail_alert(recipients, content)
                 logging.getLogger("PROCESSING_BIOFILE").error(log_message(json_input, filename, f"Biofile: {biofile} does not exist."))
                 continue
 
@@ -284,6 +292,9 @@ def process_biofile(config, biofile, biofile_type, biofile_checksum, filename, a
         
     # Si l'upload ne fonctionne pas : alerte
     if not checksum_from_api or checksum_from_api is None:
+        content = f"Failed to process JSON input file: {json_input}\n\nFailed to upload biofile and obtain checksum from API."
+        recipients = config['emails']['recipients']
+        send_mail_alert(recipients, content)
         logging.getLogger("PROCESSING_BIOFILE").error(log_message(json_input, filename, f"Failed to upload biofile and obtain checksum from API."))
         return
 
