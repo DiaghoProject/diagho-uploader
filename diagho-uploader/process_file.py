@@ -20,8 +20,7 @@ def get_files_infos(json_input, recipients):
         json_input (str): Chemin vers un fichier JSON ou une chaîne JSON contenant les informations de fichier.
 
     Returns:
-        dict: Dictionnaire contenant les informations de fichier, où chaque clé est un nom de fichier et chaque valeur est un dictionnaire
-              contenant le checksum et une liste des identifiants de personnes associés.
+        dict: Dictionnaire contenant les informations de fichier.
     """
     try:
         with open(json_input, 'r') as json_file:
@@ -29,8 +28,8 @@ def get_files_infos(json_input, recipients):
         
         # Récup des infos dans un dict
         dict_files = {}
-        for file in input_data.get('files', []):  # Gestion d'une clé 'files' absente
-            # Vérifier la présence des clés obligatoires
+        for file in input_data.get('files', []):
+            # Vérifier les clés obligatoires
             required_keys = ["filename", "checksum", "assembly", "samples"]
             for key in required_keys:
                 if key not in file:
@@ -58,7 +57,6 @@ def get_files_infos(json_input, recipients):
                 "assembly": assembly,
                 "persons": persons,
             }
-            
         return dict_files
     
     except (ValueError, KeyError, json.JSONDecodeError) as e:
