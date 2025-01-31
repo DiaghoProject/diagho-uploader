@@ -7,6 +7,7 @@ import shutil
 
 from diagho_create_inputs.parser import *
 from diagho_uploader.file_watcher import *
+from common.config_loader import *
 
 
 # Load configuration            

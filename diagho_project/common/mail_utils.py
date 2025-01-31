@@ -53,6 +53,7 @@ def send_mail(recipients: str, subject: str, content: str, config='config/config
     except Exception as e:
         print("Error sending email:", str(e))
         
+
 def send_mail_alert(recipients: str, content: str):
     subject = "[ALERT] Diagho-Uploader"
     send_mail(recipients, subject, content)
