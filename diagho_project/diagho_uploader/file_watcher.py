@@ -4,6 +4,8 @@ import yaml
 import shutil
 from datetime import datetime
 
+from .process_file import *
+
 import logging
 logs_directory = "logs"
 if not os.path.exists(logs_directory):
@@ -78,7 +80,11 @@ def watch_directory(path_input, path_backup, path_biofiles, config):
 
                             # Traiter le fichier
                             logging.getLogger("START_PROCESSING").info(f"Processing file: {file_path}")
-                            # diagho_process_file(file_path, config)
+                            kwargs = {
+                                "file_path": file_path,
+                                "config": config,
+                            }
+                            diagho_upload_file(**kwargs)
 
                             # Supprimer le fichier du répertoire 'input_data' après traitement
                             logging.getLogger("START_PROCESSING").info(f"Remove file: {file_path}")
@@ -99,7 +105,11 @@ def watch_directory(path_input, path_backup, path_biofiles, config):
 
                         # Traiter le fichier
                         logging.getLogger("START_PROCESSING").info(f"Processing file: {file_path}")
-                        # diagho_process_file(file_path, config)
+                        kwargs = {
+                            "file_path": file_path,
+                            "config": config,
+                        }
+                        diagho_upload_file(**kwargs)
 
                         # Supprimer le fichier du répertoire 'input_data' après traitement
                         logging.getLogger("START_PROCESSING").info(f"Remove file: {file_path}")
