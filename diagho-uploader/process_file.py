@@ -244,7 +244,7 @@ def diagho_process_file(file, config):
     print("Upload JSON file")
     print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
     logging.getLogger("IMPORT_CONFIGURATIONS").info(log_message(json_input, "",f"Import JSON: {file}"))
-    response = diagho_api_post_config(diagho_api['config'], file, config)
+    response = diagho_api_post_config(diagho_api['config'], file, config, diagho_api)
     
     check_api_response(response, config, json_input, recipients)
     
@@ -313,7 +313,7 @@ def process_biofile(config, biofile, biofile_type, biofile_checksum, filename, a
     max_retries = config['check_loading']['max_retries']
     delay = config['check_loading']['delay']
     attempt = 0
-    loading_status = check_loading_status(config, url_diagho_api_loading_status, biofile_checksum, filename, max_retries, delay, attempt, json_input)
+    loading_status = check_loading_status(config, url_diagho_api_loading_status, biofile_checksum, filename, max_retries, delay, attempt, json_input, diagho_api)
     
     if loading_status == 0:
         logging.getLogger("PROCESSING_BIOFILE").error(log_message(json_input, filename, f"Check loading status: {loading_status}"))
@@ -338,7 +338,7 @@ def process_biofile(config, biofile, biofile_type, biofile_checksum, filename, a
 
 
 # Check loading status
-def check_loading_status(config, url, checksum, filename, max_retries, delay, attempt, json_input):
+def check_loading_status(config, url, checksum, filename, max_retries, delay, attempt, json_input, diagho_api):
     """
     Vérification du statut de chargement.
 
@@ -355,7 +355,7 @@ def check_loading_status(config, url, checksum, filename, max_retries, delay, at
         None : en cas de dépassement du nombre de tentatives ou statut inconnu
     """
     # Get loading status :
-    status = diagho_api_get_loadingstatus(url, checksum, config).get('loading')
+    status = diagho_api_get_loadingstatus(url, checksum, config, diagho_api).get('loading')
     logging.getLogger("PROCESSING_BIOFILE").info(log_message(json_input, filename, f"Loading initial status: {status}"))
     
     while status not in [0, 3]:
@@ -363,7 +363,7 @@ def check_loading_status(config, url, checksum, filename, max_retries, delay, at
         time.sleep(delay)
         
         # Récupérer à nouveau le statut de chargement
-        status = diagho_api_get_loadingstatus(url, checksum, config).get('loading')
+        status = diagho_api_get_loadingstatus(url, checksum, config, diagho_api).get('loading')
         
         # Incrémenter le compteur de tentatives
         attempt += 1
@@ -380,7 +380,7 @@ def check_loading_status(config, url, checksum, filename, max_retries, delay, at
         new_attempt = 0
         max_new_attempts = 100
         while new_attempt <= max_new_attempts and status not in [0, 3]:
-            status = diagho_api_get_loadingstatus(url, checksum, config).get('loading')
+            status = diagho_api_get_loadingstatus(url, checksum, config, diagho_api).get('loading')
             time.sleep(60)
             new_attempt += 1
             

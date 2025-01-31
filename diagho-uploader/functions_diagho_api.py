@@ -78,7 +78,7 @@ def diagho_api_login(config, diagho_api):
             logging.getLogger("API_LOGIN").error(f"FUNCTION: {function_name}:Error: Username or password is missing")
             return {"error": "Username or password is missing"}
         # Obtenir l'access token actuel
-        access_token = get_access_token(config)
+        access_token = get_access_token(config, diagho_api)
                 
         # Vérifier si l'utilisateur est déjà connecté
         if diagho_api_get_connected_user(config, access_token, diagho_api):
@@ -169,7 +169,7 @@ def store_tokens(tokens, filename='tokens.json'):
         return {"error": str(e)}
 
        
-def get_access_token(config, filename='tokens.json'):
+def get_access_token(config, diagho_api, filename='tokens.json'):
     """
     Charge les tokens depuis un fichier JSON.
 
@@ -181,7 +181,7 @@ def get_access_token(config, filename='tokens.json'):
     """
     if not os.path.isfile(filename):
         logging.getLogger("API_GET_ACCESS_TOKEN").warning(f"Token not found. Re-authent...")
-        diagho_api_post_login(config)
+        diagho_api_post_login(config,diagho_api)
         
     try:
         with open(filename, 'r') as file:
@@ -273,7 +273,7 @@ def diagho_api_post_biofile(url, biofile_path, biofile_type, param, config, diag
     
     filename = os.path.basename(biofile_path)
     
-    access_token = get_access_token(config)
+    access_token = get_access_token(config, diagho_api)
     if not access_token:
         return {"error": "No access token available"}   
     headers = {
@@ -350,7 +350,7 @@ def diagho_api_post_biofile(url, biofile_path, biofile_type, param, config, diag
 
 
 # GET api/v1/bio_files/files/ --> loading
-def diagho_api_get_loadingstatus(url, checksum, config):
+def diagho_api_get_loadingstatus(url, checksum, config, diagho_api):
     """
     GET pour obtenir le loading_status du fichier (checksum).
 
@@ -364,7 +364,7 @@ def diagho_api_get_loadingstatus(url, checksum, config):
     """
     function_name = inspect.currentframe().f_code.co_name
     
-    access_token = get_access_token(config)
+    access_token = get_access_token(config, diagho_api)
     if not access_token:
         return {"error": "No access token available"}
     
@@ -406,7 +406,7 @@ def diagho_api_get_loadingstatus(url, checksum, config):
 
 
 # POST api/v1/configurations/configurations/
-def diagho_api_post_config(url, file, config):
+def diagho_api_post_config(url, file, config, diagho_api):
     """
     Requête POST pour se uploader un config_file (JSON).
     
@@ -419,7 +419,7 @@ def diagho_api_post_config(url, file, config):
     """
     function_name = inspect.currentframe().f_code.co_name
     
-    access_token = get_access_token(config)
+    access_token = get_access_token(config, diagho_api)
     if not access_token:
         return {"error": "No access token available"}
     
