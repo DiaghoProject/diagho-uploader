@@ -330,19 +330,20 @@ def api_post_config(**kwargs):
         'Accept': 'application/json',
         'Content-Type': 'application/json'
     }
-
+    
     # Charger le fichier JSON
     try:
         with open(file, 'r') as json_file:
             json_data = json.load(json_file)
     except json.JSONDecodeError:
-        return log_error(f"Config file '{file}' is not valid JSON")
-
+        return log_error("POST_JSON", f"Config file '{file}' is not valid JSON")
+    
+    # POST config
     try:
         url = diagho_api['post_config']
         response = requests.post(url, headers=headers, json=json_data, verify=False)
         response.raise_for_status()
-        log_info(f"JSON file {file} posted successfully.")
-        return response.json()
+        log_info("POST_JSON", f"JSON file '{json_file}' posted successfully.")
+        return response
     except requests.exceptions.RequestException as e:
-        return log_error(str(e))
+        return log_error("POST_JSON", str(e))
