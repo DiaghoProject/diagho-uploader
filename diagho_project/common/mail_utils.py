@@ -6,6 +6,7 @@ import socket
 import yaml
 import re
 
+from common.log_utils import *
 
 def send_mail(recipients: str, subject: str, content: str, config='config/config.yaml'):
     """
@@ -49,9 +50,9 @@ def send_mail(recipients: str, subject: str, content: str, config='config/config
             if use_tls:
                 server.starttls()
             server.sendmail(from_email, recipient_list, message.as_string())
-        print("Email sent successfully to:", recipient_list)
+        log_info("EMAIL", f"Email sent successfully to: {recipient_list}")
     except Exception as e:
-        print("Error sending email:", str(e))
+        log_error("EMAIL", f": {str(e)}")
         
 
 def send_mail_alert(recipients: str, content: str):
