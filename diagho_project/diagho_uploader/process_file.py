@@ -64,11 +64,9 @@ def diagho_upload_file(**kwargs):
         if result.get("error"):
             error_message = result.get("error")
             send_mail_alert(settings["recipients"], f"API login error: {error_message} ")
-            logging.getLogger("API_LOGIN").error(f"API login error : {error_message} ")
             return
     except ValueError as e:
         send_mail_alert(settings["recipients"], f"API login error: {e}")
-        logging.getLogger("API_LOGIN").error(f"API login error : {e}")
         return
         
     print("\n continuer... \n")
@@ -77,8 +75,8 @@ def diagho_upload_file(**kwargs):
     
     
     # Paralléliser le traitement des biofiles
-    logging.getLogger("PROCESS_BIOFILES").info(f"Process each biofile...")
-    
+    log_info("PROCESS_BIOFILES", "Process each biofile...")
+        
     # Get settings from config file
     path_biofiles = settings["path_biofiles"]
     max_retries = settings["get_biofile_max_retries"]
@@ -97,8 +95,7 @@ def diagho_upload_file(**kwargs):
             # Get absolute path
             biofile = os.path.join(path_biofiles, filename)            
             biofile_infos = get_biofile_informations(biofiles, filename)
-            # pretty_print_json_string(biofile_infos)
-            
+                        
             # A partir d'ici : paraléliser les traitements
             futures.append(executor.submit(process_biofile_task, settings, biofile, biofile_infos, diagho_api))
 
@@ -108,33 +105,29 @@ def diagho_upload_file(**kwargs):
             
         # Traitement des biofiles terminé  
      
-    logging.getLogger("PROCESSING_BIOFILE").info(f"All biofiles have been loaded in Diagho")
+    log_info("PROCESS_BIOFILE", f"All biofiles have been loaded in Diagho")
 
-    time.sleep(60)
+    time.sleep(5)
     
-    # Upload JSON file  
-    logging.getLogger("IMPORT_CONFIGURATIONS").info(f"Import JSON: {os.path.basename(file_path)}")
-    response = diagho_api_post_config(diagho_api['config'], file, config, diagho_api)
-    
-    check_api_response(response, config, json_input, recipients)
-            
-            
+    # Upload JSON file 
+    log_info("IMPORT_CONFIGURATIONS", f"Import JSON: {os.path.basename(file_path)}") 
+    kwargs = {
+        'diagho_api': diagho_api,
+        'file': file_path,
+        'recipients': recipients
+    }
+    response = api_post_config(**kwargs)
 
+    # Vérifie si import du JSON OK    
+    check_api_response(response, **kwargs)
     
-    
-    
-    # Import du JSON
-    
-        # Si KO = envoi alerte par mail
-    
-        
 
 
 # Gère le traitement d'un biofile
 def process_biofile_task(settings, biofile, biofile_infos, diagho_api):
     """Fonction qui gère le traitement d'un fichier bio (VCF ou BED)"""
-    logging.getLogger("PROCESS_BIOFILE_TASK").info(f"Start biofile processing: {biofile}")
-    
+    log_info("PROCESS_BIOFILE_TASK", f"Start biofile processing: {biofile}")
+        
     # Récupérer les settings
     path_biofiles = settings["path_biofiles"]
     max_retries = settings["get_biofile_max_retries"]
@@ -145,27 +138,29 @@ def process_biofile_task(settings, biofile, biofile_infos, diagho_api):
     if not wait_for_biofile(biofile, max_retries, delay):
         content = f"Failed to process.\n\nBiofile: {biofile} does not exist in : {path_biofiles}."
         send_mail_alert(recipients, content)
-        logging.getLogger("PROCESSING_BIOFILE").error(f"Biofile: {biofile} does not exist.")
+        log_error("PROCESS_BIOFILE_TASK", f"Biofile: {biofile} does not exist.")
         return
     
     # Biofile found
-    logging.getLogger("PROCESSING_BIOFILE").info(f"Biofile '{biofile}' found... Continue...")
-    
+    log_info("PROCESS_BIOFILE_TASK", f"Biofile '{biofile}' found... Continue...")
+        
     # Get informations about biofile
     try:
         biofile_type = get_biofile_type(biofile)
-        print("biofile_type:", biofile_type)
         assembly = biofile_infos["assembly"]
         accession_id = settings["accessions"][assembly]
     except ValueError as e:
         send_mail_alert(settings["recipients"], f"API login error: {e}")
-        logging.getLogger("API_LOGIN").error(f"API login error : {e}")
+        log_error("GET_BIOFILE_TYPE", f"{e}")
         return
         
     
     # Verifier le checksum du JSON et celui calculé du biofile
     md5_biofile = md5(biofile)
     md5_from_json = biofile_infos.get("checksum")
+    if not check_md5sum(md5_biofile, md5_from_json):
+        log_error("PROCESSING_BIOFILE", f"MD5 checksum mismatch for biofile: {biofile} (JSON)")
+        return
     
     # Si checksum identiques : POST biofile
     kwargs = {
@@ -178,14 +173,13 @@ def process_biofile_task(settings, biofile, biofile_infos, diagho_api):
         "checksum": md5_biofile
     }
     checksum = api_post_biofile(**kwargs).get("checksum")
-    print(checksum, md5_biofile)
     
     # Vérifier que le checksum du biofile posté est le même que celui du biofile
     if not check_md5sum(checksum, md5_biofile):
-        logging.getLogger("PROCESSING_BIOFILE").error(f"MD5 checksum mismatch for biofile: {biofile}")
+        log_error("PROCESSING_BIOFILE", f"MD5 checksum mismatch for biofile: {biofile}")
         return
-    logging.getLogger("PROCESSING_BIOFILE").info(f"{biofile} : Checksums are identical. Continue.")
-    
+    log_info("PROCESSING_BIOFILE", f"{biofile} : Checksums are identical. Continue.")
+        
     # check le statut de chargement
     time.sleep(20) # nécessaire pour l'instant car bug initial (statut en FAILURE)
     
@@ -203,7 +197,7 @@ def process_biofile_task(settings, biofile, biofile_infos, diagho_api):
     backup_path = settings.get("path_backup_biofiles")
     destination_path = os.path.join(backup_path, filename)
     shutil.move(biofile, destination_path)
-    logging.getLogger("PROCESSING_BIOFILE").info(f"Move biofile to {backup_path}")
+    log_info("PROCESSING_BIOFILE", f"{biofile} : Move biofile to {backup_path}.")
         
     
 
@@ -216,7 +210,6 @@ def validate_json_input(json_input):
             input_data = json.load(json_file)
 
         if "files" not in input_data:
-            
             raise ValueError("Le fichier JSON doit contenir une clé 'files'.")
 
         required_keys = ["filename", "checksum", "assembly", "samples"]
@@ -271,7 +264,7 @@ def md5(filepath):
     except Exception as e:
         error_msg = f"Unexpected error while computing MD5 for {filepath}: {e}"
     
-    logging.getLogger("MD5_HASH").error(error_msg)
+    log_error("MD5_HASH", error_msg)
     return {"error": error_msg}
 
 def get_biofile_informations(data, filename):
@@ -287,7 +280,7 @@ def get_biofile_type(biofile):
         return 'CNV'
     else:
         error_message = f"Error: Unsupported biofile type for file: {biofile}"
-        logging.getLogger("API_POST_BIOFILE").error(error_message)
+        log_error("API_POST_BIOFILE", error_message)
         send_mail_alert(error_message)
         return None
     
@@ -311,9 +304,7 @@ def check_loading_status(attempt, **kwargs):
         True : si le fichier est chargé (status 3)
         False : si échec de chargement (status 0)
         None : en cas de dépassement du nombre de tentatives ou statut inconnu
-    """
-    logger = logging.getLogger("LOADING_BIOFILE")
-    
+    """   
     settings = kwargs.get("settings")
     
     max_retries = settings["check_loading_max_retries"]
@@ -324,27 +315,54 @@ def check_loading_status(attempt, **kwargs):
 
     # Obtenir le statut de chargement initial
     status = get_status()
-    logger.info(f"Loading initial status: {status}")
+    log_info("LOADING_BIOFILE", f"Loading initial status: {status}")
 
     # Plusieurs tentatives... Tant que le statut n'est pas 0 ou 3 (FAILURE ou SUCCESS)
     while status not in [0, 3] and attempt < max_retries:
-        logger.warning(f'Attempt {attempt + 1}: loading_status = {status} ... Retry...')
+        log_warning("LOADING_BIOFILE", f"Attempt {attempt + 1}: loading_status = {status} ... Retry...")
         time.sleep(delay)
         status = get_status()
         attempt += 1
     
     # Si trop de tentatives, retourner None
     if attempt >= max_retries:
-        logger.error(f"GET_LOADING_STATUS: Maximum number of attempts reached.")
+        log_error("LOADING_BIOFILE", f"GET_LOADING_STATUS: Maximum number of attempts reached.")
         return None
 
     # Vérifier les statuts finaux
     if status == 3: # SUCCESS
-        logger.info(f"Loading completed successfully.")
+        log_info("LOADING_BIOFILE", f"Loading completed successfully.")
         return True
     elif status == 0: # FAILURE
-        logger.info(f"Loading completed successfully.")
+        log_error("LOADING_BIOFILE", f"Loading failed.")
         return False
     else:
-        logger.error(f"Unknown status: {status}. Exit.")
+        log_info("LOADING_BIOFILE", f"Unknown status: {status}. Exit.")
         return None
+
+
+def check_api_response(response, **kwargs):
+    """
+    Vérifie la réponse de l'API après le POST de la config
+    et envoie des notifications en fonction du statut.
+    """
+    recipients = kwargs.get('recipients')
+    json_file = kwargs.get('json_file')
+
+    # Si OK
+    if response.status_code == 201:
+        send_mail_info(recipients, f"JSON file: {json_file}\n\nThe JSON configuration file was posted in Diagho successfully")
+        return
+
+    # Si KO
+    if response.status_code == 400:
+        json_response = response.json()
+        search_string = "A person with the same identifier already exist, but is present in another family."
+        json_string = json.dumps(json_response)
+
+        if search_string in json_string:
+            persons_content = json_response.get('errors', {}).get('families', [{}])[4].get('persons', 'N/A')
+            alert_message = f"JSON file: {json_file}\n\nA person with the same identifier already exists but is present in another family:\n{persons_content}"
+        else:
+            alert_message = f"JSON file: {json_file}\n\nError in POST configuration."
+        send_mail_alert(recipients, alert_message)
