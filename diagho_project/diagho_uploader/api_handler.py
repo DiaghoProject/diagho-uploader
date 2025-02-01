@@ -183,3 +183,92 @@ def api_post_login(**kwargs):
                 return {"error": f"Authentication failed after {max_attempts} attempts"}
         except Exception as e:
             return handle_api_error("api_post_login", e, "API_POST_LOGIN")
+        
+
+
+
+def api_post_biofile(**kwargs):
+    """
+    Requête POST pour uploader un biofile s'il n'existe pas déjà.
+    Retourne son checksum.
+    """ 
+    settings = kwargs.get("settings")
+    diagho_api = kwargs.get("diagho_api")
+    biofile = kwargs.get("biofile")
+    biofile_type = kwargs.get("biofile_type")
+    assembly = kwargs.get("assembly")
+    accession_id = kwargs.get("accession_id")
+    checksum = kwargs.get("checksum")
+    
+    # Récupérer l'info en fonction du type de biofile
+    def handle_biofile_type(biofile_type, assembly, accession_id):
+        if biofile_type == "SNV":
+            return {'accession': accession_id}
+        elif biofile_type == "CNV":
+            return {'assembly': assembly}
+        return None
+    
+    # Récupérer l'URL du POST en fonction du type de biofile
+    def get_url_post_biofile(biofile_type):
+        if biofile_type == "SNV":
+            return diagho_api['post_biofile_snv']
+        elif biofile_type == "CNV":
+            return diagho_api['post_biofile_cnv']
+        return None
+    
+    # Fonction pour logguer les erreurs
+    def log_error(message):
+        logging.getLogger("API_POST_BIOFILE").error(message)
+    
+    # Validation du biofile
+    filename = os.path.basename(biofile)
+    if not os.path.isfile(biofile):
+        log_error(f"{filename} - Biofile not found: {biofile}")
+        return {"error": "Biofile not found"}
+    
+    # Get access token
+    access_token = get_access_token()
+    
+    headers = {'Authorization': f'Bearer {access_token}'}
+
+    # Handle biofile type and parameter (assembly name or accession_id)
+    data = handle_biofile_type(biofile_type, assembly, accession_id)
+    if not data:
+        log_error(f"{filename} - Invalid biofile_type.")
+        return {"error": "Unknown Biofile type"}
+    
+    # Check if biofile already exists
+    url_get_biofile = diagho_api['get_biofile']
+    url_with_params = f"{url_get_biofile}/?checksum={checksum}"
+    logging.getLogger("API_POST_BIOFILE").info(f"{filename} - Test if Biofile is already uploaded.")
+    
+    try:
+        response = requests.get(url_with_params, headers=headers, verify=False)
+        response.raise_for_status()
+        biofile_exist = response.json().get('count')
+        if biofile_exist > 0:
+            logging.getLogger("API_POST_BIOFILE").info(f"{filename} - Biofile already uploaded.")
+            # On retourne le checksum
+            return {"checksum": checksum}
+    except requests.exceptions.RequestException as e:
+        log_error(f"{filename} - Error checking biofile existence: {str(e)}")
+        return {"error": str(e)}
+    
+    # Upload biofile if not found
+    try:
+        files = {'file': (filename, open(biofile, 'rb'), 'application/octet-stream')}
+        url = get_url_post_biofile(biofile_type)
+        response = requests.post(url, headers=headers, files=files, data=data, verify=False)
+        response.raise_for_status()
+        response_json = response.json()
+        if isinstance(response_json, dict):
+            # On récupère le checksum du biofile posté
+            checksum = response_json.get('checksum')
+            logging.getLogger("API_POST_BIOFILE").info(f"{filename} - POST Biofile completed. Checksum: {checksum}")
+            # On retourne le checksum
+            return {"checksum": checksum}
+        log_error(f"{filename} - Error with POST biofile response.")
+        return {"error": "Error with POST biofile response."}
+    except (requests.exceptions.RequestException, ValueError) as e:
+        log_error(f"{filename} - Error uploading biofile: {str(e)}")
+        return {"error": f"Error uploading biofile: {str(e)}"}
