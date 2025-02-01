@@ -13,15 +13,15 @@ import logging
 import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
+from common.log_utils import *
 
-
-def handle_api_error(function_name, error, logger_name, custom_message=None):
-    """
-    Gère les erreurs de l'API en loggant l'erreur et renvoyant un message d'erreur.
-    """
-    logger = logging.getLogger(logger_name)
-    logger.error(f"FUNCTION: {function_name} - Error: {custom_message or str(error)}")
-    return {"error": custom_message or str(error)}
+# def handle_api_error(function_name, error, logger_name, custom_message=None):
+#     """
+#     Gère les erreurs de l'API en loggant l'erreur et renvoyant un message d'erreur.
+#     """
+#     logger = logging.getLogger(logger_name)
+#     logger.error(f"FUNCTION: {function_name} - Error: {custom_message or str(error)}")
+#     return {"error": custom_message or str(error)}
 
 
 def api_healthcheck(diagho_api, exit_on_error=False):
@@ -35,13 +35,10 @@ def api_healthcheck(diagho_api, exit_on_error=False):
         response.raise_for_status()
         return True # Succès
     except requests.exceptions.HTTPError as http_err:
-        error_message = f"API healthcheck: KO - HTTP Error: {http_err}"
+        error_message = f"HTTP Error: {http_err}"
     except requests.exceptions.RequestException as req_err:
-        error_message = f"API healthcheck: KO - Request Error: {req_err}"
-    
-    # Si erreur : renvoie le message  
-    # logging.getLogger("API_HEALTHCHECK").error(error_message)
-    handle_api_error("api_healthcheck", error_message, "API_STORE_TOKENS")
+        error_message = f"Request Error: {req_err}"
+    log_error("API_HEALTHCHECK", error_message)
     raise ValueError(error_message)
 
 
@@ -69,7 +66,7 @@ def store_tokens(tokens, filename='tokens.json'):
         with open(filename, 'w') as file:
             json.dump(tokens, file, indent=4)
     except Exception as e:
-        return handle_api_error("store_tokens", e, "API_STORE_TOKENS")
+        return log_error("API_STORE_TOKEN", f"{str(e)}")
 
 
 def get_access_token(filename='tokens.json'):
@@ -87,7 +84,7 @@ def get_access_token(filename='tokens.json'):
             return {"error": "'access' token not found in file"}
         return tokens['access']
     except Exception as e:
-        return handle_api_error("get_access_token", e, "API_GET_ACCESS_TOKEN")
+        return log_error("API_GET_TOKEN", f"{str(e)}")
 
 def api_login(config, diagho_api):
     """
@@ -143,11 +140,11 @@ def api_get_connected_user(**kwargs):
         else:
             return False
     except requests.exceptions.RequestException as e:
-        return handle_api_error("api_get_connected_user", e, "API_GET_CONNECTED_USER")
+        return log_error("API_GET_CONNECTED_USER", f"{str(e)}")
     except json.JSONDecodeError:
-        return handle_api_error("api_get_connected_user", "API response invalid", "API_GET_CONNECTED_USER")
+        return log_error("API_GET_CONNECTED_USER", f"API response invalid")
     except Exception as e:
-        return handle_api_error("api_get_connected_user", e, "API_GET_CONNECTED_USER")
+        return log_error("API_GET_CONNECTED_USER", f"{str(e)}")
 
 # Post login to API
 def api_post_login(**kwargs):
@@ -182,8 +179,7 @@ def api_post_login(**kwargs):
                 logger.error("Max login attempts reached.")
                 return {"error": f"Authentication failed after {max_attempts} attempts"}
         except Exception as e:
-            return handle_api_error("api_post_login", e, "API_POST_LOGIN")
-        
+            return log_error("API_POST_LOGIN", f"{str(e)}")        
 
 
 
@@ -320,3 +316,33 @@ def api_get_loadingstatus(**kwargs):
         log_error(str(e))
         return {"error": str(e)}
 
+
+def api_post_config(**kwargs):
+    """
+    Requête POST pour uploader un fichier de configuration JSON.
+    """
+    diagho_api = kwargs.get("diagho_api")
+    file = kwargs.get("file")
+    
+    access_token = get_access_token()
+    headers = {
+        'Authorization': f'Bearer {access_token}',
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+    }
+
+    # Charger le fichier JSON
+    try:
+        with open(file, 'r') as json_file:
+            json_data = json.load(json_file)
+    except json.JSONDecodeError:
+        return log_error(f"Config file '{file}' is not valid JSON")
+
+    try:
+        url = diagho_api['post_config']
+        response = requests.post(url, headers=headers, json=json_data, verify=False)
+        response.raise_for_status()
+        log_info(f"JSON file {file} posted successfully.")
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        return log_error(str(e))

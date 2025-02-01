@@ -1,5 +1,6 @@
 import hashlib
 import json
+import shutil
 import pandas as pd
 import os
 import time
@@ -12,6 +13,7 @@ from common.config_loader import *
 from common.file_utils import *
 from common.mail_utils import *
 from common.api_utils import *
+from common.log_utils import *
 
 
 def diagho_upload_file(**kwargs):
@@ -28,37 +30,32 @@ def diagho_upload_file(**kwargs):
     # Args
     config = kwargs.get("config")
     file_path = kwargs.get("file_path")
-    logging.getLogger("START_UPLOADER").info(f">>> JSON file: {file_path}")
+    
+    log_info("START_UPLOADER", f"JSON file: {file_path}")
     
     
     # Load configuration
-    logging.getLogger("LOAD_CONFIGURATION").info(f"Load config.yaml")
+    log_info("LOAD_CONFIGURATION", f"Load 'config.yaml'")
     settings = load_configuration(config)
-    print(settings["recipients"])  # Liste des destinataires d'emails
-    print(settings["path_biofiles"])  # Chemin des biofiles
     
     # Get API endpoints
     diagho_api = get_api_endpoints(config)
     
-    
     # Test si fichier JSON OK
     try:
         json_data = validate_json_input(file_path)
+        log_info("VALIDATE_JSON_INPUT", f"JSON file validation : pass")
     except ValueError as e:
-        logging.getLogger("VALIDATE_JSON_INPUT").error(f"Erreur de validation du fichier JSON: {e}")
+        log_error("VALIDATE_JSON_INPUT", f"Erreur de validation du fichier JSON: {e}")
         send_mail_alert(settings["recipients"], f"Erreur de validation du fichier JSON: {file_path}\n\n{e}")
-        print(f"Erreur de validation : {e}")
         return
         
-    
-    
     
     # Check Diagho API
     try:
         api_healthcheck(diagho_api)
     except ValueError as e:
         send_mail_alert(settings["recipients"], f"API healthcheck error : {e}")
-        logging.getLogger("API_HEALTHCHECK").error(f"API healthcheck error : {e}")
         return
     
     # API login
@@ -109,9 +106,17 @@ def diagho_upload_file(**kwargs):
         for future in futures:
             future.result()
             
+        # Traitement des biofiles terminé  
+     
     logging.getLogger("PROCESSING_BIOFILE").info(f"All biofiles have been loaded in Diagho")
 
-            
+    time.sleep(60)
+    
+    # Upload JSON file  
+    logging.getLogger("IMPORT_CONFIGURATIONS").info(f"Import JSON: {os.path.basename(file_path)}")
+    response = diagho_api_post_config(diagho_api['config'], file, config, diagho_api)
+    
+    check_api_response(response, config, json_input, recipients)
             
             
 
@@ -186,15 +191,19 @@ def process_biofile_task(settings, biofile, biofile_infos, diagho_api):
     
     attempt = 1
     loading_status = check_loading_status(attempt, **kwargs)
-    print("LOADING ==== ", loading_status)
-    if loading_status:
+    if loading_status: # enlever ça plus tard
         content = f"Biofile has been loaded successfully in Diagho.\n\nBiofile: {biofile}"
         send_mail_info(recipients, content)
     if not loading_status:
         content = f"Failed to load biofile in Diagho.\n\nBiofile: {biofile}"
         send_mail_alert(recipients, content)
     
-    # terminé      
+    # Move biofile in backup folder
+    filename = os.path.basename(biofile)
+    backup_path = settings.get("path_backup_biofiles")
+    destination_path = os.path.join(backup_path, filename)
+    shutil.move(biofile, destination_path)
+    logging.getLogger("PROCESSING_BIOFILE").info(f"Move biofile to {backup_path}")
         
     
 
