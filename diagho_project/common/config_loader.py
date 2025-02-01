@@ -15,15 +15,15 @@ def load_configuration(config):
         "get_biofile_delay": config['check_biofile']['delay'],
         "check_loading_max_retries": config['check_loading']['max_retries'],
         "check_loading_delay": config['check_loading']['delay'],
-        "diagho_api": {
-            'healthcheck': f"{config['diagho_api']['url']}healthcheck",
-            'login': f"{config['diagho_api']['url']}auth/login/",
-            'get_user': f"{config['diagho_api']['url']}accounts/users/me",
-            'get_biofile': f"{config['diagho_api']['url']}bio_files/files",
-            'post_biofile_snv': f"{config['diagho_api']['url']}bio_files/files/snv/",
-            'post_biofile_cnv': f"{config['diagho_api']['url']}bio_files/files/cnv/",
-            'loading_status': f"{config['diagho_api']['url']}bio_files/files/",
-            'post_config': f"{config['diagho_api']['url']}configurations/configurations/"
-        },
+        # "diagho_api": {
+        #     'healthcheck': f"{config['diagho_api']['url']}healthcheck",
+        #     'login': f"{config['diagho_api']['url']}auth/login/",
+        #     'get_user': f"{config['diagho_api']['url']}accounts/users/me",
+        #     'get_biofile': f"{config['diagho_api']['url']}bio_files/files",
+        #     'post_biofile_snv': f"{config['diagho_api']['url']}bio_files/files/snv/",
+        #     'post_biofile_cnv': f"{config['diagho_api']['url']}bio_files/files/cnv/",
+        #     'loading_status': f"{config['diagho_api']['url']}bio_files/files/",
+        #     'post_config': f"{config['diagho_api']['url']}configurations/configurations/"
+        # },
         "accessions": config['accessions']
     }
