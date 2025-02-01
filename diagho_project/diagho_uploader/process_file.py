@@ -27,23 +27,22 @@ def diagho_upload_file(**kwargs):
     # Args
     config = kwargs.get("config")
     file_path = kwargs.get("file_path")
-    
     logging.getLogger("START_UPLOADER").info(f">>> JSON file: {file_path}")
+    
     
     # Load configuration
     logging.getLogger("LOAD_CONFIGURATION").info(f"Load config.yaml")
     settings = load_configuration(config)
     print(settings["recipients"])  # Liste des destinataires d'emails
     print(settings["path_biofiles"])  # Chemin des biofiles
-    print(settings["diagho_api"]["login"])  # Endpoint pour login
     
+    # Get API endpoints
     diagho_api = get_api_endpoints(config)
     
     
-    # Test fichier JSON OK : missing key etc...
+    # Test si fichier JSON OK
     try:
         dict_biofiles = validate_json_input(file_path)
-        print("Fichier JSON valide, traitement possible.")
     except ValueError as e:
         logging.getLogger("VALIDATE_JSON_INPUT").error(f"Erreur de validation du fichier JSON: {e}")
         send_mail_alert(settings["recipients"], f"Erreur de validation du fichier JSON: {file_path}\n\n{e}")
@@ -55,18 +54,26 @@ def diagho_upload_file(**kwargs):
     
     # Check Diagho API
     try:
-        diagho_api_healthcheck(diagho_api)
+        api_healthcheck(diagho_api)
     except ValueError as e:
-        send_mail_alert(settings["recipients"], f"Erreur API : {e}")
-        logging.getLogger("API_HEALTHCHECK").error(f"Erreur API : {e}")
+        send_mail_alert(settings["recipients"], f"API healthcheck error : {e}")
+        logging.getLogger("API_HEALTHCHECK").error(f"API healthcheck error : {e}")
         return
-
     
     # API login
-    
-        # Si KO = envoi alerte par mail
+    try:
+        result = api_login(config, diagho_api)
+        if result.get("error"):
+            error_message = result.get("error")
+            send_mail_alert(settings["recipients"], f"API login error: {error_message} ")
+            logging.getLogger("API_LOGIN").error(f"API login error : {error_message} ")
+            return
+    except ValueError as e:
+        send_mail_alert(settings["recipients"], f"API login error: {e}")
+        logging.getLogger("API_LOGIN").error(f"API login error : {e}")
+        return
         
-    
+    print("\n continuer... \n")
     
     # Paralléliser le traitement des biofiles
     logging.getLogger("PROCESS_BIOFILES").info(f"Process each biofile...")
