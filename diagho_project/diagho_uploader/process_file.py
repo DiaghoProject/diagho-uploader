@@ -172,7 +172,8 @@ def process_biofile_task(settings, biofile, biofile_infos, diagho_api):
         "accession_id": accession_id,
         "checksum": md5_biofile
     }
-    checksum = api_post_biofile(**kwargs)
+    checksum = api_post_biofile(**kwargs).get("checksum")
+    print(checksum, md5_biofile)
     
     # Vérifier que le checksum du biofile posté est le même que celui du biofile
     if not check_md5sum(checksum, md5_biofile):
@@ -181,10 +182,19 @@ def process_biofile_task(settings, biofile, biofile_infos, diagho_api):
     logging.getLogger("PROCESSING_BIOFILE").info(f"{biofile} : Checksums are identical. Continue.")
     
     # check le statut de chargement
-    time.sleep(120) # nécessaire pour l'instant car bug initial (statut en FAILURE)
-    loading_status = check_loading_status(**kwargs)
+    time.sleep(20) # nécessaire pour l'instant car bug initial (statut en FAILURE)
     
-    # process_biofile(config, biofile, biofile_type, checksum_current_biofile, file, assembly, json_input, diagho_api)       
+    attempt = 1
+    loading_status = check_loading_status(attempt, **kwargs)
+    print("LOADING ==== ", loading_status)
+    if loading_status:
+        content = f"Biofile has been loaded successfully in Diagho.\n\nBiofile: {biofile}"
+        send_mail_info(recipients, content)
+    if not loading_status:
+        content = f"Failed to load biofile in Diagho.\n\nBiofile: {biofile}"
+        send_mail_alert(recipients, content)
+    
+    # terminé      
         
     
 
@@ -281,3 +291,51 @@ def check_md5sum(checksum1, checksum2):
     if len(checksum1) != 32 or len(checksum2) != 32:
         raise ValueError("MD5 length issue. Should be 32.")
     return checksum1.lower() == checksum2.lower()
+
+
+
+def check_loading_status(attempt, **kwargs):
+    """
+    Vérification du statut de chargement.
+
+    Returns:
+        True : si le fichier est chargé (status 3)
+        False : si échec de chargement (status 0)
+        None : en cas de dépassement du nombre de tentatives ou statut inconnu
+    """
+    logger = logging.getLogger("LOADING_BIOFILE")
+    
+    settings = kwargs.get("settings")
+    
+    max_retries = settings["check_loading_max_retries"]
+    delay = settings["check_loading_delay"]
+    
+    def get_status():
+        return api_get_loadingstatus(**kwargs).get('loading')
+
+    # Obtenir le statut de chargement initial
+    status = get_status()
+    logger.info(f"Loading initial status: {status}")
+
+    # Plusieurs tentatives... Tant que le statut n'est pas 0 ou 3 (FAILURE ou SUCCESS)
+    while status not in [0, 3] and attempt < max_retries:
+        logger.warning(f'Attempt {attempt + 1}: loading_status = {status} ... Retry...')
+        time.sleep(delay)
+        status = get_status()
+        attempt += 1
+    
+    # Si trop de tentatives, retourner None
+    if attempt >= max_retries:
+        logger.error(f"GET_LOADING_STATUS: Maximum number of attempts reached.")
+        return None
+
+    # Vérifier les statuts finaux
+    if status == 3: # SUCCESS
+        logger.info(f"Loading completed successfully.")
+        return True
+    elif status == 0: # FAILURE
+        logger.info(f"Loading completed successfully.")
+        return False
+    else:
+        logger.error(f"Unknown status: {status}. Exit.")
+        return None

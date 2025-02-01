@@ -272,3 +272,51 @@ def api_post_biofile(**kwargs):
     except (requests.exceptions.RequestException, ValueError) as e:
         log_error(f"{filename} - Error uploading biofile: {str(e)}")
         return {"error": f"Error uploading biofile: {str(e)}"}
+    
+    
+def api_get_loadingstatus(**kwargs):
+    """
+    GET pour obtenir le loading_status du fichier (checksum).
+    """
+    diagho_api = kwargs.get("diagho_api")
+    checksum = kwargs.get("checksum")
+    
+    access_token = get_access_token()
+    headers = {
+        'Authorization': f'Bearer {access_token}', 
+        'Accept': 'application/json'
+    }
+
+    # Construire l'URL avec le paramètre checksum
+    url = diagho_api['loading_status']
+    url_with_params = f"{url}?checksum={checksum}"
+    
+    # Fonction pour logguer les erreurs
+    def log_error(message):
+        logging.getLogger("API_GET_LOADING_STATUS").error(message)
+    
+    try:
+        response = requests.get(url_with_params, headers=headers, verify=False)
+        response.raise_for_status()
+        results = response.json().get('results', [])
+        if not results:
+            return {"error": "No results found in response"}
+        
+        # Récupérer le statut
+        loading = results[0].get('loading')
+        if loading is None:
+            return {"error": "'loading' field not found in results"}
+        
+        # Retourner le statut
+        return {"loading": loading}
+
+    except requests.exceptions.RequestException as e:
+        log_error(str(e))
+        return {"error": str(e)}
+    except ValueError:
+        log_error("Response is not in JSON format")
+        return {"error": "Response is not in JSON format"}
+    except Exception as e:
+        log_error(str(e))
+        return {"error": str(e)}
+
