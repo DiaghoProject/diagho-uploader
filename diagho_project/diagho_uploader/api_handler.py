@@ -15,13 +15,6 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 from common.log_utils import *
 
-# def handle_api_error(function_name, error, logger_name, custom_message=None):
-#     """
-#     Gère les erreurs de l'API en loggant l'erreur et renvoyant un message d'erreur.
-#     """
-#     logger = logging.getLogger(logger_name)
-#     logger.error(f"FUNCTION: {function_name} - Error: {custom_message or str(error)}")
-#     return {"error": custom_message or str(error)}
 
 
 def api_healthcheck(diagho_api, exit_on_error=False):
@@ -46,12 +39,11 @@ def validate_credentials(config):
     """
     Validates the login credentials in the configuration file.
     """
-    logger = logging.getLogger("API_CREDENTIALS")
     username = config.get('diagho_api', {}).get('username', None)
     password = config.get('diagho_api', {}).get('password', None)
 
     if not username or not password:
-        logger.info(f"Username or password is missing.")
+        log_error("API_CREDENTIALS", f"Username or password is missing.")
         raise ValueError("Username or password is missing")
     return username, password
 
