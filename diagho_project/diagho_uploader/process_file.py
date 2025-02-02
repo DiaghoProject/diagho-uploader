@@ -150,7 +150,7 @@ def process_biofile_task(settings, biofile, biofile_infos, diagho_api):
         assembly = biofile_infos["assembly"]
         accession_id = settings["accessions"][assembly]
     except ValueError as e:
-        send_mail_alert(settings["recipients"], f"API login error: {e}")
+        send_mail_alert(settings["recipients"], f"{str(e)}")
         log_error("GET_BIOFILE_TYPE", f"{e}")
         return
         
@@ -209,8 +209,12 @@ def validate_json_input(json_input):
         with open(json_input, 'r') as json_file:
             input_data = json.load(json_file)
 
+        if "families" not in input_data:
+            raise ValueError("Le fichier JSON doit contenir une clé 'families'.")
         if "files" not in input_data:
             raise ValueError("Le fichier JSON doit contenir une clé 'files'.")
+        if "interpretations" not in input_data:
+            raise ValueError("Le fichier JSON doit contenir une clé 'interpretations'.")
 
         required_keys = ["filename", "checksum", "assembly", "samples"]
         
@@ -241,10 +245,11 @@ def wait_for_biofile(biofile, max_retries=100, delay=10):
     
     for attempt in range(1, max_retries + 1):
         if os.path.exists(biofile):
+            logger.info(f"Biofile {biofile} found... Continue...")
             return True
         logger.warning(f"Biofile {biofile} not found... attempt {attempt}")
         time.sleep(delay)
-    logger.info(f"Biofile {biofile} found... Continue...")
+    logger.error(f"Biofile {biofile} not found after {attempt} attempt. Exit.")
     return False  # Échec après toutes les tentatives
 
 def md5(filepath):
@@ -279,10 +284,8 @@ def get_biofile_type(biofile):
     elif biofile.endswith('.bed') or biofile.endswith('.tsv'):
         return 'CNV'
     else:
-        error_message = f"Error: Unsupported biofile type for file: {biofile}"
-        log_error("API_POST_BIOFILE", error_message)
-        send_mail_alert(error_message)
-        return None
+        error_message = f"Unsupported biofile type for file: {biofile}"
+        raise ValueError(error_message)
     
 def check_md5sum(checksum1, checksum2):
     """
@@ -290,7 +293,7 @@ def check_md5sum(checksum1, checksum2):
     """
     if not isinstance(checksum1, str) or not isinstance(checksum2, str):
         raise TypeError("MD5 should be strings.")
-    if len(checksum1) != 32 or len(checksum2) != 32:
+    if len(checksum1) != 32 or len(checksum2) != 32: # si chaine vide ?
         raise ValueError("MD5 length issue. Should be 32.")
     return checksum1.lower() == checksum2.lower()
 
