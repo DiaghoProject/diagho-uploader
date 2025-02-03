@@ -36,8 +36,9 @@ def run_file_watcher(**kwargs):
     path_backup = kwargs.get("path_backup")
     path_biofiles = kwargs.get("path_biofiles")
     config = kwargs.get("config")
+    config_file = kwargs.get("config_file")
     
-    watch_directory(path_input, path_backup, path_biofiles, config)
+    watch_directory(path_input, path_backup, path_biofiles, config, config_file)
     
     print(f"Surveillance du répertoire {path_input}")
 
@@ -84,7 +85,8 @@ def main():
     elif args.command == "start_file_watcher":
         
         # Load configuration file
-        config = load_config("config/config.yaml")
+        config_file = "config/config.yaml"
+        config = load_config(config_file)
     
         # Args
         kwargs = {
@@ -92,6 +94,7 @@ def main():
             "path_biofiles": config.get("input_biofiles", "."),
             "path_backup": config.get("backup_data"),
             "config": config,
+            "config_file": os.path.abspath(config_file)
         }
         run_file_watcher(**kwargs)
         
