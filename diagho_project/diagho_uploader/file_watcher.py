@@ -5,6 +5,7 @@ import yaml
 import shutil
 from datetime import datetime
 import time
+import signal
 
 # Logs
 from common.logger_config import logger 
@@ -48,12 +49,16 @@ def remove_file(file_path):
 def stop_watcher_on_flag(flag_file):
     """Arrêter proprement le watcher"""
     if os.path.exists(flag_file):
-        log_message("FILE_WATCHER", "INFO", f"Le fichier '{flag_file}' a été trouvé. Arrêt du watcher.")
+        log_message("STOP_FILE_WATCHER", "WARNING", f"File '{flag_file}' has been found. Stop watcher.")
         # Renommer le fichier flag après l'arrêt
         os.rename(flag_file, 'start_watcher.flag')
         return True
     return False       
-        
+
+def stop_watcher_on_signal(signum, frame):
+    log_message("STOP_FILE_WATCHER", "WARNING", f"Signal {signum} received. Stop watcher.")
+    sys.exit(0)  # Sortie du programme
+
 
 # Watcher
 def watch_directory(path_input, path_backup, path_biofiles, config, config_file):
@@ -69,6 +74,9 @@ def watch_directory(path_input, path_backup, path_biofiles, config, config_file)
     try:
         while True:
             
+            # Écoute du signal SIGTERM
+            signal.signal(signal.SIGTERM, stop_watcher_on_signal)
+    
             # Condition pour arrêt du watcher
             flag_file = 'stop_watcher.flag'
             if stop_watcher_on_flag(flag_file):
