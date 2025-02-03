@@ -3,6 +3,8 @@ input_biofiles: "path/to/input/data"
 backup_data_files: "path/to/backup/data"
 backup_biofiles: "path/to/backup/biofiles"
 
+log_directory: "path/to/logs/folder"
+
 check_biofile:
   max_retries: 100
   delay: 10
@@ -22,7 +24,7 @@ smtp:
   server: "servmail"
   port: 25
   use_tls: false
-  from_email_format: "diagho-uploade-{hostname}@example.fr"
+  from_email_format: "diagho-uploader-{hostname}@example.fr"
 
 diagho_api:
   username: ""
