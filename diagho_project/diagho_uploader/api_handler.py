@@ -59,6 +59,7 @@ def store_tokens(tokens, filename='tokens.json'):
     try:
         with open(filename, 'w') as file:
             json.dump(tokens, file, indent=4)
+        log_message("API_STORE_TOKEN", "SUCCESS", "Store access token.")
     except Exception as e:
         return log_message("API_STORE_TOKEN", "ERROR", f"{str(e)}")
 
@@ -159,6 +160,7 @@ def api_post_login(**kwargs):
             response.raise_for_status()
             response_json = response.json()
             store_tokens(response_json)
+            log_message("API_POST_LOGIN", "SUCCESS", f"Authentification successful for: {username}")
             return response_json  # Authent OK
         except requests.exceptions.RequestException as e:
             log_message("API_POST_LOGIN", "WARNING", f"Attempt {attempt}/{max_attempts} failed: {str(e)}")
