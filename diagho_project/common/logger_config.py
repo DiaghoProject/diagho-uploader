@@ -39,7 +39,7 @@ if not logger.handlers:
                 encoding="utf-8", 
                 delay=False),                                           # Rotation de logs
             logging.StreamHandler(sys.stdout),                          # Afficher les logs sur la console
-            logging.FileHandler(log_file)                               # Enregistrer les logs dans un fichier
+            # logging.FileHandler(log_file)                               # Enregistrer les logs dans un fichier
         ],
         force=True)  # Force la reconfiguration et l'écriture immédiate
     
