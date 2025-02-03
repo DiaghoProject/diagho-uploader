@@ -2,6 +2,7 @@ beautifulsoup4==4.12.3
 bs4==0.0.2
 certifi==2024.7.4
 charset-normalizer==3.3.2
+colorlog==6.9.0
 exceptiongroup==1.2.2
 idna==3.7
 iniconfig==2.0.0
@@ -10,6 +11,7 @@ packaging==24.1
 pandas==2.2.2
 pluggy==1.5.0
 pytest==8.3.2
+pytest-mock==3.14.0
 python-dateutil==2.9.0.post0
 python-dotenv==1.0.1
 pytz==2024.1
