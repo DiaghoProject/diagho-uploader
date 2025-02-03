@@ -42,7 +42,7 @@ def remove_file(file_path):
         
 
 # Watcher
-def watch_directory(path_input, path_backup, path_biofiles, config):
+def watch_directory(path_input, path_backup, path_biofiles, config, config_file):
     """
     Surveille le répertoire spécifié et traite les fichiers JSON créés ou modifiés.
     """
@@ -71,14 +71,15 @@ def watch_directory(path_input, path_backup, path_biofiles, config):
                         
                         try:
                             # Copier le fichier vers le répertoire backup
-                            logging.getLogger("COPY_FILE").info(f"Copy file: {file_path}")
+                            logging.getLogger("COPY_FILE").info(f"Copy file: {file_path}  to: {path_backup}")
                             copy_file(file_path, path_backup)
 
                             # Traiter le fichier
-                            logging.getLogger("START_PROCESSING").info(f"Processing file: {file_path}")
+                            logging.getLogger("START_PROCESSING_JSON").info(f"Processing file: {os.path.basename(file_path)}")
                             kwargs = {
                                 "file_path": file_path,
                                 "config": config,
+                                "config_file": config_file
                             }
                             diagho_upload_file(**kwargs)
 
@@ -100,11 +101,11 @@ def watch_directory(path_input, path_backup, path_biofiles, config):
                     
                     try:
                         # Copier le fichier vers le répertoire backup
-                        logging.getLogger("COPY_FILE").info(f"Copy file: {file_path}")
+                        logging.getLogger("COPY_FILE").info(f"Copy file: {file_path} to: {path_backup}")
                         copy_file(file_path, path_backup)
 
                         # Traiter le fichier
-                        logging.getLogger("START_PROCESSING").info(f"Processing file: {file_path}")
+                        logging.getLogger("START_PROCESSING_JSON").info(f"Processing file: {file_path}")
                         kwargs = {
                             "file_path": file_path,
                             "config": config,

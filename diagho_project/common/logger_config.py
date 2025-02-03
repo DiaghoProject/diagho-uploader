@@ -4,6 +4,19 @@ import os
 import sys
 import yaml
 
+from colorlog import ColoredFormatter
+
+formatter = ColoredFormatter(
+    "%(log_color)s%(levelname)s: %(message)s",
+    log_colors={
+        "DEBUG": "cyan",
+        "INFO": "green",
+        "SUCCESS": "bold_green",
+        "WARNING": "yellow",
+        "ERROR": "red",
+        "CRITICAL": "bold_red",
+    }
+)
 
 # Charger la configuration depuis config.yaml
 config_file = "config/config.yaml"
@@ -21,8 +34,22 @@ log_filename = "diagho_uploader.log"
 log_file = os.path.join(log_directory, log_filename)
 
 # Configuration du logger
-logger = logging.getLogger("FileWatcher")
+logger = logging.getLogger("FILE_WATCHER")
 logger.setLevel(logging.INFO)
+
+
+
+# Définition du niveau personnalisé SUCCESS (entre INFO et WARNING)
+SUCCESS_LEVEL = 25
+logging.addLevelName(SUCCESS_LEVEL, "SUCCESS")
+
+# Fonction pour ajouter success() au logger
+def success(self, message, *args, **kwargs):
+    if self.isEnabledFor(SUCCESS_LEVEL):
+        self._log(SUCCESS_LEVEL, message, args, **kwargs)
+
+logging.Logger.success = success  # Ajout de la méthode au logger
+
 
 # Empêcher les handlers en double si le script est relancé
 if not logger.handlers:
@@ -33,7 +60,7 @@ if not logger.handlers:
         handlers=[
             TimedRotatingFileHandler(
                 log_file, 
-                when="W0",              # W0 = le lundi
+                when="H",              # W0 = le lundi
                 interval=1,             # toute les semaine --> donc chaque lundi à minuit
                 backupCount=52,         # on conserve les 52 fichiers = 1 an
                 encoding="utf-8", 
@@ -43,3 +70,4 @@ if not logger.handlers:
         ],
         force=True)  # Force la reconfiguration et l'écriture immédiate
     
+
