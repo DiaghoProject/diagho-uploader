@@ -47,8 +47,8 @@ def watch_directory(path_input, path_backup, path_biofiles, config):
     Surveille le répertoire spécifié et traite les fichiers JSON créés ou modifiés.
     """
     previous_files = list_files(path_input)
-    print(f"Watching directory: {path_input}")
-    logger.info("Démarrage de la surveillance du répertoire: %s", path_input)
+    logger = logging.getLogger("FILE_WATCHER")
+    logger.info("Start watching directory: %s", path_input)
     
     try:
         while True:
@@ -59,12 +59,16 @@ def watch_directory(path_input, path_backup, path_biofiles, config):
             new_files = set(current_files) - set(previous_files)
             modified_files = {f for f in current_files if f in previous_files and current_files[f] != previous_files[f]}
 
+            # Si nouveau fichier :
             if new_files:
                 for file in new_files:
                     if file.endswith(".json"): # prendre en compte uniquement les JSON
                         file_path = os.path.join(path_input, file)
-                        print(f"\nNew file - Processing file: {file_path}")
-                        logging.getLogger("NEW_FILE").info(f"New file: {file_path}")
+                        
+                        logger = logging.getLogger("NEW_FILE")
+                        logger.info(f"-----------------------------------------------------------------------------------------------")
+                        logger.info(f"New file: {file_path}")
+                        
                         try:
                             # Copier le fichier vers le répertoire backup
                             logging.getLogger("START_PROCESSING").info(f"Copy file: {file_path}")
@@ -85,11 +89,15 @@ def watch_directory(path_input, path_backup, path_biofiles, config):
                         except Exception as e:
                             print(f"Failed to process file '{file_path}' - Erreur: {e}")
 
+            # SI fichier modifié :
             if modified_files:
                 for file in modified_files:
                     file_path = os.path.join(path_input, file)
-                    print(f"\nFile modified - Processing file: {file_path}")
-                    logging.getLogger("MODIFIED_FILE").info(f"New file: {file_path}")
+                    
+                    logger = logging.getLogger("MODIFIED_FILE")
+                    logger.info(f"-----------------------------------------------------------------------------------------------")
+                    logger.info(f"New file: {file_path}")
+                    
                     try:
                         # Copier le fichier vers le répertoire backup
                         logging.getLogger("START_PROCESSING").info(f"Copy file: {file_path}")
