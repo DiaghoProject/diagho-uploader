@@ -5,6 +5,7 @@ import pandas as pd
 import os
 import time
 from concurrent.futures import ThreadPoolExecutor
+import concurrent.futures
 from datetime import datetime
 
 from .api_handler import *
@@ -72,8 +73,8 @@ def diagho_upload_file(**kwargs):
     recipients = settings["recipients"]
     
     # Traitements parallèles :
-    with ThreadPoolExecutor(max_workers=5) as executor:  # Utiliser 5 threads par exemple
-        futures = []
+    futures = []
+    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
         
         # Get filenames of the biofiles
         biofiles = json_data["files"]
@@ -88,9 +89,12 @@ def diagho_upload_file(**kwargs):
             # A partir d'ici : paraléliser les traitements
             futures.append(executor.submit(process_biofile_task, settings, biofile, biofile_infos, diagho_api))
 
-        # Attendre que toutes les tâches soient terminées
-        for future in futures:
-            future.result()
+        # Attendre que toutes les tâches soient terminées avec succès
+        for future in concurrent.futures.as_completed(futures):
+            if not future.result():  # Si une tâche a échoué : log + sortir du traitement
+                time.sleep(5)
+                log_error("PROCESS_BIOFILE", f"FAILED: one task failed, processing stopped. Exit.")
+                return
             
     # Tous les biofiles ont été traités.     
     log_info("PROCESS_BIOFILE", f"All biofiles have been loaded in Diagho")
@@ -135,7 +139,7 @@ def process_biofile_task(settings, biofile, biofile_infos, diagho_api):
         content = f"Failed to process.\n\nBiofile: {biofile} does not exist in : {path_biofiles}."
         send_mail_alert(recipients, content)
         log_error("PROCESS_BIOFILE", f"Biofile: {biofile} does not exist.")
-        return
+        return False
     
     # Biofile found
     log_info("PROCESS_BIOFILE", f"Biofile '{biofile}' found... Continue...")
@@ -148,7 +152,7 @@ def process_biofile_task(settings, biofile, biofile_infos, diagho_api):
     except ValueError as e:
         send_mail_alert(settings["recipients"], f"{str(e)}")
         log_error("GET_BIOFILE_TYPE", f"{e}")
-        return
+        return False
         
     
     # Verifier le checksum du JSON et celui calculé du biofile
@@ -156,7 +160,7 @@ def process_biofile_task(settings, biofile, biofile_infos, diagho_api):
     md5_from_json = biofile_infos.get("checksum")
     if not check_md5sum(md5_biofile, md5_from_json):
         log_error("PROCESS_BIOFILE", f"MD5 checksum mismatch for biofile: {biofile} (JSON)")
-        return
+        return False
     
     # Si checksum identiques : POST biofile
     kwargs = {
@@ -173,7 +177,7 @@ def process_biofile_task(settings, biofile, biofile_infos, diagho_api):
     # Vérifier que le checksum du biofile posté est le même que celui du biofile
     if not check_md5sum(checksum, md5_biofile):
         log_error("PROCESS_BIOFILE", f"MD5 checksum mismatch for biofile: {biofile}")
-        return
+        return False
     log_info("PROCESS_BIOFILE", f"{biofile} : Checksums are identical. Continue.")
         
     # check le statut de chargement
@@ -194,6 +198,8 @@ def process_biofile_task(settings, biofile, biofile_infos, diagho_api):
     destination_path = os.path.join(backup_path, filename)
     shutil.move(biofile, destination_path)
     log_info("PROCESS_BIOFILE", f"{biofile} : Move biofile to {backup_path}.")
+    
+    return True
         
     
 
