@@ -39,9 +39,6 @@ def run_file_watcher(**kwargs):
     config_file = kwargs.get("config_file")
     
     watch_directory(path_input, path_backup, path_biofiles, config, config_file)
-    
-    print(f"Surveillance du répertoire {path_input}")
-
 
 # main
 def main():
