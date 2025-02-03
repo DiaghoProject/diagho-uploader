@@ -10,8 +10,10 @@ from diagho_uploader.file_watcher import *
 from common.config_loader import *
 
 
+
 # Load configuration            
 def load_config(config_file):
+    """Chargement du fichier de configuration"""
     with open(config_file, 'r') as file:
         config = yaml.safe_load(file)
     return config
@@ -60,11 +62,13 @@ def main():
     args = parser.parse_args()
 
     # Exécuter la fonction correspondante en fonction de la sous-commande passée en argument
+    
+    # Create_inputs
     if args.command == "create_inputs":
         try:
-            
             input_file = args.input_file
             output_file = args.output_file
+            
             # Vérifier que les arguments nécessaires sont fournis
             if not input_file or not output_file:
                 print("Erreur: Vous devez fournir à la fois 'input_file' et 'output_file'.")
@@ -73,11 +77,10 @@ def main():
             run_create_inputs(input_file, output_file)
             
         except Exception as e:
-            print(f"Erreur lors de la création des inputs : {e}")
+            print(f"Erreur lors de la création des fichiers: {e}")
             sys.exit(1)
-            
-        
-        
+    
+    # Start file_watcher
     elif args.command == "start_file_watcher":
         
         # Load configuration file
