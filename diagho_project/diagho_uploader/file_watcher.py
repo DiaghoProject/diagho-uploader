@@ -71,7 +71,7 @@ def watch_directory(path_input, path_backup, path_biofiles, config):
                         
                         try:
                             # Copier le fichier vers le répertoire backup
-                            logging.getLogger("START_PROCESSING").info(f"Copy file: {file_path}")
+                            logging.getLogger("COPY_FILE").info(f"Copy file: {file_path}")
                             copy_file(file_path, path_backup)
 
                             # Traiter le fichier
@@ -83,7 +83,7 @@ def watch_directory(path_input, path_backup, path_biofiles, config):
                             diagho_upload_file(**kwargs)
 
                             # Supprimer le fichier du répertoire 'input_data' après traitement
-                            logging.getLogger("START_PROCESSING").info(f"Remove file: {file_path}")
+                            logging.getLogger("REMOVE_FILE").info(f"Remove file: {file_path}")
                             remove_file(file_path)
 
                         except Exception as e:
@@ -100,7 +100,7 @@ def watch_directory(path_input, path_backup, path_biofiles, config):
                     
                     try:
                         # Copier le fichier vers le répertoire backup
-                        logging.getLogger("START_PROCESSING").info(f"Copy file: {file_path}")
+                        logging.getLogger("COPY_FILE").info(f"Copy file: {file_path}")
                         copy_file(file_path, path_backup)
 
                         # Traiter le fichier
@@ -112,7 +112,7 @@ def watch_directory(path_input, path_backup, path_biofiles, config):
                         diagho_upload_file(**kwargs)
 
                         # Supprimer le fichier du répertoire 'input_data' après traitement
-                        logging.getLogger("START_PROCESSING").info(f"Remove file: {file_path}")
+                        logging.getLogger("REMOVE_FILE").info(f"Remove file: {file_path}")
                         remove_file(file_path)
                         
                     except Exception as e:
