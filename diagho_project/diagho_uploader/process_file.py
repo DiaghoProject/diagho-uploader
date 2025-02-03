@@ -6,7 +6,9 @@ import os
 import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
-import logging
+
+# Logs
+from common.logger_config import logger 
 
 from .api_handler import *
 from common.config_loader import *

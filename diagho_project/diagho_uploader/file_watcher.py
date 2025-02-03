@@ -3,23 +3,14 @@ import os
 import yaml
 import shutil
 from datetime import datetime
+import time
+
+# Logs
+from common.logger_config import logger 
 
 from .process_file import *
 
-import logging
-logs_directory = "logs"
-if not os.path.exists(logs_directory):
-    os.makedirs(logs_directory)
-log_filename = os.path.join(logs_directory, 'app.log')
 
-logging.basicConfig(
-    level=logging.INFO,                                                 # Définir le niveau de log minimum
-    format='[%(asctime)s][%(levelname)s][%(name)s] %(message)s',        # Format du message
-    handlers=[
-        logging.FileHandler(log_filename),                              # Enregistrer les logs dans un fichier
-        logging.StreamHandler()                                         # Afficher les logs sur la console (pour log final)
-    ]
-)
 
 
 # List files in directory
@@ -57,7 +48,8 @@ def watch_directory(path_input, path_backup, path_biofiles, config):
     """
     previous_files = list_files(path_input)
     print(f"Watching directory: {path_input}")
-
+    logger.info("Démarrage de la surveillance du répertoire: %s", path_input)
+    
     try:
         while True:
             time.sleep(5)  # Toutes les 5 secondes

@@ -1,4 +1,5 @@
 import logging
+from common.logger_config import logger 
 
 
 def log_info(logger_name, message):
