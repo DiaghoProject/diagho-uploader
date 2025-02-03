@@ -7,9 +7,6 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 
-# Logs
-from common.logger_config import logger 
-
 from .api_handler import *
 from common.config_loader import *
 from common.file_utils import *
@@ -20,13 +17,7 @@ from common.log_utils import *
 
 def diagho_upload_file(**kwargs):
     """
-    Process input file (JSON).
-    Load biofiles in Diagho.
-    Load JSON file.
-
-    Args:
-        file_path (str): input file (JSON).
-        config (dict): configuration.
+    Process input file (JSON) : load biofiles in Diagho and load JSON file.
     """
     
     # Args
@@ -34,7 +25,6 @@ def diagho_upload_file(**kwargs):
     file_path = kwargs.get("file_path")
     
     log_info("START_UPLOADER", f"JSON file: {file_path}")
-    
     
     # Load configuration
     log_info("LOAD_CONFIGURATION", f"Load 'config.yaml'")
@@ -70,10 +60,6 @@ def diagho_upload_file(**kwargs):
     except ValueError as e:
         send_mail_alert(settings["recipients"], f"API login error: {e}")
         return
-        
-    print("\n continuer... \n")
-    
-    
     
     
     # Paralléliser le traitement des biofiles
@@ -85,6 +71,7 @@ def diagho_upload_file(**kwargs):
     delay = settings["get_biofile_delay"]
     recipients = settings["recipients"]
     
+    # Traitements parallèles :
     with ThreadPoolExecutor(max_workers=5) as executor:  # Utiliser 5 threads par exemple
         futures = []
         
@@ -105,14 +92,13 @@ def diagho_upload_file(**kwargs):
         for future in futures:
             future.result()
             
-        # Traitement des biofiles terminé  
-     
+    # Tous les biofiles ont été traités.     
     log_info("PROCESS_BIOFILE", f"All biofiles have been loaded in Diagho")
 
     time.sleep(5)
     
     # Upload JSON file 
-    log_info("IMPORT_CONFIGURATIONS", f"Import JSON: {os.path.basename(file_path)}") 
+    log_info("UPLOAD_JSON", f"Upload JSON: {os.path.basename(file_path)}") 
     kwargs = {
         'diagho_api': diagho_api,
         'file': file_path,
@@ -127,8 +113,16 @@ def diagho_upload_file(**kwargs):
 
 # Gère le traitement d'un biofile
 def process_biofile_task(settings, biofile, biofile_infos, diagho_api):
-    """Fonction qui gère le traitement d'un fichier bio (VCF ou BED)"""
-    log_info("PROCESS_BIOFILE_TASK", f"Start biofile processing: {biofile}")
+    """
+    Traitement d'un fichier bio (VCF ou BED).
+
+    Args:
+        settings (dict): paramétrages.
+        biofile (str): fichier VCF ou BED à traiter.
+        biofile_infos (dict): informations sur le biofile à traiter.
+        diagho_api (dict): endpoints.
+    """
+    log_info("PROCESS_BIOFILE", f"Start biofile processing: {biofile}")
         
     # Récupérer les settings
     path_biofiles = settings["path_biofiles"]
@@ -136,15 +130,15 @@ def process_biofile_task(settings, biofile, biofile_infos, diagho_api):
     delay = settings["get_biofile_delay"]
     recipients = settings["recipients"]
     
-    # Récupération du biofile (si pas présent au bout de X tentatives... alerte et stop)
+    # Récupération du biofile (si pas présent au bout de X tentatives... alerte et stop process)
     if not wait_for_biofile(biofile, max_retries, delay):
         content = f"Failed to process.\n\nBiofile: {biofile} does not exist in : {path_biofiles}."
         send_mail_alert(recipients, content)
-        log_error("PROCESS_BIOFILE_TASK", f"Biofile: {biofile} does not exist.")
+        log_error("PROCESS_BIOFILE", f"Biofile: {biofile} does not exist.")
         return
     
     # Biofile found
-    log_info("PROCESS_BIOFILE_TASK", f"Biofile '{biofile}' found... Continue...")
+    log_info("PROCESS_BIOFILE", f"Biofile '{biofile}' found... Continue...")
         
     # Get informations about biofile
     try:
@@ -161,7 +155,7 @@ def process_biofile_task(settings, biofile, biofile_infos, diagho_api):
     md5_biofile = md5(biofile)
     md5_from_json = biofile_infos.get("checksum")
     if not check_md5sum(md5_biofile, md5_from_json):
-        log_error("PROCESSING_BIOFILE", f"MD5 checksum mismatch for biofile: {biofile} (JSON)")
+        log_error("PROCESS_BIOFILE", f"MD5 checksum mismatch for biofile: {biofile} (JSON)")
         return
     
     # Si checksum identiques : POST biofile
@@ -178,9 +172,9 @@ def process_biofile_task(settings, biofile, biofile_infos, diagho_api):
     
     # Vérifier que le checksum du biofile posté est le même que celui du biofile
     if not check_md5sum(checksum, md5_biofile):
-        log_error("PROCESSING_BIOFILE", f"MD5 checksum mismatch for biofile: {biofile}")
+        log_error("PROCESS_BIOFILE", f"MD5 checksum mismatch for biofile: {biofile}")
         return
-    log_info("PROCESSING_BIOFILE", f"{biofile} : Checksums are identical. Continue.")
+    log_info("PROCESS_BIOFILE", f"{biofile} : Checksums are identical. Continue.")
         
     # check le statut de chargement
     time.sleep(20) # nécessaire pour l'instant car bug initial (statut en FAILURE)
@@ -199,7 +193,7 @@ def process_biofile_task(settings, biofile, biofile_infos, diagho_api):
     backup_path = settings.get("path_backup_biofiles")
     destination_path = os.path.join(backup_path, filename)
     shutil.move(biofile, destination_path)
-    log_info("PROCESSING_BIOFILE", f"{biofile} : Move biofile to {backup_path}.")
+    log_info("PROCESS_BIOFILE", f"{biofile} : Move biofile to {backup_path}.")
         
     
 
@@ -243,7 +237,7 @@ def wait_for_biofile(biofile, max_retries=100, delay=10):
     """
     Attend l'existence du biofile avec un nombre de tentatives limité.
     """
-    logger = logging.getLogger("PROCESSING_BIOFILE")
+    logger = logging.getLogger("WAIT_BIOFILE")
     
     for attempt in range(1, max_retries + 1):
         if os.path.exists(biofile):
@@ -274,13 +268,24 @@ def md5(filepath):
     log_error("MD5_HASH", error_msg)
     return {"error": error_msg}
 
+
 def get_biofile_informations(data, filename):
     """
     Recherche dans la liste de dictionnaires le dictionnaire contenant le 'filename'.
     """
     return next((item for item in data if item.get("filename") == filename), None)
 
+
 def get_biofile_type(biofile):
+    """
+    Retourne le type de biofile : SNV ou CNV. Nécessaire pour les endpoints de l'API.
+
+    Args:
+        biofile (str): fichier à traiter.
+
+    Returns:
+        str: 'SNV' ou 'CNV'
+    """
     if biofile.endswith('.vcf') or biofile.endswith('.vcf.gz'):
         return 'SNV'
     elif biofile.endswith('.bed') or biofile.endswith('.tsv'):
@@ -348,8 +353,7 @@ def check_loading_status(attempt, **kwargs):
 
 def check_api_response(response, **kwargs):
     """
-    Vérifie la réponse de l'API après le POST de la config
-    et envoie des notifications en fonction du statut.
+    Vérifie la réponse de l'API après le POST de la config et envoie des notifications en fonction du statut.
     """
     recipients = kwargs.get('recipients')
     json_file = kwargs.get('json_file')
