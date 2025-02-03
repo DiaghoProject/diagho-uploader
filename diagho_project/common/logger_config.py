@@ -26,7 +26,6 @@ with open(config_file, "r") as file:
 
 # Récupérer le log_directory depuis la config
 log_directory = config.get("log_directory", "logs")
-print("LOG_DIRECTORY:", log_directory)
 os.makedirs(log_directory, exist_ok=True)
 
 # Chemin du fichier de log
@@ -39,15 +38,13 @@ logger.setLevel(logging.INFO)
 
 
 
-# Définition du niveau personnalisé SUCCESS (entre INFO et WARNING)
+# Définition du niveau personnalisé SUCCESS
 SUCCESS_LEVEL = 25
 logging.addLevelName(SUCCESS_LEVEL, "SUCCESS")
-
 # Fonction pour ajouter success() au logger
 def success(self, message, *args, **kwargs):
     if self.isEnabledFor(SUCCESS_LEVEL):
         self._log(SUCCESS_LEVEL, message, args, **kwargs)
-
 logging.Logger.success = success  # Ajout de la méthode au logger
 
 
@@ -60,13 +57,12 @@ if not logger.handlers:
         handlers=[
             TimedRotatingFileHandler(
                 log_file, 
-                when="H",              # W0 = le lundi
+                when="W0",              # W0 = le lundi
                 interval=1,             # toute les semaine --> donc chaque lundi à minuit
                 backupCount=52,         # on conserve les 52 fichiers = 1 an
                 encoding="utf-8", 
                 delay=False),                                           # Rotation de logs
             logging.StreamHandler(sys.stdout),                          # Afficher les logs sur la console
-            # logging.FileHandler(log_file)                               # Enregistrer les logs dans un fichier
         ],
         force=True)  # Force la reconfiguration et l'écriture immédiate
     

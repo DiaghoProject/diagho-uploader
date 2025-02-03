@@ -34,7 +34,7 @@ def send_mail(recipients: str, subject: str, content: str, config='config/config
         return re.match(regex, email) is not None
     recipient_list = [email.strip() for email in recipients.split(',')]
     if not all(validate_email(email) for email in recipient_list):
-        print("Invalid email address in recipient list.")
+        log_message("EMAIL", "ERROR", f"Invalid email address in recipient list: {recipient_list}")
         return
     
     # Création du message
@@ -50,11 +50,12 @@ def send_mail(recipients: str, subject: str, content: str, config='config/config
             if use_tls:
                 server.starttls()
             server.sendmail(from_email, recipient_list, message.as_string())
-        log_info("EMAIL", f"Email sent successfully to: {recipient_list}")
+        log_message("EMAIL", "INFO", f"Email sent successfully to: {recipient_list}")
     except Exception as e:
-        log_error("EMAIL", f": {str(e)}")
+        log_message("EMAIL", "ERROR", f": {str(e)}")
         
 
+# Ces deux fonctions pour spécifier l'objet du mail
 def send_mail_alert(recipients: str, content: str):
     subject = "[ALERT] Diagho-Uploader"
     send_mail(recipients, subject, content)
