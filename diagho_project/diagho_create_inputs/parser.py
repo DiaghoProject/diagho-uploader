@@ -1,5 +1,6 @@
 import argparse
 import csv
+import inspect
 import dateutil
 import hashlib
 import json
@@ -23,7 +24,7 @@ from datetime import datetime
 import yaml
 
 # Logs
-from common.logger_config import logger2
+from common.logger_config import logger
 
 from common.file_utils import *
 
@@ -49,7 +50,7 @@ def create_json_files(input_file, output_file, output_prefix="tmp"):
         output_file (str): final JSON file
         output_prefix (str): prefixe pour les fichiers (optionnal)
     """
-    
+    function_name = inspect.currentframe().f_code.co_name
     
     # Charger la configuration depuis config.yaml
     config_file = "config/config.yaml"
@@ -57,15 +58,11 @@ def create_json_files(input_file, output_file, output_prefix="tmp"):
         config = yaml.safe_load(file)
         
     # Load settings
-    log_message("LOAD_CONFIGURATION", "INFO", f"Load config_file: {config_file}")
+    # log_message("LOAD_CONFIGURATION", "INFO", f"Load config_file: {config_file}")
     settings = load_configuration(config)
     path_biofiles = settings["path_biofiles"]
-        
-
-    logger2.info(f"-------------------------------------------------------------------------------")
-    logger2.info(f"Input file: {input_file}")
     
-    
+    log_message(function_name, "INFO", f"Start create_json on file: {input_file}")
     
     # Définir les fichiers JSON à créer
     output_directory = os.path.dirname(output_file)
@@ -79,7 +76,7 @@ def create_json_files(input_file, output_file, output_prefix="tmp"):
     try:
         # Test si file_input existe
         if not os.path.exists(input_file):
-            log_message("CREATE_JSON", "ERROR", f"File not found: {input_file}")
+            log_message(function_name, "ERROR", f"File not found: {input_file}")
             raise FileNotFoundError(f"File not found: {input_file}.")
         # Si le fichier existe : oncontinue les traitements
     
@@ -88,38 +85,36 @@ def create_json_files(input_file, output_file, output_prefix="tmp"):
             diagho_tsv2json(input_file, output_json_simple)
             
         except Exception as e:
-            log_message("CREATE_JSON", "ERROR", f"Erreur détectée dans 'diagho_tsv2json': {e}.")
+            log_message(function_name, "ERROR", f"Erreur détectée dans 'diagho_tsv2json': {e}.")
             exit(1)
         
-        
         # Créer les 3 fichiers JSON
-        
         # Familles
         try:
             diagho_create_json_families(output_json_simple, output_file_families)
         except Exception as e:
-            log_message("CREATE_JSON", "ERROR", f"Erreur détectée dans 'diagho_create_json_families': {e}.")
+            log_message(function_name, "ERROR", f"Erreur détectée dans 'diagho_create_json_families': {e}.")
             exit(1)
         
         # Biofiles
         try:
             diagho_create_json_biofiles(output_json_simple, output_file_biofiles, path_biofiles)
         except Exception as e:
-            log_message("CREATE_JSON", "ERROR", f"Erreur détectée dans 'diagho_create_json_biofiles': {e}.")
+            log_message(function_name, "ERROR", f"Erreur détectée dans 'diagho_create_json_biofiles': {e}.")
             exit(1)
             
         # Interpretations
         try:
             diagho_create_json_interpretations(output_json_simple, output_file_interpretations, path_biofiles)
         except Exception as e:
-            log_message("CREATE_JSON", "ERROR", f"Erreur détectée dans 'diagho_create_json_interpretations': {e}.")
+            log_message(function_name, "ERROR", f"Erreur détectée dans 'diagho_create_json_interpretations': {e}.")
             exit(1)
         
         # Combine the 3 JSON files
         combine_json_files(output_file_families, output_file_biofiles, output_file_interpretations, output_file)
     
     except FileNotFoundError:
-        log_message("CREATE_JSON", "ERROR", f"File not found: {input_file}. Exit.")
+        log_message(function_name, "ERROR", f"File not found: {input_file}. Exit.")
         
         
         
