@@ -29,7 +29,6 @@ log_directory = config.get("log_directory", "logs")
 os.makedirs(log_directory, exist_ok=True)
 
 
-
 # Chemin du fichier de log pour FILE_WATCHER
 log_filename = "diagho_uploader.log"
 log_file = os.path.join(log_directory, log_filename)
@@ -37,12 +36,6 @@ log_file = os.path.join(log_directory, log_filename)
 logger = logging.getLogger("FILE_WATCHER")
 logger.setLevel(logging.INFO)
 
-
-# Chemin du fichier de log pour CREATE_JSON
-log_filename2 = "create_json.log"
-log_file2 = os.path.join(log_directory, log_filename2)
-logger2 = logging.getLogger("CREATE_JSON")
-logger2.setLevel(logging.INFO)
 
 
 
@@ -99,7 +92,6 @@ def setup_logger(name, log_file, level=logging.INFO):
     return logger
 
 
-
 # Empêcher les handlers en double si le script est relancé
 if not logger.handlers:
     
@@ -117,22 +109,31 @@ if not logger.handlers:
             logging.StreamHandler(sys.stdout),                          # Afficher les logs sur la console
         ],
         force=True)  # Force la reconfiguration et l'écriture immédiate
-    
 
-# Empêcher les handlers en double si le script est relancé
-if not logger2.handlers:
+
+
+
+
+# # Chemin du fichier de log pour CREATE_JSON
+# log_filename2 = "create_json.log"
+# log_file2 = os.path.join(log_directory, log_filename2)
+# logger2 = logging.getLogger("CREATE_JSON")
+# logger2.setLevel(logging.INFO)
+
+# # Empêcher les handlers en double si le script est relancé
+# if not logger2.handlers:
     
-    logging.basicConfig(
-        level=logging.INFO,                                             # Définir le niveau de log minimum
-        format="[%(asctime)s][%(levelname)s][%(name)s] %(message)s",    # Format du message
-        handlers=[
-            TimedRotatingFileHandler(
-                log_file2, 
-                when="midnight",              # W0 = le lundi
-                interval=1,             # toute les semaine --> donc chaque lundi à minuit
-                backupCount=52,         # on conserve les 52 fichiers = 1 an
-                encoding="utf-8", 
-                delay=False),                                           # Rotation de logs
-            logging.StreamHandler(sys.stdout),                          # Afficher les logs sur la console
-        ],
-        force=True)  # Force la reconfiguration et l'écriture immédiate
+#     logging.basicConfig(
+#         level=logging.INFO,                                             # Définir le niveau de log minimum
+#         format="[%(asctime)s][%(levelname)s][%(name)s] %(message)s",    # Format du message
+#         handlers=[
+#             TimedRotatingFileHandler(
+#                 log_file2, 
+#                 when="midnight",              # W0 = le lundi
+#                 interval=1,             # toute les semaine --> donc chaque lundi à minuit
+#                 backupCount=52,         # on conserve les 52 fichiers = 1 an
+#                 encoding="utf-8", 
+#                 delay=False),                                           # Rotation de logs
+#             logging.StreamHandler(sys.stdout),                          # Afficher les logs sur la console
+#         ],
+#         force=True)  # Force la reconfiguration et l'écriture immédiate
