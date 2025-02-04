@@ -1,9 +1,15 @@
+import inspect
 import yaml
+
+from common.log_utils import log_message
 
 def load_config(config_path):
     """Charge un fichier YAML de configuration et le retourne sous forme de dictionnaire."""
+    function_name = inspect.currentframe().f_code.co_name
+    log_message(function_name, "INFO", f"Load config_file: {config_path}")
     with open(config_path, "r") as file:
         return yaml.safe_load(file)
+    
 
 def load_configuration(config):
     """
