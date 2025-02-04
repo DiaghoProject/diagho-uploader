@@ -7,8 +7,7 @@ import yaml
 import re
 import sys
 
-# Logs
-from common.logger_config import logger
+
 from common.log_utils import *
 
 # Problem SSL certificate

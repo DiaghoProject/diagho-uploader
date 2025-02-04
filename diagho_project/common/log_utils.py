@@ -1,7 +1,4 @@
 import logging
-from common.logger_config import logger 
-
-
 
 
 # Fonction de log générique

@@ -267,7 +267,7 @@ def md5(filepath):
     except Exception as e:
         error_msg = f"Unexpected error while computing MD5 for {filepath}: {e}"
     
-    log_error("MD5_HASH", error_msg)
+    log_message("MD5_HASH", "ERROR", error_msg)
     return {"error": error_msg}
 
 
