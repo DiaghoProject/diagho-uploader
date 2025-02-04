@@ -24,8 +24,6 @@ def run_create_inputs(input_file, output_file):
     Céation du JSON à partir du TSV.
     """
     create_json_files(input_file, output_file)
-    
-    print(f"Création du fichier JSON '{output_file}' à partir de '{input_file}'")
 
 # Start file watcher
 def run_file_watcher(**kwargs):
@@ -37,7 +35,7 @@ def run_file_watcher(**kwargs):
     path_biofiles = kwargs.get("path_biofiles")
     config = kwargs.get("config")
     config_file = kwargs.get("config_file")
-    
+
     watch_directory(path_input, path_backup, path_biofiles, config, config_file)
 
 # main

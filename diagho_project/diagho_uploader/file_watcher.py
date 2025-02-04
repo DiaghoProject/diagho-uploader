@@ -7,7 +7,7 @@ from datetime import datetime
 import time
 import signal
 
-# Logs
+# Gestion des logs
 from common.logger_config import logger 
 from common.log_utils import *
 
@@ -47,15 +47,17 @@ def remove_file(file_path):
 
 # Stop watcher
 def stop_watcher_on_flag(flag_file):
-    """Arrêter proprement le watcher"""
+    """Arrêter proprement le watcher avec un fichier de flag."""
     if os.path.exists(flag_file):
         log_message("STOP_FILE_WATCHER", "WARNING", f"File '{flag_file}' has been found. Stop watcher.")
-        # Renommer le fichier flag après l'arrêt
+        # Renommer le fichier flag après l'arrêt (pour pouvoir relancer directement)
         os.rename(flag_file, 'start_watcher.flag')
         return True
     return False       
 
+# Stop watcher on signal
 def stop_watcher_on_signal(signum, frame):
+    """Arrêter le watcher si kill du process."""
     log_message("STOP_FILE_WATCHER", "WARNING", f"Signal {signum} received. Stop watcher.")
     sys.exit(0)  # Sortie du programme
 
@@ -93,7 +95,7 @@ def watch_directory(path_input, path_backup, path_biofiles, config, config_file)
             # Si nouveau fichier :
             if new_files:
                 for file in new_files:
-                    if file.endswith(".json"): # prendre en compte uniquement les JSON
+                    if file.endswith(".json") or file.endswith(".tsv"): # prendre en compte uniquement les JSON ou TSV
                         file_path = os.path.join(path_input, file)
                         
                         log_message("NEW_FILE", "INFO", f"-----------------------------------------------------------------------------------------------")
