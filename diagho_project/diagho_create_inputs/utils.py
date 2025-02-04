@@ -1,0 +1,248 @@
+import csv
+import datetime
+import hashlib
+import json
+import logging
+import pandas as pd
+from datetime import datetime
+
+from common.logger_config import logger2
+
+
+# Fonction de log générique
+def log_message(logger_name, level, message):
+    """
+    Enregistre un message dans les logs à un niveau donné.
+
+    Args:
+        logger_name (str): Nom du logger.
+        level (str): Niveau du log (INFO, WARNING, ERROR, SUCCESS, etc.).
+        message (str): Message à enregistrer.
+    """
+    logger2 = logging.getLogger(logger_name)
+
+    # Log selon le niveau spécifié
+    if level.upper() == 'INFO':
+        logger2.info(message)
+    elif level.upper() == 'WARNING':
+        logger2.warning(message)
+    elif level.upper() == 'ERROR':
+        logger2.error(message)
+    elif level.upper() == 'SUCCESS':
+        logger2.success(message)
+    elif level.upper() == 'DEBUG':
+        logger2.debug(message)
+    else:
+        logger2.log(logging.DEBUG, message)  # Par défaut, on utilise DEBUG si niveau inconnu
+        
+        
+def remove_trailing_empty_lines(file_path, encoding):
+    """
+    Removes trailing empty lines from a text file.
+    """
+    # Lire le fichier et sauvegarder les lignes non vides
+    with open(file_path, 'r', encoding=encoding) as file:
+        lines = [line for line in file if line.strip()]
+    
+    # Réécrire le fichier sans les lignes vides à la fin
+    with open(file_path, 'w', encoding=encoding) as file:
+        file.writelines(lines)
+        
+        
+        
+def validate_tsv_headers(input_file, required_headers, encoding='latin1'):
+    """
+    Validate the headers of a TSV file to ensure it contains all required columns.
+    """
+    # Read only the headers (first row) from the TSV file
+    try:
+        df = pd.read_csv(input_file, delimiter='\t', encoding=encoding, nrows=0)
+        tsv_headers = list(df.columns)
+
+        # Find missing columns
+        missing_headers = [header for header in required_headers if header not in tsv_headers]
+        
+        # Find unexpected columns
+        unexpected_headers = [header for header in tsv_headers if header not in required_headers]
+        
+        if missing_headers:
+            log_message("VALIDATE_TSV_HEADER", "ERROR", f"Error: Missing required columns: {missing_headers}")
+            return False
+        if unexpected_headers:
+            log_message("VALIDATE_TSV_HEADER", "ERROR", f"Warning: Unexpected columns present: {unexpected_headers}")
+            return False
+        
+        # Otherwise, return True indicating the headers are valid
+        return True
+    
+    except Exception as e:
+        log_message("VALIDATE_TSV_HEADER", "ERROR", f"Error reading the file: {str(e)}")
+        return False
+    
+    
+def validate_tsv_columns(file_path, required_headers):
+    """
+    Valide chaque colonne du fichier TSV selon des conditions spécifiques.
+    """
+    with open(file_path, newline='', encoding='iso-8859-1') as tsvfile:
+        reader = csv.DictReader(tsvfile, delimiter='\t')
+        tsv_headers = reader.fieldnames
+
+        # Vérifier que toutes les colonnes requises sont présentes (normalement pas besoin si vérif du header avant)
+        missing_columns = [col for col in required_headers if col not in tsv_headers]
+        if missing_columns:
+            log_message("VALIDATE_TSV_COLUMNS", "ERROR", f"Missing columns: {missing_columns}")
+            return False
+
+        # Valider chaque ligne du fichier
+        for line_num, row in enumerate(reader, start=2):  # Démarre à 2 pour compter l'en-tête
+            for col in required_headers:
+                if col not in row:
+                    log_message("VALIDATE_TSV_COLUMNS", "ERROR", f"Missing value in column '{col}' at line: {line_num}")
+                    return False
+                value = row[col]
+                if not validate_column_value(col, value):
+                    log_message("VALIDATE_TSV_COLUMNS", "ERROR", f"Valeur invalide dans la colonne '{col}' à la ligne {line_num}: {value}")
+                    return False
+                
+        # Si tout est bon
+        log_message("VALIDATE_TSV_COLUMNS", "INFO", f"File '{file_path}' is valid.")
+        return True
+
+
+
+def validate_column_value(column_name, value):
+    """
+    Valide la valeur d'une colonne en fonction de conditions spécifiques.
+    """
+    # Conditions spécifiques pour certaines colonnes
+    if column_name == 'filename':
+        return value != ""
+    # elif column_name == 'checksum':
+    #     return value != ""
+    elif column_name == 'file_type':
+        allowed_file_types = ['SNV', 'CNV']
+        return value in allowed_file_types
+    elif column_name == 'date_of_birth':
+        try:
+            # Vérifier que la date est au format YYYY-MM-DD
+            # datetime.strptime(value, '%Y-%m-%d')
+            return True
+        except ValueError:
+            return False
+    elif column_name == 'assembly':
+        allowed_assemblies = ['GRCh37', 'GRCh38', 'T2T']
+        return value in allowed_assemblies
+    elif column_name == 'sample':
+        return value != ""
+    elif column_name == 'bam_path':
+        if value != "":
+            return True
+            # return os.path.exists(value)  # pb de path Windows/Linux
+        else:
+            return False
+    elif column_name == 'family_id':
+        return value != ""
+    elif column_name == 'person_id':
+        return value != ""
+    elif column_name == 'sample':
+        allowed_sex = ['female', 'male', 'unknown']
+        return value in allowed_sex
+    elif column_name == 'is_affected':
+        allowed_is_affected = ['0', '1']
+        return str(value) in allowed_is_affected
+    elif column_name == 'interpretation_title':
+        return value != ""
+    elif column_name == 'is_index':
+        allowed_is_index = ['0', '1']
+        return str(value) in allowed_is_index
+    elif column_name == 'project':
+        return value != ""
+    else:
+        return True  # Si aucune condition spécifique n'est définie, accepter par défaut
+    
+    
+    
+    
+    
+def parse_date(date_str):
+    """
+    Parses a date string in the format 'DD/MM/YYYY' and returns it in the format 'YYYY-MM-DD'.
+    
+    """
+    # Define the expected date format
+    date_format = '%d/%m/%Y'
+    try:
+        dob_obj = datetime.strptime(date_str, date_format)
+        # Convert the parsed date object to the desired output format
+        formatted_date = dob_obj.strftime("%Y-%m-%d")
+        return formatted_date
+    except ValueError:
+        return ""
+    
+
+def remove_empty_keys(d):
+    """
+    Supprime les clés avec des valeurs vides (None ou "") dans un dictionnaire.
+
+    Args:
+        d (dict): Le dictionnaire à nettoyer.
+
+    Returns:
+        dict: Le dictionnaire nettoyé.
+    """    
+    if not isinstance(d, dict):
+        return d  # Si ce n'est pas un dict, retourner la valeur telle quelle
+
+    cleaned_dict = {}
+    for k, v in d.items():
+        if isinstance(v, dict):
+            # Appliquer la fonction récursivement sur les sous-dictionnaires
+            nested_dict = remove_empty_keys(v)
+            if nested_dict:  # Ajouter le sous-dictionnaire seulement s'il n'est pas vide
+                cleaned_dict[k] = nested_dict
+        elif v not in [None, ""]:  # Filtrer les valeurs vides
+            cleaned_dict[k] = v
+    return cleaned_dict
+
+
+
+def write_JSON_file(data_dict, key_name, output_file, encoding='utf-8'):
+    """
+    Writes the values of a dictionary to a JSON file under a specified key.
+    
+    """
+    # Fonction pour écrire le dictionnaire de données dans un fichier JSON
+    with open(output_file, 'w', encoding=encoding) as f:
+        json.dump({key_name: list(data_dict.values())}, f, ensure_ascii=False, indent=4)
+    log_message("WRITE_JSON_FILE", "SUCCESS", f"Write file: {output_file}")
+    
+    
+    
+def md5(filepath):
+    """
+    Computes the MD5 hash of a file.
+    
+    """    
+    hash_md5 = hashlib.md5()
+    try:
+        with open(filepath, 'rb') as f:
+            for chunk in iter(lambda: f.read(8192), b""):
+                hash_md5.update(chunk)
+        return hash_md5.hexdigest()
+    except FileNotFoundError:
+        error_msg = f"File not found: {filepath}"
+        log_message("MD5_HASH", "ERROR", error_msg)
+        raise
+    except IOError as e:
+        error_msg = f"IO error while reading {filepath}: {e}"
+        log_message("MD5_HASH", "ERROR", error_msg)
+        raise
+    except Exception as e:
+        error_msg = f"Unexpected error while computing MD5 for {filepath}: {e}"
+        log_message("MD5_HASH", "ERROR", error_msg)
+        raise
+    
+    # log_message("MD5_HASH", "ERROR", error_msg)
+    # raise
+    # return {"error": error_msg}

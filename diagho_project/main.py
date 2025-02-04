@@ -23,7 +23,7 @@ def run_create_inputs(input_file, output_file):
     """
     Céation du JSON à partir du TSV.
     """
-    # create_inputs(input_file, output_file)
+    create_json_files(input_file, output_file)
     
     print(f"Création du fichier JSON '{output_file}' à partir de '{input_file}'")
 
