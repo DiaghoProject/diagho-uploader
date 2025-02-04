@@ -81,7 +81,6 @@ def create_json_files(input_file, output_file, output_prefix="tmp"):
         if not os.path.exists(input_file):
             log_message("CREATE_JSON", "ERROR", f"File not found: {input_file}")
             raise FileNotFoundError(f"File not found: {input_file}.")
-    
         # Si le fichier existe : oncontinue les traitements
     
         # Créer le JSON simple
@@ -94,18 +93,30 @@ def create_json_files(input_file, output_file, output_prefix="tmp"):
         
         
         # Créer les 3 fichiers JSON
+        
+        # Familles
         try:
             diagho_create_json_families(output_json_simple, output_file_families)
         except Exception as e:
             log_message("CREATE_JSON", "ERROR", f"Erreur détectée dans 'diagho_create_json_families': {e}.")
             exit(1)
-            
+        
+        # Biofiles
         try:
             diagho_create_json_biofiles(output_json_simple, output_file_biofiles, path_biofiles)
         except Exception as e:
             log_message("CREATE_JSON", "ERROR", f"Erreur détectée dans 'diagho_create_json_biofiles': {e}.")
             exit(1)
-        # diagho_create_json_interpretations(output_json_simple, output_file_interpretations, path_biofiles)
+            
+        # Interpretations
+        try:
+            diagho_create_json_interpretations(output_json_simple, output_file_interpretations, path_biofiles)
+        except Exception as e:
+            log_message("CREATE_JSON", "ERROR", f"Erreur détectée dans 'diagho_create_json_interpretations': {e}.")
+            exit(1)
+        
+        # Combine the 3 JSON files
+        combine_json_files(output_file_families, output_file_biofiles, output_file_interpretations, output_file)
     
     except FileNotFoundError:
         log_message("CREATE_JSON", "ERROR", f"File not found: {input_file}. Exit.")
@@ -115,8 +126,7 @@ def create_json_files(input_file, output_file, output_prefix="tmp"):
         
 
     
-    # # Combine the 3 JSON files
-    # combine_json_files(output_file_families, output_file_biofiles, output_file_interpretations, output_file)
+    
 
     # # Remove tmp JSON files
     # print(f"\nRemove tmp JSON files" )
@@ -175,7 +185,8 @@ def diagho_create_json_families(input_file, output_file):
     """
     Crée un fichier JSON contenant les informations sur les familles.
 
-    """    
+    """
+    log_message("JSON_FAMILIES", "INFO", "---------- Start create JSON file for FAMILIES.")
     # Charger les données à partir du fichier JSON d'entrée
     with open(input_file, 'r', encoding='utf-8') as f:
         data = json.load(f)
@@ -247,7 +258,8 @@ def diagho_create_json_biofiles(input_file, output_file, biofiles_directory=None
     """
     Crée un fichier JSON contenant les informations sur les fichiers Biofiles et les échantillons associés.
 
-    """    
+    """
+    log_message("JSON_BIOFILES", "INFO", "---------- Start create JSON file for BIOFILES.")
     # Charger les données d'entrée depuis le fichier JSON
     with open(input_file, 'r', encoding='utf-8') as f:
         data = json.load(f)
@@ -268,20 +280,7 @@ def diagho_create_json_biofiles(input_file, output_file, biofiles_directory=None
         
         
         # Récupère le checksum du fichier d'entrée ou le calcule si non renseigné et si le dossier des biofiles est fourni
-        checksum = sample_data.get('checksum', None)
-        if not checksum and biofiles_directory:
-            log_message("JSON_BIOFILES", "WARNING", f"Sample: {sample_id} - Checksum not found for file: {filename}")
-            log_message("JSON_BIOFILES", "WARNING", f"Sample: {sample_id} - Calculate MD5 for file: {filename}")
-            try: 
-                checksum = md5(os.path.join(biofiles_directory, sample_data.get('filename')))
-            except Exception as e:
-                log_message("JSON_BIOFILES", "ERROR", f"{e}. Exit.")
-                return
-        elif not checksum and not biofiles_directory:
-            log_message("JSON_BIOFILES", "WARNING", f"Sample: {sample_id} - Checksum not found for file: {filename}")
-            log_message("JSON_BIOFILES", "ERROR", f"Sample: {sample_id} - Can't calculate MD5 for file: {filename}. Exit.")
-            raise ValueError(f"Can't calculate MD5 for file: {filename}. Exit.")
-            
+        checksum = get_or_compute_checksum(sample_data, sample_id, biofiles_directory)
         
         log_message("JSON_BIOFILES", "INFO", f"Sample: {sample_id} - Filename: {filename} - Checksum: {checksum}")
 
@@ -319,7 +318,8 @@ def diagho_create_json_interpretations(input_file, output_file, biofiles_directo
     - output_file: chemin du fichier JSON de sortie à générer
     - vcfs_directory: répertoire où se trouvent les fichiers VCF
 
-    """    
+    """
+    log_message("JSON_INTERPRETATIONS", "INFO", "---------- Start create JSON file for INTERPRETATIONS.") 
     # Charger les données d'entrée depuis le fichier JSON
     with open(input_file, 'r') as f:
         data = json.load(f)
@@ -347,7 +347,8 @@ def diagho_create_json_interpretations(input_file, output_file, biofiles_directo
         data_title = sample_data.get('data_title', '')
         
         # Récupère le checksum du fichier d'entrée ou le calcul si non renseigné
-        checksum = sample_data.get('checksum') or md5(os.path.join(biofiles_directory, sample_data.get('filename')))
+        # checksum = sample_data.get('checksum') or md5(os.path.join(biofiles_directory, sample_data.get('filename')))
+        checksum = get_or_compute_checksum(sample_data, sample_id, biofiles_directory)
 
         # Crée le dictionnaire des interprétations
         interpretation = {
@@ -367,7 +368,10 @@ def diagho_create_json_interpretations(input_file, output_file, biofiles_directo
         if interpretation_title not in dict_interpretations:
             dict_interpretations[interpretation_title] = interpretation
             dict_interpretations[interpretation_title]["datas_tuples"] = [v_data_tuple]
+            
+            log_message("JSON_INTERPRETATIONS", "INFO", f"New interpretation {interpretation_title}, with sample: {sample_id}")
         else:
+            log_message("JSON_INTERPRETATIONS", "INFO", f"Existing interpretation {interpretation_title}, with sample: {sample_id}")
             # Mets à jour les informations ou échoue en cas d'incohérences
             for key, value in dict_interpretations[interpretation_title].items():
                 if key == "datas_tuples":
@@ -389,6 +393,8 @@ def diagho_create_json_interpretations(input_file, output_file, biofiles_directo
     for interpretation in dict_interpretations.values():
         # Vérifie qu'il y a bien un cas index
         if not interpretation["indexCase"]:
+            error_message = str(f"No Index case specified for :", interpretation["title"])
+            log_message("JSON_INTERPRETATIONS", "ERROR", error_message)
             raise ValueError(f"No Index case specified for", interpretation["title"])
 
         datas_dict = {}
@@ -396,19 +402,21 @@ def diagho_create_json_interpretations(input_file, output_file, biofiles_directo
         # Créer les objets sample
         for title, file_type, sample in interpretation["datas_tuples"]:
             composite_key = (title, file_type)
+            
+            # Charger les colonnes à exclure à partir d'un json à part
+            config_exclude_columns = load_file("diagho_create_inputs/config_interpretations.json")
+            exclude_columns = config_exclude_columns.get("excludeColumns", [])
 
             if composite_key not in datas_dict:
                 datas_dict[composite_key] = {
                     "title": title,
                     "type": file_type,
                     "samples": [],
-                    "excludeColumns" : [
-                        "ad_allele_1", "ad_allele_2", "gt_allele_1", "gt_allele_2", "name", "gt_phased", "OLD_MULTIALLELIC", "OLD_VARIANT", "columns", "AC", "ADJAF", "AF", "AN", "AQ", "BaseQRankSum", "BIAS", "CALLER", "CIGAR", "CIPOS", "DB", "DP", "DUPRATE", "ExcessHet", "FS", "HIAF", "HICNT", "HICOV", "HOMLEN", "HOMSEQ", "LSEQ", "MLEAC", "MLEAF", "MQ", "MQRankSum", "MSI", "MSILEN", "NM", "ODDRATIO", "OLD_CLUMPED", "PMEAN", "PSTD", "QD", "QSTD", "QUAL", "ReadPosRankSum", "REFBIAS", "RSEQ", "SAMPLE", "SBF", "SHIFT3", "SN", "SOR", "SPANPAIR", "SPLITREAD", "SVLEN", "VARBIAS", "VD"
-                        ],
+                    "excludeColumns" : exclude_columns,
                     "pretags": []
                 }
                 
-            # Ajout des pretags en fonction du projet
+            # Ajout des pretags en fonction du projet --> enlever depuis màj diagho
             # set_pretags_by_project(interpretation, datas_dict, composite_key)
             
             datas_dict[composite_key]["samples"].append(sample)
@@ -416,17 +424,34 @@ def diagho_create_json_interpretations(input_file, output_file, biofiles_directo
         del interpretation["datas_tuples"]
         interpretation["datas"] = list(datas_dict.values())
         
-        
-        #########################################################################
         # Supprimer 'pretags' si aucun pretag
         for data in interpretation["datas"]:
             if "pretags" in data:
                 if all(not tag.get("tag") and not tag.get("filter") for tag in data["pretags"]):
                     del data["pretags"]
-        #########################################################################
-
-
+    
     # Écrire le résultat dans un fichier JSON de sortie
     dict_interpretations = remove_empty_keys(dict_interpretations)    
     write_JSON_file(dict_interpretations, "interpretations", output_file)
 
+
+
+
+def combine_json_files(file_families, file_vcfs, file_interpretations, output_file):
+
+    # Lire le contenu des trois fichiers JSON
+    with open(file_families, 'r') as f1:
+        data1 = json.load(f1)
+    with open(file_vcfs, 'r') as f2:
+        data2 = json.load(f2)
+    with open(file_interpretations, 'r') as f3:
+        data3 = json.load(f3)
+
+    # Combiner les données des trois fichiers en un seul dictionnaire
+    combined_data = {**data1, **data2, **data3}
+
+    ## Ecrire le JSON
+    combined_data = remove_empty_keys(combined_data)
+    with open(output_file,'w', encoding='utf-8') as formatted_file:
+        json.dump(combined_data, formatted_file, ensure_ascii=False, indent=4)
+    log_message("COMBINE_JSON_FILES", "SUCCESS", f"Write combined file: {output_file}")

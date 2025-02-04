@@ -3,6 +3,7 @@ import datetime
 import hashlib
 import json
 import logging
+import os
 import pandas as pd
 from datetime import datetime
 
@@ -242,7 +243,44 @@ def md5(filepath):
         error_msg = f"Unexpected error while computing MD5 for {filepath}: {e}"
         log_message("MD5_HASH", "ERROR", error_msg)
         raise
+
+
+def get_or_compute_checksum(sample_data, sample_id, biofiles_directory=None):
+    """
+    Récupère le checksum d'un fichier depuis `sample_data` ou le calcule si nécessaire.
     
-    # log_message("MD5_HASH", "ERROR", error_msg)
-    # raise
-    # return {"error": error_msg}
+    """
+    checksum = sample_data.get("checksum")
+
+    if not checksum:
+        filename = sample_data.get("filename")
+        log_message("CHECKSUM", "WARNING", f"Sample: {sample_id} - Checksum not found for file: {filename}")
+
+        if biofiles_directory:
+            log_message("CHECKSUM", "WARNING", f"Sample: {sample_id} - Calculating MD5 for file: {filename}")
+            try:
+                file_path = os.path.join(biofiles_directory, filename)
+                checksum = md5(file_path)
+            except Exception as e:
+                log_message("CHECKSUM", "ERROR", f"{e}. Exit.")
+                return None
+        else:
+            log_message("CHECKSUM", "ERROR", f"Sample: {sample_id} - Can't calculate MD5 for file: {filename}. Exit.")
+            raise ValueError(f"Can't calculate MD5 for file: {filename}. Exit.")
+
+    return checksum
+
+
+
+# Charger un fichier json
+def load_file(file):
+    """Charge la configuration depuis un fichier JSON."""
+    try: 
+        if not os.path.exists(file):
+            raise FileNotFoundError(f"File not found: {file}.")
+        log_message("LOAD_FILE", "INFO", f"Import 'excludeColumns' from file: {file}")
+        with open(file, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        log_message("LOAD_FILE", "WARNING", f"File not found: {file}.")
+        return ""
