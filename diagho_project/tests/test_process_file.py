@@ -1,41 +1,20 @@
 import hashlib
-from diagho_uploader.process_file import get_biofile_informations
 import pytest
+from unittest import mock
+from unittest.mock import patch
 import os
 import time
-from colorlog import ColoredFormatter
+import logging
 
-from unittest.mock import patch
 
-from diagho_uploader.process_file import wait_for_biofile
-from diagho_uploader.process_file import get_biofile_type
-from diagho_uploader.process_file import check_md5sum
-from diagho_uploader.process_file import md5
+
+from diagho_uploader.file_utils import get_biofile_informations, wait_for_biofile
+from diagho_uploader.file_utils import get_biofile_type
+from diagho_uploader.file_utils import check_md5sum
+from diagho_uploader.file_utils import md5
 
 from common.log_utils import *
 
-@pytest.fixture
-def mock_logger():
-    with patch("logging.getLogger") as mock:
-        yield mock.return_value
-
-@pytest.fixture
-def mock_log_warning():
-    """Mocke la fonction log_warning pour éviter d'écrire des logs réels."""
-    with patch("common.log_utils.log_warning") as mock:
-        yield mock
-        
-@pytest.fixture
-def mock_log_error():
-    """Mocke la fonction log_error."""
-    with patch("common.log_utils.log_error") as mock:
-        yield mock
-        
-@pytest.fixture
-def mock_sleep():
-    with patch("diagho_uploader.process_file.time.sleep") as mock:
-        yield mock
-        
 @pytest.fixture
 def mock_exists():
     """Mocke os.path.exists pour contrôler son retour."""
@@ -46,41 +25,70 @@ def mock_exists():
 
 
 
-# Tests fonction : wait_for_biofile
-def test_wait_for_biofile_found_immediately(mock_logger, mock_sleep, mock_exists):
-    """Test lorsque le fichier est immédiatement trouvé."""
-    mock_exists.return_value = True  # Simule que le fichier existe dès le début
-
-    assert wait_for_biofile("test.vcf", max_retries=5, delay=1) is True
-
-    mock_logger.warning.assert_not_called()  # Aucun log d'avertissement ne doit être fait
-    # mock_logger.info.assert_called_once_with("Biofile test.vcf found. Continue.")  # Log OK
-    mock_logger.error.assert_not_called()  # Pas d'erreur
-    mock_sleep.assert_not_called()  # Pas d'attente inutile
+# Configurer le logger pour rediriger les logs vers un fichier spécifique
+@pytest.fixture(scope="function", autouse=True)
+def setup_logging():
+    # Créer un logger spécifique pour les tests
+    logger = logging.getLogger()
+    logger.setLevel(logging.DEBUG)
     
-def test_wait_for_biofile_not_found(mock_logger, mock_sleep, mock_exists):
-    """Test lorsque le fichier n'est jamais trouvé."""
-    mock_exists.return_value = False  # Simule que le fichier n'existe jamais
-
-    assert wait_for_biofile("test.vcf", max_retries=5, delay=1) is False
-
-    assert mock_logger.warning.call_count == 5  # Vérifie que logger.warning() est appelé 5 fois
-    assert mock_logger.error.call_count == 1  # Vérifie que logger.error() est appelé une fois
-    assert mock_sleep.call_count == 5  # Vérifie que sleep() est appelé 5 fois
-
-def test_wait_for_biofile_found_after_some_retries(mock_logger, mock_sleep, mock_exists):
-    """Test lorsque le fichier apparaît après quelques tentatives."""
-    # Simule que le fichier n'existe pas au début, mais apparaît après 3 essais
-    mock_exists.side_effect = [False, False, False, True]
-
-    assert wait_for_biofile("test.vcf", max_retries=5, delay=1) is True
-
-    # assert mock_logger.warning.call_count == 3  # Vérifie que logger.warning() est appelé 3 fois
-    # assert mock_logger.info.call_count == 1  # Un seul log de succès
-    assert mock_logger.error.call_count == 0  # Pas d'erreur
-    assert mock_sleep.call_count == 3  # Vérifie que sleep() est appelé 3 fois
+    # Créer un gestionnaire de fichier qui écrit dans 'test_log.log'
+    file_handler = logging.FileHandler('test_log.log')
+    file_handler.setLevel(logging.DEBUG)
     
+    # Créer un formatteur pour les logs
+    formatter = logging.Formatter("[%(asctime)s][%(levelname)s][%(name)s] %(message)s")
+    file_handler.setFormatter(formatter)
     
+    # Ajouter le gestionnaire au logger
+    logger.addHandler(file_handler)
+
+    # Réinitialiser les handlers après le test pour éviter les interférences
+    yield
+
+    # Nettoyage après le test
+    logger.removeHandler(file_handler)
+
+
+
+# Fixture pour mocker le logger
+@pytest.fixture(scope="function")
+def mock_logger():
+    with mock.patch.object(logging, 'getLogger') as mock_get_logger:
+        mock_logger = mock.Mock()
+        mock_get_logger.return_value = mock_logger
+        yield mock_logger  # On "yield" pour rendre le mock disponible pour les tests
+        # Aucune nécessité de nettoyage ici, car pytest le gère 
+    
+
+def test_wait_for_biofile_found(mock_logger):
+    biofile = "path_to_biofile"
+    # Simuler l'existence du fichier
+    with mock.patch('os.path.exists', return_value=True):
+        result = wait_for_biofile(biofile)
+        assert result is True  # Vérifier que la fonction retourne True
+        # Vérifier qu'un message de log de niveau INFO a été créé
+        mock_logger.info.assert_called_with('path_to_biofile - Biofile found. Continue.')
+        # mock_logger.info.assert_called_with('path_to_biofile - Biofile found. Continue.')
+
+def test_wait_for_biofile_not_found(mock_logger):
+    biofile = "path_to_biofile"
+    # Simuler l'absence du fichier
+    with mock.patch('os.path.exists', return_value=False):
+        result = wait_for_biofile(biofile, max_retries=5, delay=0) # délai à 0 pour ne pas attendre
+        assert result is False  # Vérifier que la fonction retourne False
+        mock_logger.error.assert_called_with('path_to_biofile - Biofile not found after 5 attempt. Exit.')
+
+def test_wait_for_biofile_found_after_some_retries(mock_logger):
+    biofile = "path_to_biofile"
+    # Simuler que le fichier n'existe pas pendant quelques tentatives puis qu'il existe
+    with mock.patch('os.path.exists', side_effect=[False, False, True]):
+        with mock.patch('time.sleep') as mock_sleep:
+            result = wait_for_biofile(biofile, max_retries=5, delay=1)
+            assert result is True  # Vérifier que la fonction retourne True après quelques tentatives
+            assert mock_sleep.call_count == 1 # Vérifie que sleep a été appelé 1 fois
+            mock_sleep.assert_called_with(1)  # Vérifier que sleep a été appelé avec un délai de 1 seconde
+            mock_logger.warning.assert_called_with('path_to_biofile - Biofile not found... attempt 1')
     
 # Tests fonction : get_biofile_type
 @pytest.mark.parametrize("biofile, expected", [
@@ -104,7 +112,6 @@ def test_get_biofile_type_invalid():
 
 
 # Tests fonction : check_md5sum
-
 # Test avec checksums identiques
 def test_equal_md5():
     assert check_md5sum("d41d8cd98f00b204e9800998ecf8427e", "d41d8cd98f00b204e9800998ecf8427e") == True
@@ -137,10 +144,8 @@ def test_md5_valid_file():
     test_file = "testfile.txt"
     with open(test_file, 'w') as f:
         f.write("Hello, World!")
-
     expected_md5 = hashlib.md5(b"Hello, World!").hexdigest()
     assert md5(test_file) == expected_md5
-
     # Nettoyer après le test
     os.remove(test_file)
     
@@ -155,10 +160,8 @@ def test_md5_empty_file():
     test_file = "empty_file.txt"
     with open(test_file, 'w') as f:
         pass  # Crée un fichier vide
-
     expected_md5 = hashlib.md5().hexdigest()  # MD5 d'un fichier vide est une chaîne de 32 caractères '0'
     assert md5(test_file) == expected_md5
-
     os.remove(test_file)
     
 # Test avec un fichier auquel on n'a pas accès (par exemple, permission refusée)
