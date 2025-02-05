@@ -9,6 +9,36 @@ import tempfile
 
 from diagho_uploader.file_watcher import *
 
+
+
+# Configurer le logger pour rediriger les logs vers un fichier spécifique
+@pytest.fixture(scope="function", autouse=True)
+def setup_logging():
+    # Créer un logger spécifique pour les tests
+    logger = logging.getLogger()
+    logger.setLevel(logging.DEBUG)
+    
+    # Créer un gestionnaire de fichier qui écrit dans 'test_log.log'
+    file_handler = logging.FileHandler('test_log.log')
+    file_handler.setLevel(logging.DEBUG)
+    
+    # Créer un formatteur pour les logs
+    formatter = logging.Formatter("[%(asctime)s][%(levelname)s][%(name)s] %(message)s")
+    file_handler.setFormatter(formatter)
+    
+    # Ajouter le gestionnaire au logger
+    logger.addHandler(file_handler)
+
+    # Réinitialiser les handlers après le test pour éviter les interférences
+    yield
+
+    # Nettoyage après le test
+    logger.removeHandler(file_handler)
+
+
+
+
+
 # Test de la fonction list_files
 def test_list_files():
     with tempfile.TemporaryDirectory() as tmpdir:
