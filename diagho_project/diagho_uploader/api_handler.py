@@ -22,6 +22,7 @@ def api_healthcheck(diagho_api, exit_on_error=False):
     """
     Tests the health of the API by performing a GET request to the healthcheck endpoint.
     """
+    function_name = inspect.currentframe().f_code.co_name
     url = diagho_api['healthcheck']
     
     try:
@@ -32,7 +33,7 @@ def api_healthcheck(diagho_api, exit_on_error=False):
         error_message = f"HTTP Error: {http_err}"
     except requests.exceptions.RequestException as req_err:
         error_message = f"Request Error: {req_err}"
-    log_message("API_HEALTHCHECK", "ERROR", error_message)
+    log_message(function_name, "ERROR", error_message)
     raise ValueError(error_message)
 
 
@@ -40,11 +41,13 @@ def validate_credentials(config):
     """
     Validates the login credentials in the configuration file.
     """
+    function_name = inspect.currentframe().f_code.co_name
+    
     username = config.get('diagho_api', {}).get('username', None)
     password = config.get('diagho_api', {}).get('password', None)
 
     if not username or not password:
-        log_message("API_CREDENTIALS", "ERROR", f"Username or password is missing.")
+        log_message(function_name, "ERROR", f"Username or password is missing.")
         raise ValueError("Username or password is missing")
     return username, password
 
@@ -53,22 +56,24 @@ def store_tokens(tokens, filename='tokens.json'):
     """
     Store tokens in JSON file.
     """
+    function_name = inspect.currentframe().f_code.co_name
     if not isinstance(tokens, dict):
         return {"error": "'tokens' must be a dictionary"}
     try:
         with open(filename, 'w') as file:
             json.dump(tokens, file, indent=4)
-        log_message("API_STORE_TOKEN", "SUCCESS", "Store access token.")
+        log_message(function_name, "SUCCESS", "Store access token.")
     except Exception as e:
-        return log_message("API_STORE_TOKEN", "ERROR", f"{str(e)}")
+        return log_message(function_name, "ERROR", f"{str(e)}")
 
 
 def get_access_token(filename='tokens.json'):
     """
     Get access token from file or re-authent.
     """
+    function_name = inspect.currentframe().f_code.co_name
     if not os.path.isfile(filename):
-        log_message("API_GET_ACCESS_TOKEN", "WARNING", "Token not found.")
+        log_message(function_name, "WARNING", "Token not found.")
         return {"error": "'access' token not found"}    
     try:
         with open(filename, 'r') as file:
@@ -77,12 +82,13 @@ def get_access_token(filename='tokens.json'):
             return {"error": "'access' token not found in file"}
         return tokens['access']
     except Exception as e:
-        return log_message("API_GET_TOKEN", "ERROR", f"{str(e)}")
+        return log_message(function_name, "ERROR", f"{str(e)}")
 
 def api_login(config, diagho_api):
     """
     Handles the login process to the Diagho API.
     """
+    function_name = inspect.currentframe().f_code.co_name
     # Validate credentials
     username, password = validate_credentials(config)
         
@@ -101,10 +107,10 @@ def api_login(config, diagho_api):
         # Access_token found
         # Check if the user is already logged in
         if api_get_connected_user(**kwargs):
-            log_message("API_LOGIN", "INFO", f"User '{username}' already connected.")
+            log_message(function_name, "INFO", f"User '{username}' already connected.")
             return {"status": "User already connected"}
         # Otherwise, attempt to log in
-        log_message("API_LOGIN", "INFO", f"Attempting login for user '{username}'.")
+        log_message(function_name, "INFO", f"Attempting login for user '{username}'.")
         return api_post_login(**kwargs)
 
     
@@ -112,6 +118,8 @@ def api_get_connected_user(**kwargs):
     """
     Check if user is already connected. 
     """
+    function_name = inspect.currentframe().f_code.co_name
+    
     config = kwargs.get("config")
     access_token = kwargs.get("access_token")
     diagho_api = kwargs.get("diagho_api")
@@ -130,17 +138,19 @@ def api_get_connected_user(**kwargs):
         else:
             return False
     except requests.exceptions.RequestException as e:
-        return log_message("API_GET_CONNECTED_USER", "ERROR", f"{str(e)}")
+        return log_message(function_name, "ERROR", f"{str(e)}")
     except json.JSONDecodeError:
-        return log_message("API_GET_CONNECTED_USER", "ERROR", f"API response invalid")
+        return log_message(function_name, "ERROR", f"API response invalid")
     except Exception as e:
-        return log_message("API_GET_CONNECTED_USER", "ERROR", f"{str(e)}")
+        return log_message(function_name, "ERROR", f"{str(e)}")
 
 # Post login to API
 def api_post_login(**kwargs):
     """
     Envoie une requête POST pour se connecter à l'API et stocke la réponse contenant les tokens.
-    """ 
+    """
+    function_name = inspect.currentframe().f_code.co_name
+    
     config = kwargs.get("config")
     diagho_api = kwargs.get("diagho_api")
     
@@ -159,17 +169,17 @@ def api_post_login(**kwargs):
             response.raise_for_status()
             response_json = response.json()
             store_tokens(response_json)
-            log_message("API_POST_LOGIN", "SUCCESS", f"Authentification successful for: {username}")
+            log_message(function_name, "SUCCESS", f"Authentification successful for: {username}")
             return response_json  # Authent OK
         except requests.exceptions.RequestException as e:
-            log_message("API_POST_LOGIN", "WARNING", f"Attempt {attempt}/{max_attempts} failed: {str(e)}")
+            log_message(function_name, "WARNING", f"Attempt {attempt}/{max_attempts} failed: {str(e)}")
             if attempt < max_attempts:
                 time.sleep(5)  # Attente avant la prochaine tentative
             else:
-                log_message("API_POST_LOGIN", "ERROR", "Max login attempts reached.")
+                log_message(function_name, "ERROR", "Max login attempts reached.")
                 return {"error": f"Authentication failed after {max_attempts} attempts"}
         except Exception as e:
-            return log_message("API_POST_LOGIN", "ERROR", f"{str(e)}")        
+            return log_message(function_name, "ERROR", f"{str(e)}")        
 
 
 
@@ -177,7 +187,9 @@ def api_post_biofile(**kwargs):
     """
     Requête POST pour uploader un biofile s'il n'existe pas déjà.
     Retourne son checksum.
-    """ 
+    """
+    function_name = inspect.currentframe().f_code.co_name
+    
     settings = kwargs.get("settings")
     diagho_api = kwargs.get("diagho_api")
     biofile = kwargs.get("biofile")
@@ -205,7 +217,7 @@ def api_post_biofile(**kwargs):
     # Validation du biofile
     filename = os.path.basename(biofile)
     if not os.path.isfile(biofile):
-        log_message("API_POST_BIOFILE", "ERROR", f"{filename} - Biofile not found: {biofile}")
+        log_message(function_name, "ERROR", f"{filename} - Biofile not found: {biofile}")
         return {"error": "Biofile not found"}
     
     # Get access token
@@ -216,24 +228,24 @@ def api_post_biofile(**kwargs):
     # Handle biofile type and parameter (assembly name or accession_id)
     data = handle_biofile_type(biofile_type, assembly, accession_id)
     if not data:
-        log_message("API_POST_BIOFILE", "ERROR", f"{filename} - Invalid biofile_type.")
+        log_message(function_name, "ERROR", f"{filename} - Invalid biofile_type.")
         return {"error": "Unknown Biofile type"}
     
     # Check if biofile already exists
     url_get_biofile = diagho_api['get_biofile']
     url_with_params = f"{url_get_biofile}/?checksum={checksum}"
-    log_message("API_POST_BIOFILE", "INFO", f"{filename} - Test if Biofile is already uploaded.")
+    log_message(function_name, "INFO", f"{filename} - Test if Biofile is already uploaded.")
     
     try:
         response = requests.get(url_with_params, headers=headers, verify=False)
         response.raise_for_status()
         biofile_exist = response.json().get('count')
         if biofile_exist > 0:
-            log_message("API_POST_BIOFILE", "INFO", f"{filename} - Biofile already uploaded.")
+            log_message(function_name, "INFO", f"{filename} - Biofile already uploaded.")
             # On retourne le checksum
             return {"checksum": checksum}
     except requests.exceptions.RequestException as e:
-        log_message("API_POST_BIOFILE", "ERROR", f"{filename} - Error checking biofile existence: {str(e)}")
+        log_message(function_name, "ERROR", f"{filename} - Error checking biofile existence: {str(e)}")
         return {"error": str(e)}
     
     # Upload biofile if not already uploaded
@@ -246,13 +258,13 @@ def api_post_biofile(**kwargs):
         if isinstance(response_json, dict):
             # On récupère le checksum du biofile posté
             checksum = response_json.get('checksum')
-            log_message("API_POST_BIOFILE", "INFO", f"{filename} - POST Biofile completed. Checksum: {checksum}")
+            log_message(function_name, "INFO", f"{filename} - POST Biofile completed. Checksum: {checksum}")
             # On retourne le checksum
             return {"checksum": checksum}
-        log_message("API_POST_BIOFILE", "ERROR", f"{filename} - Error with POST biofile response.")
+        log_message(function_name, "ERROR", f"{filename} - Error with POST biofile response.")
         return {"error": "Error with POST biofile response."}
     except (requests.exceptions.RequestException, ValueError) as e:
-        log_message("API_POST_BIOFILE", "ERROR", f"{filename} - Error uploading biofile: {str(e)}")
+        log_message(function_name, "ERROR", f"{filename} - Error uploading biofile: {str(e)}")
         return {"error": f"Error uploading biofile: {str(e)}"}
     
     
@@ -260,6 +272,8 @@ def api_get_loadingstatus(**kwargs):
     """
     GET pour obtenir le loading_status du fichier (checksum).
     """
+    function_name = inspect.currentframe().f_code.co_name
+    
     diagho_api = kwargs.get("diagho_api")
     checksum = kwargs.get("checksum")
     
@@ -289,13 +303,13 @@ def api_get_loadingstatus(**kwargs):
         return {"loading": loading}
 
     except requests.exceptions.RequestException as e:
-        log_message("API_GET_LOADING_STATUS", "ERROR", f"{str(e)}")
+        log_message(function_name, "ERROR", f"{str(e)}")
         return {"error": str(e)}
     except ValueError:
-        log_message("API_GET_LOADING_STATUS", "ERROR", "Response is not in JSON format")
+        log_message(function_name, "ERROR", "Response is not in JSON format")
         return {"error": "Response is not in JSON format"}
     except Exception as e:
-        log_message("API_GET_LOADING_STATUS", "ERROR", f"{str(e)}")
+        log_message(function_name, "ERROR", f"{str(e)}")
         return {"error": str(e)}
 
 
@@ -303,6 +317,8 @@ def api_post_config(**kwargs):
     """
     Requête POST pour uploader un fichier de configuration JSON.
     """
+    function_name = inspect.currentframe().f_code.co_name
+    
     diagho_api = kwargs.get("diagho_api")
     file = kwargs.get("file")
     
@@ -318,7 +334,7 @@ def api_post_config(**kwargs):
         with open(file, 'r') as json_file:
             json_data = json.load(json_file)
     except json.JSONDecodeError:
-        log_message("POST_JSON", "ERROR", f"Config file '{file}' is not valid JSON")
+        log_message(function_name, "ERROR", f"Config file '{file}' is not valid JSON")
         return {"error": f"Config file '{file}' is not valid JSON"}
     
     # POST config
@@ -326,8 +342,8 @@ def api_post_config(**kwargs):
         url = diagho_api['post_config']
         response = requests.post(url, headers=headers, json=json_data, verify=False)
         response.raise_for_status()
-        log_message("POST_JSON", "INFO", f"JSON file '{file}' posted successfully.")
+        log_message(function_name, "INFO", f"JSON file '{file}' posted successfully.")
         return response
     except requests.exceptions.RequestException as e:
-        log_message("POST_JSON", "ERROR", str(e))
+        log_message(function_name, "ERROR", str(e))
         return {"error": str(e)}

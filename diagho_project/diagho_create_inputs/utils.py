@@ -1,41 +1,17 @@
 import csv
 import datetime
 import hashlib
+import inspect
 import json
 import logging
 import os
 import pandas as pd
 from datetime import datetime
 
-from common.logger_config import logger2
+from common.logger_config import logger
+from common.log_utils import log_message
 
 
-# Fonction de log générique
-def log_message(logger_name, level, message):
-    """
-    Enregistre un message dans les logs à un niveau donné.
-
-    Args:
-        logger_name (str): Nom du logger.
-        level (str): Niveau du log (INFO, WARNING, ERROR, SUCCESS, etc.).
-        message (str): Message à enregistrer.
-    """
-    logger2 = logging.getLogger(logger_name)
-
-    # Log selon le niveau spécifié
-    if level.upper() == 'INFO':
-        logger2.info(message)
-    elif level.upper() == 'WARNING':
-        logger2.warning(message)
-    elif level.upper() == 'ERROR':
-        logger2.error(message)
-    elif level.upper() == 'SUCCESS':
-        logger2.success(message)
-    elif level.upper() == 'DEBUG':
-        logger2.debug(message)
-    else:
-        logger2.log(logging.DEBUG, message)  # Par défaut, on utilise DEBUG si niveau inconnu
-        
         
 def remove_trailing_empty_lines(file_path, encoding):
     """
@@ -55,6 +31,7 @@ def validate_tsv_headers(input_file, required_headers, encoding='latin1'):
     """
     Validate the headers of a TSV file to ensure it contains all required columns.
     """
+    function_name = inspect.currentframe().f_code.co_name
     # Read only the headers (first row) from the TSV file
     try:
         df = pd.read_csv(input_file, delimiter='\t', encoding=encoding, nrows=0)
@@ -67,17 +44,17 @@ def validate_tsv_headers(input_file, required_headers, encoding='latin1'):
         unexpected_headers = [header for header in tsv_headers if header not in required_headers]
         
         if missing_headers:
-            log_message("VALIDATE_TSV_HEADER", "ERROR", f"Error: Missing required columns: {missing_headers}")
+            log_message(function_name, "ERROR", f"Error: Missing required columns: {missing_headers}")
             return False
         if unexpected_headers:
-            log_message("VALIDATE_TSV_HEADER", "ERROR", f"Warning: Unexpected columns present: {unexpected_headers}")
+            log_message(function_name, "ERROR", f"Warning: Unexpected columns present: {unexpected_headers}")
             return False
         
         # Otherwise, return True indicating the headers are valid
         return True
     
     except Exception as e:
-        log_message("VALIDATE_TSV_HEADER", "ERROR", f"Error reading the file: {str(e)}")
+        log_message(function_name, "ERROR", f"Error reading the file: {str(e)}")
         return False
     
     
@@ -85,6 +62,7 @@ def validate_tsv_columns(file_path, required_headers):
     """
     Valide chaque colonne du fichier TSV selon des conditions spécifiques.
     """
+    function_name = inspect.currentframe().f_code.co_name
     with open(file_path, newline='', encoding='iso-8859-1') as tsvfile:
         reader = csv.DictReader(tsvfile, delimiter='\t')
         tsv_headers = reader.fieldnames
@@ -92,22 +70,22 @@ def validate_tsv_columns(file_path, required_headers):
         # Vérifier que toutes les colonnes requises sont présentes (normalement pas besoin si vérif du header avant)
         missing_columns = [col for col in required_headers if col not in tsv_headers]
         if missing_columns:
-            log_message("VALIDATE_TSV_COLUMNS", "ERROR", f"Missing columns: {missing_columns}")
+            log_message(function_name, "ERROR", f"Missing columns: {missing_columns}")
             return False
 
         # Valider chaque ligne du fichier
         for line_num, row in enumerate(reader, start=2):  # Démarre à 2 pour compter l'en-tête
             for col in required_headers:
                 if col not in row:
-                    log_message("VALIDATE_TSV_COLUMNS", "ERROR", f"Missing value in column '{col}' at line: {line_num}")
+                    log_message(function_name, "ERROR", f"Missing value in column '{col}' at line: {line_num}")
                     return False
                 value = row[col]
                 if not validate_column_value(col, value):
-                    log_message("VALIDATE_TSV_COLUMNS", "ERROR", f"Valeur invalide dans la colonne '{col}' à la ligne {line_num}: {value}")
+                    log_message(function_name, "ERROR", f"Valeur invalide dans la colonne '{col}' à la ligne {line_num}: {value}")
                     return False
                 
         # Si tout est bon
-        log_message("VALIDATE_TSV_COLUMNS", "INFO", f"File '{file_path}' is valid.")
+        log_message(function_name, "INFO", f"File '{file_path}' is valid.")
         return True
 
 
@@ -213,10 +191,11 @@ def write_JSON_file(data_dict, key_name, output_file, encoding='utf-8'):
     Writes the values of a dictionary to a JSON file under a specified key.
     
     """
+    function_name = inspect.currentframe().f_code.co_name
     # Fonction pour écrire le dictionnaire de données dans un fichier JSON
     with open(output_file, 'w', encoding=encoding) as f:
         json.dump({key_name: list(data_dict.values())}, f, ensure_ascii=False, indent=4)
-    log_message("WRITE_JSON_FILE", "SUCCESS", f"Write file: {output_file}")
+    log_message(function_name, "SUCCESS", f"Write file: {output_file}")
     
     
     
@@ -224,7 +203,8 @@ def md5(filepath):
     """
     Computes the MD5 hash of a file.
     
-    """    
+    """
+    function_name = inspect.currentframe().f_code.co_name
     hash_md5 = hashlib.md5()
     try:
         with open(filepath, 'rb') as f:
@@ -233,15 +213,15 @@ def md5(filepath):
         return hash_md5.hexdigest()
     except FileNotFoundError:
         error_msg = f"File not found: {filepath}"
-        log_message("MD5_HASH", "ERROR", error_msg)
+        log_message(function_name, "ERROR", error_msg)
         raise
     except IOError as e:
         error_msg = f"IO error while reading {filepath}: {e}"
-        log_message("MD5_HASH", "ERROR", error_msg)
+        log_message(function_name, "ERROR", error_msg)
         raise
     except Exception as e:
         error_msg = f"Unexpected error while computing MD5 for {filepath}: {e}"
-        log_message("MD5_HASH", "ERROR", error_msg)
+        log_message(function_name, "ERROR", error_msg)
         raise
 
 
@@ -250,37 +230,39 @@ def get_or_compute_checksum(sample_data, sample_id, biofiles_directory=None):
     Récupère le checksum d'un fichier depuis `sample_data` ou le calcule si nécessaire.
     
     """
+    function_name = inspect.currentframe().f_code.co_name
     checksum = sample_data.get("checksum")
 
     if not checksum:
         filename = sample_data.get("filename")
-        log_message("CHECKSUM", "WARNING", f"Sample: {sample_id} - Checksum not found for file: {filename}")
+        log_message(function_name, "WARNING", f"Sample: {sample_id} - Checksum not found for file: {filename}")
 
         if biofiles_directory:
-            log_message("CHECKSUM", "WARNING", f"Sample: {sample_id} - Calculating MD5 for file: {filename}")
+            log_message(function_name, "WARNING", f"Sample: {sample_id} - Calculating MD5 for file: {filename}")
             try:
                 file_path = os.path.join(biofiles_directory, filename)
                 checksum = md5(file_path)
             except Exception as e:
-                log_message("CHECKSUM", "ERROR", f"{e}. Exit.")
-                return None
+                log_message(function_name, "ERROR", f"{e}.")
+                raise
         else:
-            log_message("CHECKSUM", "ERROR", f"Sample: {sample_id} - Can't calculate MD5 for file: {filename}. Exit.")
-            raise ValueError(f"Can't calculate MD5 for file: {filename}. Exit.")
+            log_message(function_name, "ERROR", f"Sample: {sample_id} - Can't calculate MD5 for file: {filename}.")
+            raise ValueError(f"Can't calculate MD5 for file: {filename}.")
 
     return checksum
 
 
 
 # Charger un fichier json
-def load_file(file):
+def load_data_from_config_file(file):
     """Charge la configuration depuis un fichier JSON."""
+    function_name = inspect.currentframe().f_code.co_name
     try: 
         if not os.path.exists(file):
             raise FileNotFoundError(f"File not found: {file}.")
-        log_message("LOAD_FILE", "INFO", f"Import 'excludeColumns' from file: {file}")
+        log_message(function_name, "INFO", f"Import 'excludeColumns' from file: {os.path.abspath(file)}")
         with open(file, "r", encoding="utf-8") as f:
             return json.load(f)
     except FileNotFoundError:
-        log_message("LOAD_FILE", "WARNING", f"File not found: {file}.")
+        log_message(function_name, "WARNING", f"File not found: {file}.")
         return ""

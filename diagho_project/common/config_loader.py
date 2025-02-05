@@ -21,6 +21,9 @@ def load_configuration(config):
     Returns:
         dict: dictionnaire structuré
     """
+    function_name = inspect.currentframe().f_code.co_name
+    log_message(function_name, "INFO", f"Load config: {config}")
+    
     return {
         "recipients": config['emails']['recipients'],
         "path_biofiles": config['input_biofiles'],

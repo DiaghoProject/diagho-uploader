@@ -29,27 +29,30 @@ def list_files(directory):
 # Copy file
 def copy_file(file_path, target_directory):
     """Copier le fichier 'file_path' dans 'target_directory'."""
+    function_name = inspect.currentframe().f_code.co_name
     # if not os.path.exists(target_directory):
     #     os.makedirs(target_directory)
     Path(target_directory).mkdir(parents=True, exist_ok=True)
     shutil.copy(file_path, target_directory)
-    log_message("COPY_FILE", "INFO", f"Copy file: {file_path} to: {target_directory}")
+    log_message(function_name, "INFO", f"Copy file: {file_path} to: {target_directory}")
 
 # Remove file
 def remove_file(file_path):
     """Supprimer le fichier 'file_path'."""
+    function_name = inspect.currentframe().f_code.co_name
     try:
         os.remove(file_path)
-        log_message("REMOVE_FILE", "INFO", f"Remove file: {file_path}")
+        log_message(function_name, "INFO", f"Remove file: {file_path}")
     except Exception as e:
-        log_message("REMOVE_FILE", "ERROR", f"Failed to remove file: {file_path} - {e}")
+        log_message(function_name, "ERROR", f"Failed to remove file: {file_path} - {e}")
         return
 
 # Stop watcher
 def stop_watcher_on_flag(flag_file):
     """Arrêter proprement le watcher avec un fichier de flag."""
+    function_name = inspect.currentframe().f_code.co_name
     if os.path.exists(flag_file):
-        log_message("STOP_FILE_WATCHER", "WARNING", f"File '{flag_file}' has been found. Stop watcher.")
+        log_message(function_name, "WARNING", f"File '{flag_file}' has been found. Stop watcher.")
         # Renommer le fichier flag après l'arrêt (pour pouvoir relancer directement)
         os.rename(flag_file, 'start_watcher.flag')
         return True
@@ -58,7 +61,8 @@ def stop_watcher_on_flag(flag_file):
 # Stop watcher on signal
 def stop_watcher_on_signal(signum, frame):
     """Arrêter le watcher si kill du process."""
-    log_message("STOP_FILE_WATCHER", "WARNING", f"Signal {signum} received. Stop watcher.")
+    function_name = inspect.currentframe().f_code.co_name
+    log_message(function_name, "WARNING", f"Signal {signum} received. Stop watcher.")
     sys.exit(0)  # Sortie du programme
 
 

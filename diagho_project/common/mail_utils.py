@@ -1,3 +1,4 @@
+import inspect
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -17,6 +18,7 @@ def send_mail(recipients: str, subject: str, content: str, config='config/config
         subject (str): Subject of the email.
         content (str): Content of the email.
     """
+    function_name = inspect.currentframe().f_code.co_name
     
     # Lire la configuration dans fichier YAML
     with open(config, 'r') as file:
@@ -50,17 +52,21 @@ def send_mail(recipients: str, subject: str, content: str, config='config/config
             if use_tls:
                 server.starttls()
             server.sendmail(from_email, recipient_list, message.as_string())
-        log_message("EMAIL", "INFO", f"Email sent successfully to: {recipient_list}")
+        log_message(function_name, "INFO", f"Email sent successfully to: {recipient_list}")
     except Exception as e:
-        log_message("EMAIL", "ERROR", f": {str(e)}")
+        log_message(function_name, "ERROR", f": {str(e)}")
         
 
 # Ces deux fonctions pour spécifier l'objet du mail
 def send_mail_alert(recipients: str, content: str):
+    function_name = inspect.currentframe().f_code.co_name
+    log_message(function_name, "WARNING", f"Send alert.")
     subject = "[ALERT] Diagho-Uploader"
     send_mail(recipients, subject, content)
 
     
 def send_mail_info(recipients: str, content: str):
+    function_name = inspect.currentframe().f_code.co_name
+    log_message(function_name, "INFO", f"Send info.")
     subject = "[INFO] Diagho-Uploader"
     send_mail(recipients, subject, content)

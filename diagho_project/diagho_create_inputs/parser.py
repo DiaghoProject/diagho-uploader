@@ -30,6 +30,7 @@ from common.file_utils import *
 
 from diagho_create_inputs.utils import *
 from common.config_loader import load_configuration
+from common.log_utils import log_message
 
 
 
@@ -41,7 +42,7 @@ sys.getdefaultencoding()
 
 
 
-def create_json_files(input_file, output_file, output_prefix="tmp"):
+def create_json_files(input_file, output_file, output_prefix="tmp", remove_tmp_files=True):
     """
     Creation of all JSON files.
 
@@ -79,42 +80,52 @@ def create_json_files(input_file, output_file, output_prefix="tmp"):
             log_message(function_name, "ERROR", f"File not found: {input_file}")
             raise FileNotFoundError(f"File not found: {input_file}.")
         # Si le fichier existe : oncontinue les traitements
-    
-        # Créer le JSON simple
-        try:
-            diagho_tsv2json(input_file, output_json_simple)
-            
-        except Exception as e:
-            log_message(function_name, "ERROR", f"Erreur détectée dans 'diagho_tsv2json': {e}.")
-            exit(1)
-        
-        # Créer les 3 fichiers JSON
-        # Familles
-        try:
-            diagho_create_json_families(output_json_simple, output_file_families)
-        except Exception as e:
-            log_message(function_name, "ERROR", f"Erreur détectée dans 'diagho_create_json_families': {e}.")
-            exit(1)
-        
-        # Biofiles
-        try:
-            diagho_create_json_biofiles(output_json_simple, output_file_biofiles, path_biofiles)
-        except Exception as e:
-            log_message(function_name, "ERROR", f"Erreur détectée dans 'diagho_create_json_biofiles': {e}.")
-            exit(1)
-            
-        # Interpretations
-        try:
-            diagho_create_json_interpretations(output_json_simple, output_file_interpretations, path_biofiles)
-        except Exception as e:
-            log_message(function_name, "ERROR", f"Erreur détectée dans 'diagho_create_json_interpretations': {e}.")
-            exit(1)
-        
-        # Combine the 3 JSON files
-        combine_json_files(output_file_families, output_file_biofiles, output_file_interpretations, output_file)
-    
     except FileNotFoundError:
         log_message(function_name, "ERROR", f"File not found: {input_file}. Exit.")
+        raise
+    
+    # Créer le JSON simple
+    try:
+        diagho_tsv2json(input_file, output_json_simple)
+            
+    except Exception as e:
+        log_message(function_name, "ERROR", f"Erreur détectée dans 'diagho_tsv2json': {e}.")
+        exit(1)
+        
+    # Créer les 3 fichiers JSON
+    # Familles
+    try:
+        diagho_create_json_families(output_json_simple, output_file_families)
+    except Exception as e:
+        log_message(function_name, "ERROR", f"Erreur détectée dans 'diagho_create_json_families': {e}.")
+        raise
+        
+    # Biofiles
+    try:
+        diagho_create_json_biofiles(output_json_simple, output_file_biofiles, path_biofiles)
+    except Exception as e:
+        log_message(function_name, "ERROR", f"Erreur détectée dans 'diagho_create_json_biofiles': {e}.")
+        raise
+            
+    # Interpretations
+    try:
+        diagho_create_json_interpretations(output_json_simple, output_file_interpretations, path_biofiles)
+    except Exception as e:
+        log_message(function_name, "ERROR", f"Erreur détectée dans 'diagho_create_json_interpretations': {e}.")
+        raise
+                
+    # Combine the 3 JSON files
+    combine_json_files(output_file_families, output_file_biofiles, output_file_interpretations, output_file)
+    
+    
+    # Supprime les fichiers temporaires
+    if remove_tmp_files:
+        tmp_files = [output_json_simple, output_file_families, output_file_biofiles, output_file_interpretations]
+        log_message(function_name, "INFO", f"Remove tmp files: {tmp_files}")
+        for file in tmp_files:
+            os.remove(file)
+
+        
         
         
         
@@ -139,7 +150,9 @@ def diagho_tsv2json(input_file, output_file, lowercase_keys=False, encoding='lat
     Converts a TSV (Tab-Separated Values) file to a JSON file.
     
     """
-    log_message("TSV2JSON", "INFO", f"Processing input_file: {input_file}")
+    function_name = inspect.currentframe().f_code.co_name
+    
+    log_message(function_name, "INFO", f"Processing input_file: {input_file}")
     try:
         remove_trailing_empty_lines(input_file, encoding='latin1')
         
@@ -148,11 +161,11 @@ def diagho_tsv2json(input_file, output_file, lowercase_keys=False, encoding='lat
 
         # Validate TSV header
         if not validate_tsv_headers(input_file, required_headers):
-            log_message("VALIDATE_TSV_HEADER", "ERROR", f"Invalid header. Exit.")
+            log_message(function_name, "ERROR", f"Invalid header. Exit.")
             raise ValueError(f"Invalid header in file: {input_file}")
         
         if not validate_tsv_columns(input_file, required_headers):
-            log_message("VALIDATE_TSV_HEADER", "ERROR", f"Invalid values in file. Exit.")
+            log_message(function_name, "ERROR", f"Invalid values in file. Exit.")
             raise ValueError(f"Invalid values in file: {input_file}")
 
         # Read TSV file into a pandas DataFrame
@@ -167,10 +180,10 @@ def diagho_tsv2json(input_file, output_file, lowercase_keys=False, encoding='lat
         # Write the resulting dictionary to the output JSON file
         with open(output_file, 'w', encoding='utf-8') as out_file:
             json.dump(dict_final, out_file, indent=4, ensure_ascii=False)
-        log_message("TSV2JSON", "SUCCESS", f"Write file: {output_file}")
+        log_message(function_name, "SUCCESS", f"Write file: {output_file}")
 
     except ValueError as e:
-        log_message("TSV2JSON", "ERROR", f"Error: {str(e)}")
+        log_message(function_name, "ERROR", f"Error: {str(e)}")
         raise
 
 
@@ -181,7 +194,9 @@ def diagho_create_json_families(input_file, output_file):
     Crée un fichier JSON contenant les informations sur les familles.
 
     """
-    log_message("JSON_FAMILIES", "INFO", "---------- Start create JSON file for FAMILIES.")
+    function_name = inspect.currentframe().f_code.co_name
+    
+    log_message(function_name, "INFO", "---------- Start create JSON file for FAMILIES.")
     # Charger les données à partir du fichier JSON d'entrée
     with open(input_file, 'r', encoding='utf-8') as f:
         data = json.load(f)
@@ -236,14 +251,14 @@ def diagho_create_json_families(input_file, output_file):
             # Vérifier si la personne avec cet 'identifier' existe déjà, si elle n'existe pas, on l'ajoute
             if not any(person["identifier"] == dict_person["identifier"] for person in persons):
                 dict_families[family_id]["persons"].append(dict_person)
-                log_message("JSON_FAMILIES", "INFO", f"Existing family: {family_id} + Add person: {person_id}")
+                log_message(function_name, "INFO", f"Existing family: {family_id} + Add person: {person_id}")
         else:
             # Si la famille n'existe pas, on la crée avec cette personne
             dict_families[family_id] = {
                 "identifier": family_id,
                 "persons": [dict_person]
                 }
-            log_message("JSON_FAMILIES", "INFO", f"Create family: {family_id} + Add person: {person_id}")
+            log_message(function_name, "INFO", f"Create family: {family_id} + Add person: {person_id}")
 
     # Écrire le fichier JSON final
     write_JSON_file(dict_families, "families", output_file)
@@ -254,7 +269,9 @@ def diagho_create_json_biofiles(input_file, output_file, biofiles_directory=None
     Crée un fichier JSON contenant les informations sur les fichiers Biofiles et les échantillons associés.
 
     """
-    log_message("JSON_BIOFILES", "INFO", "---------- Start create JSON file for BIOFILES.")
+    function_name = inspect.currentframe().f_code.co_name
+    
+    log_message(function_name, "INFO", "---------- Start create JSON file for BIOFILES.")
     # Charger les données d'entrée depuis le fichier JSON
     with open(input_file, 'r', encoding='utf-8') as f:
         data = json.load(f)
@@ -277,7 +294,7 @@ def diagho_create_json_biofiles(input_file, output_file, biofiles_directory=None
         # Récupère le checksum du fichier d'entrée ou le calcule si non renseigné et si le dossier des biofiles est fourni
         checksum = get_or_compute_checksum(sample_data, sample_id, biofiles_directory)
         
-        log_message("JSON_BIOFILES", "INFO", f"Sample: {sample_id} - Filename: {filename} - Checksum: {checksum}")
+        log_message(function_name, "INFO", f"Sample: {sample_id} - Filename: {filename} - Checksum: {checksum}")
 
         # Créer le dictionnaire pour le sample
         dict_sample = {
@@ -314,7 +331,9 @@ def diagho_create_json_interpretations(input_file, output_file, biofiles_directo
     - vcfs_directory: répertoire où se trouvent les fichiers VCF
 
     """
-    log_message("JSON_INTERPRETATIONS", "INFO", "---------- Start create JSON file for INTERPRETATIONS.") 
+    function_name = inspect.currentframe().f_code.co_name
+    
+    log_message(function_name, "INFO", "---------- Start create JSON file for INTERPRETATIONS.") 
     # Charger les données d'entrée depuis le fichier JSON
     with open(input_file, 'r') as f:
         data = json.load(f)
@@ -331,7 +350,7 @@ def diagho_create_json_interpretations(input_file, output_file, biofiles_directo
         index_id = sample_data.get('person_id', '') if (is_index and is_index != "0") else ""
         biofile_type = sample_data.get('file_type', None)
         if not biofile_type:
-            log_message("JSON_INTERPRETATION", "WARNING", f"Biofile_type is empty for sample: {sample_id} --> Default to 'SNV'.")
+            log_message(function_name, "WARNING", f"Biofile_type is empty for sample: {sample_id} --> Default to 'SNV'.")
             biofile_type = "SNV"
         project = sample_data.get('project', '').lower().replace(" ", "-")
         priority = sample_data.get('priority', 2)
@@ -364,9 +383,9 @@ def diagho_create_json_interpretations(input_file, output_file, biofiles_directo
             dict_interpretations[interpretation_title] = interpretation
             dict_interpretations[interpretation_title]["datas_tuples"] = [v_data_tuple]
             
-            log_message("JSON_INTERPRETATIONS", "INFO", f"New interpretation {interpretation_title}, with sample: {sample_id}")
+            log_message(function_name, "INFO", f"New interpretation {interpretation_title}, with sample: {sample_id}")
         else:
-            log_message("JSON_INTERPRETATIONS", "INFO", f"Existing interpretation {interpretation_title}, with sample: {sample_id}")
+            log_message(function_name, "INFO", f"Existing interpretation {interpretation_title}, with sample: {sample_id}")
             # Mets à jour les informations ou échoue en cas d'incohérences
             for key, value in dict_interpretations[interpretation_title].items():
                 if key == "datas_tuples":
@@ -389,7 +408,7 @@ def diagho_create_json_interpretations(input_file, output_file, biofiles_directo
         # Vérifie qu'il y a bien un cas index
         if not interpretation["indexCase"]:
             error_message = str(f"No Index case specified for :", interpretation["title"])
-            log_message("JSON_INTERPRETATIONS", "ERROR", error_message)
+            log_message(function_name, "ERROR", error_message)
             raise ValueError(f"No Index case specified for", interpretation["title"])
 
         datas_dict = {}
@@ -399,7 +418,7 @@ def diagho_create_json_interpretations(input_file, output_file, biofiles_directo
             composite_key = (title, file_type)
             
             # Charger les colonnes à exclure à partir d'un json à part
-            config_exclude_columns = load_file("diagho_create_inputs/config_interpretations.json")
+            config_exclude_columns = load_data_from_config_file("diagho_create_inputs/config_interpretations.json")
             exclude_columns = config_exclude_columns.get("excludeColumns", [])
 
             if composite_key not in datas_dict:
@@ -433,6 +452,15 @@ def diagho_create_json_interpretations(input_file, output_file, biofiles_directo
 
 
 def combine_json_files(file_families, file_vcfs, file_interpretations, output_file):
+    """_summary_
+
+    Args:
+        file_families (_type_): _description_
+        file_vcfs (_type_): _description_
+        file_interpretations (_type_): _description_
+        output_file (_type_): _description_
+    """
+    function_name = inspect.currentframe().f_code.co_name
 
     # Lire le contenu des trois fichiers JSON
     with open(file_families, 'r') as f1:
@@ -449,4 +477,4 @@ def combine_json_files(file_families, file_vcfs, file_interpretations, output_fi
     combined_data = remove_empty_keys(combined_data)
     with open(output_file,'w', encoding='utf-8') as formatted_file:
         json.dump(combined_data, formatted_file, ensure_ascii=False, indent=4)
-    log_message("COMBINE_JSON_FILES", "SUCCESS", f"Write combined file: {output_file}")
+    log_message(function_name, "SUCCESS", f"Write combined file: {output_file}")
