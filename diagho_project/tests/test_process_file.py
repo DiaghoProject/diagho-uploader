@@ -1,11 +1,10 @@
 import hashlib
-import pytest
 from unittest import mock
 from unittest.mock import patch
 import os
 import time
 import logging
-
+import pytest
 
 
 from diagho_uploader.file_utils import get_biofile_informations, wait_for_biofile
