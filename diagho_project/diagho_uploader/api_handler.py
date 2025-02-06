@@ -12,6 +12,8 @@ from common.log_utils import *
 
 # Problem SSL certificate
 import urllib3
+
+from common.mail_utils import *
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
@@ -347,3 +349,39 @@ def api_post_config(**kwargs):
     except requests.exceptions.RequestException as e:
         log_message(function_name, "ERROR", str(e))
         return {"error": str(e)}
+
+
+
+
+   
+def check_api_response(response, **kwargs):
+    """
+    Vérifie la réponse de l'API après le POST de la config et envoie des notifications en fonction du statut.
+    """
+    function_name = inspect.currentframe().f_code.co_name
+    
+    recipients = kwargs.get('recipients')
+    json_file = kwargs.get('json_file')
+    
+    log_message(function_name, "INFO", f"response.status_code = {response.status_code}")
+
+    # Si OK
+    if response.status_code == 201:
+        log_message(function_name, "SUCCESS", f"{os.path.basename(json_file)}: configuration file was posted in Diagho successfully")
+        send_mail_info(recipients, f"JSON file: {json_file}\n\nThe JSON configuration file was posted in Diagho successfully")
+        return
+
+    # Si KO
+    if response.status_code == 400:
+        json_response = response.json()
+        search_string = "A person with the same identifier already exist, but is present in another family."
+        json_string = json.dumps(json_response)
+
+        if search_string in json_string:
+            persons_content = json_response.get('errors', {}).get('families', [{}])[4].get('persons', 'N/A')
+            alert_message = f"JSON file: {json_file}\n\nA person with the same identifier already exists but is present in another family:\n{persons_content}"
+        else:
+            alert_message = f"JSON file: {json_file}\n\nError in POST configuration."
+        send_mail_alert(recipients, alert_message)
+        log_message(function_name, "ERROR", f"{os.path.basename(json_file)}: error in POST configuration")
+        log_message(function_name, "ERROR", f"{json_response}")
