@@ -11,6 +11,9 @@ from datetime import datetime
 from common.logger_config import logger
 from common.log_utils import log_message
 
+class TSVValidationError(Exception):
+    """Exception personnalisée pour les erreurs de validation TSV."""
+    pass
 
         
 def remove_trailing_empty_lines(file_path, encoding):
@@ -44,10 +47,14 @@ def validate_tsv_headers(input_file, required_headers, encoding='latin1'):
         unexpected_headers = [header for header in tsv_headers if header not in required_headers]
         
         if missing_headers:
+            message = f"Missing required columns: {missing_headers}"
             log_message(function_name, "ERROR", f"Error: Missing required columns: {missing_headers}")
+            raise TSVValidationError(message)
             return False
         if unexpected_headers:
+            message = f"Unexpected columns present: {unexpected_headers}"
             log_message(function_name, "ERROR", f"Warning: Unexpected columns present: {unexpected_headers}")
+            raise TSVValidationError(message)
             return False
         
         # Otherwise, return True indicating the headers are valid
@@ -55,6 +62,7 @@ def validate_tsv_headers(input_file, required_headers, encoding='latin1'):
     
     except Exception as e:
         log_message(function_name, "ERROR", f"Error reading the file: {str(e)}")
+        raise TSVValidationError(f"Error reading the file: {str(e)}")
         return False
     
     
@@ -71,7 +79,9 @@ def validate_tsv_columns(file_path, required_headers, encoding="utf-8"):
         # Vérifier que toutes les colonnes requises sont présentes (normalement pas besoin si vérif du header avant)
         missing_columns = [col for col in required_headers if col not in tsv_headers]
         if missing_columns:
+            message = f"Missing columns: {missing_columns}"
             log_message(function_name, "ERROR", f"Missing columns: {missing_columns}")
+            raise TSVValidationError(message)
             return False
 
         # Vérification des valeurs présentes dans chaque ligne
@@ -79,7 +89,9 @@ def validate_tsv_columns(file_path, required_headers, encoding="utf-8"):
             for col in required_headers:
                 if col in row and row[col].strip():  # Vérifier seulement si la valeur est non vide
                     if not validate_column_value(col, row[col]):  # Vérification personnalisée
+                        message = f"Valeur invalide dans la colonne '{col}' à la ligne {line_num}: {row[col]}"
                         log_message(function_name, "ERROR", f"Valeur invalide dans la colonne '{col}' à la ligne {line_num}: {row[col]}")
+                        raise TSVValidationError(message)
                         return False
                 
         # Si tout est bon
@@ -122,7 +134,7 @@ def validate_column_value(column_name, value):
         return value != ""
     elif column_name == 'person_id':
         return value != ""
-    elif column_name == 'sample':
+    elif column_name == 'sex':
         allowed_sex = ['female', 'male', 'unknown']
         return value in allowed_sex
     elif column_name == 'is_affected':
@@ -235,10 +247,10 @@ def get_or_compute_checksum(sample_data, sample_id, biofiles_directory=None):
                 file_path = os.path.join(biofiles_directory, filename)
                 checksum = md5(file_path)
             except Exception as e:
-                log_message(function_name, "ERROR", f"{e}.")
-                raise
+                log_message(function_name, "ERROR", f"Function '{function_name}': can't calculate MD5 for file: {filename}: {e}")
+                raise ValueError(f"Function '{function_name}': can't calculate MD5 for file: {filename}: {e}.")
         else:
-            log_message(function_name, "ERROR", f"Sample: {sample_id} - Can't calculate MD5 for file: {filename}.")
+            log_message(function_name, "ERROR", f"Sample: {sample_id} - Can't calculate MD5 for file: {filename}")
             raise ValueError(f"Can't calculate MD5 for file: {filename}.")
 
     return checksum
