@@ -1,0 +1,4 @@
+filename	checksum	file_type	assembly	sample	bam_path	family_id	person_id	father_id	mother_id	sex	is_affected	first_name	last_name	date_of_birth	hpo	interpretation_title	is_index	project	assignee	priority	person_note	data_title
+file01.vcf.gz	d682b6f9795a36ef9cac147aa2dc713b	A	GRCh37	sample01	N:/directory/sample01.bam	Fam01	patient01	patient03	patient02	female	1	BABY	NAME			Fam01 (sample01) - EXOME-001	1	PROJECT01		3	EXOME-001 - Signes d'appel échographiques	SNV
+file01.vcf.gz	d682b6f9795a36ef9cac147aa2dc713b	SNV	GRCh37	sample02	N:/directory/sample02.bam	Fam01	patient02			female	0	MOTHER	NAME	01/01/1990		Fam01 (sample01) - EXOME-001	0	PROJECT01		3	EXOME-001	SNV
+file01.vcf.gz	d682b6f9795a36ef9cac147aa2dc713b	SNV	GRCh37	sample03	N:/directory/sample03.bam	Fam01	patient03			male	0	FATHER	NAME	01/01/1990		Fam01 (sample01) - EXOME-001	0	PROJECT01		3	EXOME-001	SNV
