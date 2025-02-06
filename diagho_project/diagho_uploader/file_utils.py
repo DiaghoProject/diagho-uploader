@@ -64,15 +64,20 @@ def wait_for_biofile(biofile, max_retries=100, delay=10):
     Attend l'existence du biofile avec un nombre de tentatives limité.
     """
     function_name = inspect.currentframe().f_code.co_name
-    
     biofile_filename = os.path.basename(biofile)
+
+    if os.path.exists(biofile):
+        log_biofile_message(function_name, "INFO", biofile_filename, "Biofile found. Continue.")
+        return True
+    
     for attempt in range(1, max_retries + 1):
         if os.path.exists(biofile):
-            log_biofile_message(function_name, "SUCCESS", biofile_filename, f"Biofile found. Continue.")
+            log_biofile_message(function_name, "INFO", biofile_filename, f"Biofile found. Continue.")
             return True
         log_biofile_message(function_name, "WARNING", biofile_filename, f"Biofile not found... attempt {attempt}")
         time.sleep(delay)
-    log_biofile_message(function_name, "ERROR", biofile_filename, f"Biofile not found after {attempt} attempt. Exit.")
+        
+    log_biofile_message(function_name, "ERROR", biofile_filename, f"Biofile not found after {max_retries} attempt. Exit.")
     return False  # Échec après toutes les tentatives
 
 
