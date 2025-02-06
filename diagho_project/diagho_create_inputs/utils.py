@@ -58,11 +58,12 @@ def validate_tsv_headers(input_file, required_headers, encoding='latin1'):
         return False
     
     
-def validate_tsv_columns(file_path, required_headers):
+def validate_tsv_columns(file_path, required_headers, encoding="utf-8"):
     """
     Valide chaque colonne du fichier TSV selon des conditions spécifiques.
     """
     function_name = inspect.currentframe().f_code.co_name
+    
     with open(file_path, newline='', encoding='iso-8859-1') as tsvfile:
         reader = csv.DictReader(tsvfile, delimiter='\t')
         tsv_headers = reader.fieldnames
@@ -73,16 +74,13 @@ def validate_tsv_columns(file_path, required_headers):
             log_message(function_name, "ERROR", f"Missing columns: {missing_columns}")
             return False
 
-        # Valider chaque ligne du fichier
-        for line_num, row in enumerate(reader, start=2):  # Démarre à 2 pour compter l'en-tête
+        # Vérification des valeurs présentes dans chaque ligne
+        for line_num, row in enumerate(reader, start=2):  # Start=2 car l'en-tête est à la ligne 1
             for col in required_headers:
-                if col not in row:
-                    log_message(function_name, "ERROR", f"Missing value in column '{col}' at line: {line_num}")
-                    return False
-                value = row[col]
-                if not validate_column_value(col, value):
-                    log_message(function_name, "ERROR", f"Valeur invalide dans la colonne '{col}' à la ligne {line_num}: {value}")
-                    return False
+                if col in row and row[col].strip():  # Vérifier seulement si la valeur est non vide
+                    if not validate_column_value(col, row[col]):  # Vérification personnalisée
+                        log_message(function_name, "ERROR", f"Valeur invalide dans la colonne '{col}' à la ligne {line_num}: {row[col]}")
+                        return False
                 
         # Si tout est bon
         log_message(function_name, "INFO", f"File '{file_path}' is valid.")
@@ -164,15 +162,9 @@ def remove_empty_keys(d):
     """
     Supprime les clés avec des valeurs vides (None ou "") dans un dictionnaire.
 
-    Args:
-        d (dict): Le dictionnaire à nettoyer.
-
-    Returns:
-        dict: Le dictionnaire nettoyé.
     """    
     if not isinstance(d, dict):
         return d  # Si ce n'est pas un dict, retourner la valeur telle quelle
-
     cleaned_dict = {}
     for k, v in d.items():
         if isinstance(v, dict):
