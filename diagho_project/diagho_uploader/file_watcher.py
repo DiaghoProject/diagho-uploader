@@ -30,8 +30,6 @@ def list_files(directory):
 def copy_file(file_path, target_directory):
     """Copier le fichier 'file_path' dans 'target_directory'."""
     function_name = inspect.currentframe().f_code.co_name
-    # if not os.path.exists(target_directory):
-    #     os.makedirs(target_directory)
     Path(target_directory).mkdir(parents=True, exist_ok=True)
     shutil.copy(file_path, target_directory)
     log_message(function_name, "INFO", f"Copy file: {file_path} to: {target_directory}")
@@ -48,7 +46,7 @@ def remove_file(file_path):
         return
 
 # Stop watcher
-def stop_watcher_on_flag(flag_file):
+def stop_watcher_on_flag(flag_file): # pragma: no cover
     """Arrêter proprement le watcher avec un fichier de flag."""
     function_name = inspect.currentframe().f_code.co_name
     if os.path.exists(flag_file):
@@ -58,8 +56,8 @@ def stop_watcher_on_flag(flag_file):
         return True
     return False       
 
-# Stop watcher on signal
-def stop_watcher_on_signal(signum, frame):
+# Stop watcher on signal 
+def stop_watcher_on_signal(signum, frame): # pragma: no cover
     """Arrêter le watcher si kill du process."""
     function_name = inspect.currentframe().f_code.co_name
     log_message(function_name, "WARNING", f"Signal {signum} received. Stop watcher.")
@@ -67,12 +65,14 @@ def stop_watcher_on_signal(signum, frame):
 
 
 # Watcher
-def watch_directory(path_input, path_backup, path_biofiles, config, config_file):
+def watch_directory(path_input, path_backup, path_biofiles, config, config_file): 
     """
     Surveille le répertoire spécifié et traite les fichiers JSON créés ou modifiés.
     """
+    function_name = inspect.currentframe().f_code.co_name
+    
     previous_files = list_files(path_input)
-    log_message("FILE_WATCHER", "INFO", f"Start watching directory: {path_input}")
+    log_message(function_name, "INFO", f"Start watching directory: {path_input}")
     
     settings = load_configuration(config)
     recipients = settings["recipients"]
@@ -81,11 +81,11 @@ def watch_directory(path_input, path_backup, path_biofiles, config, config_file)
         while True:
             
             # Écoute du signal SIGTERM
-            signal.signal(signal.SIGTERM, stop_watcher_on_signal)
+            signal.signal(signal.SIGTERM, stop_watcher_on_signal) # pragma: no cover
     
             # Condition pour arrêt du watcher
             flag_file = 'stop_watcher.flag'
-            if stop_watcher_on_flag(flag_file):
+            if stop_watcher_on_flag(flag_file): # pragma: no cover
                 send_mail_alert(recipients, "Diagho file_watcher has been stopped.")
                 break
             
@@ -110,7 +110,7 @@ def watch_directory(path_input, path_backup, path_biofiles, config, config_file)
                             copy_file(file_path, path_backup)
 
                             # Traiter le fichier
-                            log_message("START_PROCESSING_JSON", "INFO", f"Processing file: {os.path.basename(file_path)}")
+                            log_message(function_name, "INFO", f"Processing file: {os.path.basename(file_path)}")
                             kwargs = {
                                 "file_path": file_path,
                                 "config": config,
@@ -120,9 +120,10 @@ def watch_directory(path_input, path_backup, path_biofiles, config, config_file)
 
                             # Supprimer le fichier du répertoire 'input_data' après traitement
                             remove_file(file_path)
+                            log_message(function_name, "INFO", f"Back to file_watcher...\n")
 
                         except Exception as e:
-                            log_message("FAILED_PROCESSING_JSON", "ERROR", f"Failed to process file: {os.path.basename(file_path)} - {e}")
+                            log_message(function_name, "ERROR", f"Failed to process file: {os.path.basename(file_path)} - {e}")
 
             # SI fichier modifié :
             if modified_files:
@@ -137,7 +138,7 @@ def watch_directory(path_input, path_backup, path_biofiles, config, config_file)
                         copy_file(file_path, path_backup)
 
                         # Traiter le fichier
-                        log_message("START_PROCESSING_JSON", "INFO", f"Processing file: {os.path.basename(file_path)}")
+                        log_message(function_name, "INFO", f"Processing file: {os.path.basename(file_path)}")
                         kwargs = {
                             "file_path": file_path,
                             "config": config,
@@ -146,9 +147,10 @@ def watch_directory(path_input, path_backup, path_biofiles, config, config_file)
 
                         # Supprimer le fichier du répertoire 'input_data' après traitement
                         remove_file(file_path)
+                        log_message(function_name, "INFO", f"Back to file_watcher...\n")
                         
                     except Exception as e:
-                        log_message("FAILED_PROCESSING_JSON", "ERROR", f"Failed to process file: {os.path.basename(file_path)} - {e}")
+                        log_message(function_name, "ERROR", f"Failed to process file: {os.path.basename(file_path)} - {e}")
 
             # Mettre à jour la liste des fichiers pour la prochaine vérification
             previous_files = current_files
