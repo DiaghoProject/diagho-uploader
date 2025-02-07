@@ -31,6 +31,7 @@ from common.file_utils import *
 from diagho_create_inputs.utils import *
 from common.config_loader import load_configuration
 from common.log_utils import log_message
+from common.mail_utils import *
 
 
 
@@ -44,12 +45,14 @@ sys.getdefaultencoding()
 
 def create_json_files(input_file, output_file, output_prefix="tmp", remove_tmp_files=True):
     """
-    Creation of all JSON files.
+    Creation of the JSON configuration file.
 
     Args:
-        input_file (str): TSV file
-        output_file (str): final JSON file
-        output_prefix (str): prefixe pour les fichiers (optionnal)
+        input_file (str): TSV input file
+        output_file (str): JSON output file
+        output_prefix (str, optional): Prefix of the output file. Defaults to "tmp".
+        remove_tmp_files (bool, optional): Remove temporary JSON files. Defaults to True.
+        
     """
     function_name = inspect.currentframe().f_code.co_name
     
@@ -59,9 +62,9 @@ def create_json_files(input_file, output_file, output_prefix="tmp", remove_tmp_f
         config = yaml.safe_load(file)
         
     # Load settings
-    # log_message("LOAD_CONFIGURATION", "INFO", f"Load config_file: {config_file}")
     settings = load_configuration(config)
     path_biofiles = settings["path_biofiles"]
+    recipients = settings["recipients"]
     
     log_message(function_name, "INFO", f"Start create_json on file: {input_file}")
     
@@ -72,7 +75,6 @@ def create_json_files(input_file, output_file, output_prefix="tmp", remove_tmp_f
     output_file_families = os.path.join(output_directory, output_prefix + ".families.json")
     output_file_biofiles = os.path.join(output_directory, output_prefix + ".biofiles.json")
     output_file_interpretations = os.path.join(output_directory, output_prefix + ".interpretations.json")
-    
     
     try:
         # Test si file_input existe
@@ -86,37 +88,43 @@ def create_json_files(input_file, output_file, output_prefix="tmp", remove_tmp_f
     
     # Créer le JSON simple
     try:
-        diagho_tsv2json(input_file, output_json_simple)
-            
+        diagho_tsv2json(input_file, output_json_simple, settings)
     except Exception as e:
-        log_message(function_name, "ERROR", f"Erreur détectée dans 'diagho_tsv2json': {e}.")
-        exit(1)
-        
+        log_message(function_name, "ERROR", f"{input_file} : Erreur détectée dans 'diagho_tsv2json': {e}.")
+        raise
+         
     # Créer les 3 fichiers JSON
     # Familles
     try:
         diagho_create_json_families(output_json_simple, output_file_families)
     except Exception as e:
-        log_message(function_name, "ERROR", f"Erreur détectée dans 'diagho_create_json_families': {e}.")
+        log_message(function_name, "ERROR", f"Erreur détectée dans 'diagho_create_json_families': {e}")
+        send_mail_alert(recipients, f"Erreur détectée dans 'diagho_create_json_families': \n{e}")
         raise
         
     # Biofiles
     try:
         diagho_create_json_biofiles(output_json_simple, output_file_biofiles, path_biofiles)
     except Exception as e:
-        log_message(function_name, "ERROR", f"Erreur détectée dans 'diagho_create_json_biofiles': {e}.")
+        log_message(function_name, "ERROR", f"Erreur détectée dans 'diagho_create_json_biofiles': {e}")
+        send_mail_alert(recipients, f"Erreur détectée dans 'diagho_create_json_biofiles': \n{e}")
         raise
             
     # Interpretations
     try:
         diagho_create_json_interpretations(output_json_simple, output_file_interpretations, path_biofiles)
     except Exception as e:
-        log_message(function_name, "ERROR", f"Erreur détectée dans 'diagho_create_json_interpretations': {e}.")
+        log_message(function_name, "ERROR", f"Erreur détectée dans 'diagho_create_json_interpretations': {e}")
+        send_mail_alert(recipients, f"Erreur détectée dans 'diagho_create_json_biofiles': \n{e}")
         raise
                 
     # Combine the 3 JSON files
-    combine_json_files(output_file_families, output_file_biofiles, output_file_interpretations, output_file)
-    
+    try:
+        combine_json_files(output_file_families, output_file_biofiles, output_file_interpretations, output_file)
+    except Exception as e:
+        log_message(function_name, "ERROR", f"Erreur détectée dans le parser TSV -> JSON: {e}")
+        send_mail_alert(recipients, f"Erreur détectée dans le parser TSV -> JSON: \n{e}")
+        raise
     
     # Supprime les fichiers temporaires
     if remove_tmp_files:
@@ -125,66 +133,59 @@ def create_json_files(input_file, output_file, output_prefix="tmp", remove_tmp_f
         for file in tmp_files:
             os.remove(file)
 
-        
-        
-        
-        
-        
-
-    
-    
-
-    # # Remove tmp JSON files
-    # print(f"\nRemove tmp JSON files" )
-    # os.remove(file_json_simple)
-    # os.remove(output_file_families)
-    # os.remove(output_file_biofiles)
-    # os.remove(output_file_interpretations)
 
 
 
 
 
-def diagho_tsv2json(input_file, output_file, lowercase_keys=False, encoding='latin1'):
+def diagho_tsv2json(input_file, output_file, settings, lowercase_keys=False, encoding='latin1'):
     """
     Converts a TSV (Tab-Separated Values) file to a JSON file.
     
     """
     function_name = inspect.currentframe().f_code.co_name
+    recipients = settings["recipients"]
     
     log_message(function_name, "INFO", f"Processing input_file: {input_file}")
+    
+    # Supprimer les lignes vides
+    remove_trailing_empty_lines(input_file, encoding='latin1')
+    
+    required_headers = ['filename', 'checksum', 'file_type', 'sample', 'bam_path', 'family_id', 'person_id', 'father_id','mother_id', 'sex', 'is_affected', 'last_name', 'first_name', 'date_of_birth', 'hpo', 'interpretation_title', 'is_index', 'project', 'assignee', 'priority', 'person_note', 'assembly', 'data_title']
+
+    # Valider le header du TSV
     try:
-        remove_trailing_empty_lines(input_file, encoding='latin1')
-        
-        # Validate header
-        required_headers = ['filename', 'checksum', 'file_type', 'sample', 'bam_path', 'family_id', 'person_id', 'father_id','mother_id', 'sex', 'is_affected', 'last_name', 'first_name', 'date_of_birth', 'hpo', 'interpretation_title', 'is_index', 'project', 'assignee', 'priority', 'person_note', 'assembly', 'data_title']
-
-        # Validate TSV header
-        if not validate_tsv_headers(input_file, required_headers):
-            log_message(function_name, "ERROR", f"Invalid header. Exit.")
-            raise ValueError(f"Invalid header in file: {input_file}")
-        
-        if not validate_tsv_columns(input_file, required_headers):
-            log_message(function_name, "ERROR", f"Invalid values in file. Exit.")
-            raise ValueError(f"Invalid values in file: {input_file}")
-
-        # Read TSV file into a pandas DataFrame
-        df = pd.read_csv(input_file, delimiter='\t', encoding=encoding, dtype=str)  # dtype=str to keep empty fields
-        
-        # Keep empty strings
-        df = df.where(pd.notnull(df), "")
-
-        # Convert DataFrame to dictionary
-        dict_final = df.to_dict(orient='index')
-        
-        # Write the resulting dictionary to the output JSON file
-        with open(output_file, 'w', encoding='utf-8') as out_file:
-            json.dump(dict_final, out_file, indent=4, ensure_ascii=False)
-        log_message(function_name, "SUCCESS", f"Write file: {output_file}")
-
-    except ValueError as e:
-        log_message(function_name, "ERROR", f"Error: {str(e)}")
+        validate_tsv_headers(input_file, required_headers)
+    except TSVValidationError as e:
+        send_mail_alert(recipients, f"Erreur de validation TSV : \n{e}")
         raise
+    except Exception as e:
+        send_mail_alert(recipients, f"Fonction '{function_name}': Autre erreur : {e}")
+        raise
+    
+    # Valider les valeurs de certaines colonnes
+    try:
+        validate_tsv_columns(input_file, required_headers)
+    except TSVValidationError as e:
+        send_mail_alert(recipients, f"Erreur de validation TSV : \n{e}")
+        raise
+    except Exception as e:
+        send_mail_alert(recipients, f"Fonction '{function_name}': Autre erreur : {e}")
+        raise
+
+    # Read TSV file into a pandas DataFrame
+    df = pd.read_csv(input_file, delimiter='\t', encoding=encoding, dtype=str)  # dtype=str to keep empty fields
+        
+    # Keep empty strings
+    df = df.where(pd.notnull(df), "")
+
+    # Convert DataFrame to dictionary
+    dict_final = df.to_dict(orient='index')
+        
+    # Write the resulting dictionary to the output JSON file
+    with open(output_file, 'w', encoding='utf-8') as out_file:
+        json.dump(dict_final, out_file, indent=4, ensure_ascii=False)
+    log_message(function_name, "SUCCESS", f"Write file: {output_file}")
 
 
 
@@ -292,7 +293,10 @@ def diagho_create_json_biofiles(input_file, output_file, biofiles_directory=None
         
         
         # Récupère le checksum du fichier d'entrée ou le calcule si non renseigné et si le dossier des biofiles est fourni
-        checksum = get_or_compute_checksum(sample_data, sample_id, biofiles_directory)
+        try:
+            checksum = get_or_compute_checksum(sample_data, sample_id, biofiles_directory)
+        except Exception as e:
+            raise ValueError(e)
         
         log_message(function_name, "INFO", f"Sample: {sample_id} - Filename: {filename} - Checksum: {checksum}")
 
