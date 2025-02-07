@@ -28,6 +28,7 @@ def load_configuration(config):
         "recipients": config['emails']['recipients'],
         "path_biofiles": config['input_biofiles'],
         "path_backup_biofiles": config['backup_biofiles'],
+        "path_backup_data": config['backup_data'],
         "get_biofile_max_retries": config['check_biofile']['max_retries'],
         "get_biofile_delay": config['check_biofile']['delay'],
         "check_loading_max_retries": config['check_loading']['max_retries'],
