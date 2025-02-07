@@ -20,7 +20,7 @@ from common.api_utils import *
 from common.log_utils import *
 
 
-def diagho_upload_file(**kwargs):
+def diagho_upload_file(**kwargs): # pragma: no cover
     """
     Process input file (JSON) : load biofiles in Diagho and load JSON file.
     """
@@ -56,7 +56,9 @@ def diagho_upload_file(**kwargs):
         try:
             create_json_files(file_path, output_file, output_prefix)
         except Exception as e:
+            message = f"{e}"
             log_message(function_name, "ERROR", f"Erreur détectée: {e}.")
+            send_mail_alert(recipients, message)
             return
         
         # Valider que le JSON est bien écrit
@@ -149,7 +151,7 @@ def diagho_upload_file(**kwargs):
 
 
 # Gère le traitement d'un biofile
-def process_biofile_task(settings, biofile, biofile_infos, diagho_api):
+def process_biofile_task(settings, biofile, biofile_infos, diagho_api): # pragma: no cover
     """
     Traitement d'un fichier bio (VCF ou BED).
 
@@ -238,40 +240,5 @@ def process_biofile_task(settings, biofile, biofile_infos, diagho_api):
     log_biofile_message(function_name, "INFO", biofile_filename, f"Move biofile to {backup_path}.")
     
     return True
-        
-    
 
 
-
-   
-def check_api_response(response, **kwargs):
-    """
-    Vérifie la réponse de l'API après le POST de la config et envoie des notifications en fonction du statut.
-    """
-    function_name = inspect.currentframe().f_code.co_name
-    
-    recipients = kwargs.get('recipients')
-    json_file = kwargs.get('json_file')
-    
-    log_message(function_name, "INFO", f"response.status_code = {response.status_code}")
-
-    # Si OK
-    if response.status_code == 201:
-        log_message(function_name, "SUCCESS", f"{os.path.basename(json_file)}: configuration file was posted in Diagho successfully")
-        send_mail_info(recipients, f"JSON file: {json_file}\n\nThe JSON configuration file was posted in Diagho successfully")
-        return
-
-    # Si KO
-    if response.status_code == 400:
-        json_response = response.json()
-        search_string = "A person with the same identifier already exist, but is present in another family."
-        json_string = json.dumps(json_response)
-
-        if search_string in json_string:
-            persons_content = json_response.get('errors', {}).get('families', [{}])[4].get('persons', 'N/A')
-            alert_message = f"JSON file: {json_file}\n\nA person with the same identifier already exists but is present in another family:\n{persons_content}"
-        else:
-            alert_message = f"JSON file: {json_file}\n\nError in POST configuration."
-        send_mail_alert(recipients, alert_message)
-        log_message(function_name, "ERROR", f"{os.path.basename(json_file)}: error in POST configuration")
-        log_message(function_name, "ERROR", f"{json_response}")
