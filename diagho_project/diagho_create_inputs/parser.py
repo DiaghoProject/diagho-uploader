@@ -64,6 +64,7 @@ def create_json_files(input_file, output_file, output_prefix="tmp", remove_tmp_f
     # Load settings
     settings = load_configuration(config)
     path_biofiles = settings["path_biofiles"]
+    path_backup_data = settings["path_backup_data"]
     recipients = settings["recipients"]
     
     log_message(function_name, "INFO", f"Start create_json on file: {input_file}")
@@ -121,6 +122,7 @@ def create_json_files(input_file, output_file, output_prefix="tmp", remove_tmp_f
     # Combine the 3 JSON files
     try:
         combine_json_files(output_file_families, output_file_biofiles, output_file_interpretations, output_file)
+        shutil.copy(output_file, path_backup_data)
     except Exception as e:
         log_message(function_name, "ERROR", f"Erreur détectée dans le parser TSV -> JSON: {e}")
         send_mail_alert(recipients, f"Erreur détectée dans le parser TSV -> JSON: \n{e}")
