@@ -1,4 +1,6 @@
 import hashlib
+import json
+import re
 from unittest import mock
 from unittest.mock import patch
 import os
@@ -7,7 +9,7 @@ import logging
 import pytest
 
 
-from diagho_uploader.file_utils import get_biofile_informations, wait_for_biofile
+from diagho_uploader.file_utils import check_loading_status, get_biofile_informations, validate_json_input, wait_for_biofile
 from diagho_uploader.file_utils import get_biofile_type
 from diagho_uploader.file_utils import check_md5sum
 from diagho_uploader.file_utils import md5
@@ -206,3 +208,201 @@ sample_data = [
 def test_existing_file():
     result = get_biofile_informations(sample_data, "file2.vcf")
     assert result == {"filename": "file2.vcf", "checksum": "456"}
+    
+    
+    
+
+# Test pour un fichier JSON valide
+def test_validate_json_input_valid():
+    # Créer un fichier temporaire JSON valide
+    test_data = {
+        "families": [],
+        "files": [
+            {
+                "filename": "file1.bam",
+                "checksum": "abc123",
+                "assembly": "GRCh37",
+                "samples": [{"person": "person1"}]
+            }
+        ],
+        "interpretations": []
+    }
+    test_file = 'test_valid_config.json'
+    
+    with open(test_file, 'w', encoding='utf-8') as f:
+        json.dump(test_data, f, ensure_ascii=False, indent=4)
+    
+    # Appeler la fonction pour valider le fichier JSON
+    result = validate_json_input(test_file)
+    
+    # Vérifier si le résultat est correct
+    assert result == test_data, f"Expected {test_data}, but got {result}"
+    
+    # Supprimer le fichier temporaire après le test
+    os.remove(test_file)
+
+
+# Test pour un fichier JSON sans la clé 'families'
+def test_validate_json_input_missing_families(mock_logger):
+    test_data = {
+        "files": [
+            {
+                "filename": "file1.bam",
+                "checksum": "abc123",
+                "assembly": "GRCh37",
+                "samples": [{"person": "person1"}]
+            }
+        ],
+        "interpretations": []
+    }
+    test_file = 'test_missing_families.json'
+    with open(test_file, 'w', encoding='utf-8') as f:
+        json.dump(test_data, f, ensure_ascii=False, indent=4)
+
+    with pytest.raises(ValueError, match="Le fichier JSON doit contenir une clé 'families'."):
+        validate_json_input(test_file)
+    # Vérifier que le message de log a été appelé pour la clé manquante
+    mock_logger.error.assert_called_with(f"{os.path.basename(test_file)}- Le fichier JSON doit contenir une clé 'families'.")
+    os.remove(test_file)
+    
+# Test pour un fichier JSON sans la clé 'files'
+def test_validate_json_input_missing_files(mock_logger):
+    test_data = {
+        "families": [],
+        "interpretations": []
+    }
+    test_file = 'test_missing_files.json'
+    
+    with open(test_file, 'w', encoding='utf-8') as f:
+        json.dump(test_data, f, ensure_ascii=False, indent=4)
+    
+    with pytest.raises(ValueError, match="Le fichier JSON doit contenir une clé 'files'."):
+        validate_json_input(test_file)
+        
+    # Vérifier que le message de log a été appelé pour la clé manquante
+    mock_logger.error.assert_called_with(f"{os.path.basename(test_file)}- Le fichier JSON doit contenir une clé 'files'.")    
+    os.remove(test_file)
+    
+# Test pour un fichier JSON sans la clé 'interpretation'
+def test_validate_json_input_missing_interpretations(mock_logger):
+    test_data = {
+        "families": [],
+        "files": []
+    }
+    test_file = 'test_missing_interpretations.json'
+    
+    with open(test_file, 'w', encoding='utf-8') as f:
+        json.dump(test_data, f, ensure_ascii=False, indent=4)
+    
+    with pytest.raises(ValueError, match="Le fichier JSON doit contenir une clé 'interpretations'."):
+        validate_json_input(test_file)
+        
+    # Vérifier que le message de log a été appelé pour la clé manquante
+    mock_logger.error.assert_called_with(f"{os.path.basename(test_file)}- Le fichier JSON doit contenir une clé 'interpretations'.")    
+    os.remove(test_file)
+    
+# Test pour un fichier JSON avec des fichiers manquants de certaines clés requises
+def test_validate_json_input_missing_keys_in_file():
+    test_data = {
+        "families": [],
+        "files": [
+            {
+                "filename": "file1.bam",
+                "checksum": "abc123",
+                "assembly": "GRCh37"
+            }
+        ],
+        "interpretations": []
+    }
+    test_file = 'test_missing_keys_in_file.json'
+    with open(test_file, 'w', encoding='utf-8') as f:
+        json.dump(test_data, f, ensure_ascii=False, indent=4)
+    with pytest.raises(ValueError, match=re.escape("Clés manquantes: ['samples']")):
+        validate_json_input(test_file)
+    os.remove(test_file)
+    
+# Test pour un fichier JSON avec des échantillons invalides (liste vide)
+def test_validate_json_input_invalid_samples():
+    test_data = {
+        "families": [],
+        "files": [
+            {
+                "filename": "file1.bam",
+                "checksum": "abc123",
+                "assembly": "GRCh37",
+                "samples": []  # Liste vide, invalid
+            }
+        ],
+        "interpretations": []
+    }
+    test_file = 'test_invalid_samples.json'
+    with open(test_file, 'w', encoding='utf-8') as f:
+        json.dump(test_data, f, ensure_ascii=False, indent=4)
+    with pytest.raises(ValueError, match="'samples' doit être une liste non vide"):
+        validate_json_input(test_file)
+    os.remove(test_file)
+    
+
+def test_validate_json_input_invalid_samples_without_person():
+    test_data = {
+        "families": [],
+        "files": [
+            {
+                "filename": "file1.bam",
+                "checksum": "abc123",
+                "assembly": "GRCh37",
+                "samples": [{
+                    "name": "sample01"
+                    }]
+            }
+        ],
+        "interpretations": []
+    }
+    test_file = 'test_invalid_samples.json'
+    with open(test_file, 'w', encoding='utf-8') as f:
+        json.dump(test_data, f, ensure_ascii=False, indent=4)
+    with pytest.raises(ValueError, match="Clé 'person' manquante dans un sample du fichier 'file1.bam'."):
+        validate_json_input(test_file)
+    os.remove(test_file)
+    
+
+# Test pour un fichier JSON invalide (non JSON ou inexistant)
+def test_validate_json_input_invalid_json():
+    test_file = 'test_invalid_json.json'
+    with open(test_file, 'w', encoding='utf-8') as f:
+        f.write("This is not a valid JSON!")
+    with pytest.raises(ValueError, match="Erreur lors de la lecture du fichier JSON"):
+        validate_json_input(test_file)
+    os.remove(test_file)
+    
+    
+# @pytest.fixture
+# def mock_settings():
+#     """Fixture pour les paramètres de configuration."""
+#     return {
+#         "check_loading_max_retries": 3,
+#         "check_loading_delay": 1  # On mockera `time.sleep`, donc cette valeur n'affectera pas le test
+#     }
+    
+# @pytest.fixture
+# def mock_kwargs(mock_settings):
+#     """Fixture pour les arguments passés à la fonction."""
+#     return {
+#         "settings": mock_settings,
+#         "biofile_filename": "test_file"
+#     }
+    
+# @pytest.mark.parametrize("return_values, expected_result", [
+#     ([{"loading": 3}], True),          # Succès immédiat
+#     ([{"loading": 0}], False),         # Échec immédiat
+#     ([{"loading": 1}, {"loading": 1}, {"loading": 3}], True),  # Succès après plusieurs tentatives
+#     ([{"loading": 1}, {"loading": 1}, {"loading": 0}], False), # Échec après plusieurs tentatives
+#     ([{"loading": 1}, {"loading": 1}, {"loading": 1}, {"loading": 1}], None), # Dépassement max retries
+#     ([{"loading": 99}], None),         # Statut inconnu
+# ])
+
+# def test_check_loading_status(return_values, expected_result, mock_kwargs):
+#     """Test de check_loading_status avec différents scénarios."""
+#     with patch("diagho_uploader.api_handler.api_get_loadingstatus", side_effect=return_values), patch("time.sleep"):
+#         check_loading_status(0, **mock_kwargs)
+#         assert check_loading_status(0, **mock_kwargs) == expected_result
