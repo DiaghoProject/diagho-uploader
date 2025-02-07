@@ -84,7 +84,7 @@ source venv/bin/activate
 
 cd diagho_project
 
-nohup python main.py start_file_watcher
+nohup python main.py start_file_watcher &
 ```
 
 ## Usage
