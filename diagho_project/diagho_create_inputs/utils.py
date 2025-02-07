@@ -10,6 +10,7 @@ from datetime import datetime
 
 from common.logger_config import logger
 from common.log_utils import log_message
+from diagho_uploader.file_utils import md5
 
 class TSVValidationError(Exception):
     """Exception personnalisée pour les erreurs de validation TSV."""
@@ -50,12 +51,10 @@ def validate_tsv_headers(input_file, required_headers, encoding='latin1'):
             message = f"Missing required columns: {missing_headers}"
             log_message(function_name, "ERROR", f"Error: Missing required columns: {missing_headers}")
             raise TSVValidationError(message)
-            return False
         if unexpected_headers:
             message = f"Unexpected columns present: {unexpected_headers}"
             log_message(function_name, "ERROR", f"Warning: Unexpected columns present: {unexpected_headers}")
             raise TSVValidationError(message)
-            return False
         
         # Otherwise, return True indicating the headers are valid
         return True
@@ -82,7 +81,6 @@ def validate_tsv_columns(file_path, required_headers, encoding="utf-8"):
             message = f"Missing columns: {missing_columns}"
             log_message(function_name, "ERROR", f"Missing columns: {missing_columns}")
             raise TSVValidationError(message)
-            return False
 
         # Vérification des valeurs présentes dans chaque ligne
         for line_num, row in enumerate(reader, start=2):  # Start=2 car l'en-tête est à la ligne 1
@@ -92,7 +90,6 @@ def validate_tsv_columns(file_path, required_headers, encoding="utf-8"):
                         message = f"Valeur invalide dans la colonne '{col}' à la ligne {line_num}: {row[col]}"
                         log_message(function_name, "ERROR", f"Valeur invalide dans la colonne '{col}' à la ligne {line_num}: {row[col]}")
                         raise TSVValidationError(message)
-                        return False
                 
         # Si tout est bon
         log_message(function_name, "INFO", f"File '{file_path}' is valid.")
@@ -203,30 +200,30 @@ def write_JSON_file(data_dict, key_name, output_file, encoding='utf-8'):
     
     
     
-def md5(filepath):
-    """
-    Computes the MD5 hash of a file.
+# def md5(filepath):
+#     """
+#     Computes the MD5 hash of a file.
     
-    """
-    function_name = inspect.currentframe().f_code.co_name
-    hash_md5 = hashlib.md5()
-    try:
-        with open(filepath, 'rb') as f:
-            for chunk in iter(lambda: f.read(8192), b""):
-                hash_md5.update(chunk)
-        return hash_md5.hexdigest()
-    except FileNotFoundError:
-        error_msg = f"File not found: {filepath}"
-        log_message(function_name, "ERROR", error_msg)
-        raise
-    except IOError as e:
-        error_msg = f"IO error while reading {filepath}: {e}"
-        log_message(function_name, "ERROR", error_msg)
-        raise
-    except Exception as e:
-        error_msg = f"Unexpected error while computing MD5 for {filepath}: {e}"
-        log_message(function_name, "ERROR", error_msg)
-        raise
+#     """
+#     function_name = inspect.currentframe().f_code.co_name
+#     hash_md5 = hashlib.md5()
+#     try:
+#         with open(filepath, 'rb') as f:
+#             for chunk in iter(lambda: f.read(8192), b""):
+#                 hash_md5.update(chunk)
+#         return hash_md5.hexdigest()
+#     except FileNotFoundError:
+#         error_msg = f"File not found: {filepath}"
+#         log_message(function_name, "ERROR", error_msg)
+#         raise
+#     except IOError as e:
+#         error_msg = f"IO error while reading {filepath}: {e}"
+#         log_message(function_name, "ERROR", error_msg)
+#         raise
+#     except Exception as e:
+#         error_msg = f"Unexpected error while computing MD5 for {filepath}: {e}"
+#         log_message(function_name, "ERROR", error_msg)
+#         raise
 
 
 def get_or_compute_checksum(sample_data, sample_id, biofiles_directory=None):
@@ -263,6 +260,7 @@ def load_data_from_config_file(file):
     function_name = inspect.currentframe().f_code.co_name
     try: 
         if not os.path.exists(file):
+            log_message(function_name, "WARNING", f"File not found: {file}.")
             raise FileNotFoundError(f"File not found: {file}.")
         log_message(function_name, "INFO", f"Import 'excludeColumns' from file: {os.path.abspath(file)}")
         with open(file, "r", encoding="utf-8") as f:
