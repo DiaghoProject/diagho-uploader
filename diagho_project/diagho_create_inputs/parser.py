@@ -215,7 +215,8 @@ def diagho_create_json_families(input_file, output_file):
         sample_id = sample_data.get('sample', '')
         person_id = sample_data.get('person_id', '')
         family_id = sample_data.get('family_id', '')
-        sex = sample_data.get('sex', '').lower()
+        sex = sample_data.get('sex', '').strip().lower()
+        sex = {'m': 'male', 'f': 'female'}.get(sex, sex)
         last_name = sample_data.get('last_name', '')
         first_name = sample_data.get('first_name', '')
         date_of_birth = parse_date(sample_data.get('date_of_birth', ''))  # mettre la date au bon format
@@ -358,7 +359,13 @@ def diagho_create_json_interpretations(input_file, output_file, biofiles_directo
         if not biofile_type:
             log_message(function_name, "WARNING", f"Biofile_type is empty for sample: {sample_id} --> Default to 'SNV'.")
             biofile_type = "SNV"
-        project = sample_data.get('project', '').lower().replace(" ", "-")
+        
+        # Get project_slud from config file
+        project = sample_data.get('project', '')
+        with open("diagho_create_inputs/config_projects.json", "r", encoding="utf-8") as f:
+            project_mapping = json.load(f)
+        project_slug = project_mapping.get(project, project.lower().replace(" ", "-"))
+        
         priority = sample_data.get('priority', 2)
         is_affected = sample_data.get('is_affected', '')
         is_affected_boolean = (is_affected == "Affected" or str(is_affected) == "1" or is_affected == "true"  or is_affected == "True")
@@ -373,7 +380,7 @@ def diagho_create_json_interpretations(input_file, output_file, biofiles_directo
         # Crée le dictionnaire des interprétations
         interpretation = {
                 "indexCase": index_id,
-                "project": project,
+                "project": project_slug,
                 "title": interpretation_title,
                 "assignee": assignee,
                 "priority": priority,
