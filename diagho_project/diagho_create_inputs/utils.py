@@ -132,7 +132,7 @@ def validate_column_value(column_name, value):
     elif column_name == 'person_id':
         return value != ""
     elif column_name == 'sex':
-        allowed_sex = ['female', 'male', 'unknown']
+        allowed_sex = ['female', 'male', 'unknown', 'F', 'M']
         return value in allowed_sex
     elif column_name == 'is_affected':
         allowed_is_affected = ['0', '1']
