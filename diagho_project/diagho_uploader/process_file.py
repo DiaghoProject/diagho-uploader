@@ -84,7 +84,6 @@ def diagho_upload_file(**kwargs): # pragma: no cover
     except ValueError as e:
         send_mail_alert(recipients, f"Erreur de validation du fichier JSON: {json_filename}\n\n{e}")
         return
-        
     
     # Check Diagho API
     try:
