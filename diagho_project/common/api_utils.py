@@ -9,5 +9,6 @@ def get_api_endpoints(config):
         'post_biofile_snv': f"{url_diagho_api}bio_files/files/snv/",
         'post_biofile_cnv': f"{url_diagho_api}bio_files/files/cnv/",
         'loading_status': f"{url_diagho_api}bio_files/files/",
-        'post_config': f"{url_diagho_api}configurations/configurations/"
+        'post_config': f"{url_diagho_api}configurations/configurations/",
+        'get_project': f"{url_diagho_api}projects/projects/"
     }

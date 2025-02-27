@@ -41,6 +41,24 @@ def diagho_upload_file(**kwargs): # pragma: no cover
     # Get API endpoints
     diagho_api = get_api_endpoints(config)
     
+    # Check Diagho API
+    try:
+        api_healthcheck(diagho_api)
+    except ValueError as e:
+        send_mail_alert(recipients, f"API healthcheck error : {e}")
+        return
+    
+    # API login
+    try:
+        result = api_login(config, diagho_api)
+        if result.get("error"):
+            error_message = result.get("error")
+            send_mail_alert(recipients, f"API login error: {error_message} ")
+            return
+    except ValueError as e:
+        send_mail_alert(recipients, f"API login error: {e}")
+        return
+    
     # Si fichier d'input en TSV : créer le JSON
     if file_path.endswith(".tsv"):
         log_message(function_name, "INFO", f"Input file = TSV ... Need to create JSON file.")
@@ -54,7 +72,7 @@ def diagho_upload_file(**kwargs): # pragma: no cover
         output_file = os.path.join(output_directory, output_filename)
         output_prefix = os.path.splitext(os.path.basename(file_path))[0]
         try:
-            create_json_files(file_path, output_file, output_prefix)
+            create_json_files(file_path, output_file, diagho_api, output_prefix)
         except Exception as e:
             message = f"{e}"
             log_message(function_name, "ERROR", f"Erreur détectée: {e}.")
@@ -85,23 +103,23 @@ def diagho_upload_file(**kwargs): # pragma: no cover
         send_mail_alert(recipients, f"Erreur de validation du fichier JSON: {json_filename}\n\n{e}")
         return
     
-    # Check Diagho API
-    try:
-        api_healthcheck(diagho_api)
-    except ValueError as e:
-        send_mail_alert(recipients, f"API healthcheck error : {e}")
-        return
+    # # Check Diagho API
+    # try:
+    #     api_healthcheck(diagho_api)
+    # except ValueError as e:
+    #     send_mail_alert(recipients, f"API healthcheck error : {e}")
+    #     return
     
-    # API login
-    try:
-        result = api_login(config, diagho_api)
-        if result.get("error"):
-            error_message = result.get("error")
-            send_mail_alert(recipients, f"API login error: {error_message} ")
-            return
-    except ValueError as e:
-        send_mail_alert(recipients, f"API login error: {e}")
-        return
+    # # API login
+    # try:
+    #     result = api_login(config, diagho_api)
+    #     if result.get("error"):
+    #         error_message = result.get("error")
+    #         send_mail_alert(recipients, f"API login error: {error_message} ")
+    #         return
+    # except ValueError as e:
+    #     send_mail_alert(recipients, f"API login error: {e}")
+    #     return
     
     
     # Traitements parallèles :

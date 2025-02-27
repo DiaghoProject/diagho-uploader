@@ -32,6 +32,7 @@ from diagho_create_inputs.utils import *
 from common.config_loader import load_configuration
 from common.log_utils import log_message
 from common.mail_utils import *
+from diagho_project.diagho_uploader.api_handler import api_get_project_from_slug
 
 
 
@@ -43,7 +44,7 @@ sys.getdefaultencoding()
 
 
 
-def create_json_files(input_file, output_file, output_prefix="tmp", remove_tmp_files=True):
+def create_json_files(input_file, output_file, diagho_api, output_prefix="tmp", remove_tmp_files=True):
     """
     Creation of the JSON configuration file.
 
@@ -113,7 +114,7 @@ def create_json_files(input_file, output_file, output_prefix="tmp", remove_tmp_f
             
     # Interpretations
     try:
-        diagho_create_json_interpretations(output_json_simple, output_file_interpretations, path_biofiles)
+        diagho_create_json_interpretations(output_json_simple, output_file_interpretations, path_biofiles, diagho_api)
     except Exception as e:
         log_message(function_name, "ERROR", f"Erreur détectée dans 'diagho_create_json_interpretations': {e}")
         send_mail_alert(recipients, f"Erreur détectée dans 'diagho_create_json_biofiles': \n{e}")
@@ -328,7 +329,7 @@ def diagho_create_json_biofiles(input_file, output_file, biofiles_directory=None
     write_JSON_file(dict_biofiles, "files", output_file)
 
 
-def diagho_create_json_interpretations(input_file, output_file, biofiles_directory):
+def diagho_create_json_interpretations(input_file, output_file, biofiles_directory, diagho_api):
     """
     Crée un fichier JSON contenant les informations d'interprétation pour chaque famille.
 
@@ -360,11 +361,22 @@ def diagho_create_json_interpretations(input_file, output_file, biofiles_directo
             log_message(function_name, "WARNING", f"Biofile_type is empty for sample: {sample_id} --> Default to 'SNV'.")
             biofile_type = "SNV"
         
-        # Get project_slud from config file
+        # Get project_slug from config file
         project = sample_data.get('project', '')
         with open("diagho_create_inputs/config_projects.json", "r", encoding="utf-8") as f:
             project_mapping = json.load(f)
         project_slug = project_mapping.get(project, project.lower().replace(" ", "-"))
+
+        kwargs = {
+            "diagho_api": diagho_api,
+            "project_slug": project_slug,
+            }
+        project_exist = api_get_project_from_slug(**kwargs) # renvoie le slug du projet s'il existe
+        if not project_exist:
+            log_message(function_name, "ERROR", f"Error for sample '{sample_id}': project '{project}' does not exist.")
+            raise ValueError(f"Error for sample '{sample_id}': project '{project}' does not exist.")
+        # TODO #31 API : get project --> vérifier si le projet existe
+        
         
         priority = sample_data.get('priority', 2)
         is_affected = sample_data.get('is_affected', '')

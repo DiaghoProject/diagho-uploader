@@ -385,3 +385,36 @@ def check_api_response(response, **kwargs):
         send_mail_alert(recipients, alert_message)
         log_message(function_name, "ERROR", f"{os.path.basename(json_file)}: error in POST configuration")
         log_message(function_name, "ERROR", f"{json_response}")
+        
+        
+
+def api_get_project_from_slug(**kwargs):
+    """
+    Get project from slug. 
+    """
+    function_name = inspect.currentframe().f_code.co_name
+    
+    diagho_api = kwargs.get("diagho_api")
+    project_slug = kwargs.get("project_slug")
+    
+    access_token = get_access_token()
+    headers = {
+        'Authorization': f'Bearer {access_token}', 
+        'Accept': 'application/json'
+    }
+    
+    url = diagho_api['get_project']
+    url_with_params = f"{url}{project_slug}"
+    
+    try:
+        response = requests.get(url_with_params, headers=headers, verify=False)
+        response.raise_for_status()
+        slug = response.json().get('slug', [])
+        return slug
+
+    except requests.exceptions.RequestException as e:
+        return log_message(function_name, "ERROR", f"{str(e)}")
+    except json.JSONDecodeError:
+        return log_message(function_name, "ERROR", f"API response invalid")
+    except Exception as e:
+        return log_message(function_name, "ERROR", f"{str(e)}")
