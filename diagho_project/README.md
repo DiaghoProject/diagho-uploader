@@ -2,7 +2,7 @@
 
 ## Description
 
-Upload automatiqsé des fichiers **biofiles** (SNV, CNV) dans Diagho.
+Upload automatisé des fichiers **biofiles** (SNV, CNV) dans Diagho.
 
 
 
@@ -15,28 +15,28 @@ Upload automatiqsé des fichiers **biofiles** (SNV, CNV) dans Diagho.
 | **Colonne**              | **Description** |
 |--------------------------|----------------|
 | `filename`              | Nom du fichier VCF ou BED |
-| `checksum`              | Checksum du fichier |
+| `checksum`              | Checksum du fichier (optionnel) |
 | `file_type`             | Type de fichier : SNV ou CNV |
 | `assembly`              | Version du génome de référence utilisée : GRCh37 ou GRCh38 |
 | `sample`                | ID du sample |
-| `bam_path`              | Chemin du fichier BAM |
+| `bam_path`              | Chemin du fichier BAM (optionnel) |
 | `family_id`            | ID de la famille de l'échantillon |
 | `person_id`            | ID unique de l'induvidu |
 | `father_id`            | ID du père |
 | `mother_id`            | ID de la mère |
 | `sex`                  | Sexe de l'individu (`male`/`female`/`unknown`). |
 | `is_affected`          | Indique si l'individu est atteint (`1 = affecté`, `0 = non affecté`). |
-| `first_name`           | Prénom |
-| `last_name`            | Nom de famille |
+| `first_name`           | Prénom (optionnel) |
+| `last_name`            | Nom de famille (optionnel) |
 | `date_of_birth`        | Date de naissance (format `JJ/MM/AAAA`) |
-| `hpo`                  | Termes HPO associés |
+| `hpo`                  | Termes HPO associés (optionnel) |
 | `interpretation_title` | Titre de l'interprétation Diagho |
 | `is_index`             | Indique si l'individu est le cas index de la famille (`1 = oui`, `0 = non`). |
 | `project`              | Nom du projet |
-| `assignee`             | Utilisateur assignée à l'analyse (peut être vide) |
-| `priority`             | Niveau de priorité de l'analyse (ex. `1 = haute priorité`, `2 = normale`, etc.) |
-| `person_note`          | Notes ou remarques concernant l'individu |
-| `data_title`           | Titre des données de l'analyse |
+| `assignee`             | Utilisateur assignée à l'analyse (optionnel) |
+| `priority`             | Niveau de priorité de l'analyse (ex. `1 = haute priorité`, `2 = normale`, etc.) (défaut = 2) |
+| `person_note`          | Notes ou remarques concernant l'individu (optionnel) |
+| `data_title`           | Titre des données de l'analyse (optionnel) |
 
 
 ## Installation
@@ -59,12 +59,18 @@ pip install -r requirements.txt
 
 # Copy config file
 cp config/config.yaml.example config.yaml
-
 ```
 
 - Renseigner le fichier de config : `config.yaml`
 
-### Start uploader
+
+### Configurer les projets
+
+Modifier le fichier `diagho_project/diagho_create_inputs/config_projects.json` pour faire la correspondance entre les noms de projets et les slugs.
+
+
+
+## Start uploader
 
 ```
 # Activate python venv
