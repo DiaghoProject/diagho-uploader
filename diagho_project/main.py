@@ -13,30 +13,33 @@ from common.config_loader import *
 
 # Load configuration            
 def load_config(config_file):
-    """Chargement du fichier de configuration"""
+    """Chargement du fichier de configuration."""
     with open(config_file, 'r') as file:
         config = yaml.safe_load(file)
     return config
 
 # Create JSON file
 def run_create_inputs(input_file, output_file):
-    """
-    Céation du JSON à partir du TSV.
-    """
+    """Création du JSON à partir du TSV."""
     create_json_files(input_file, output_file)
 
 # Start file watcher
 def run_file_watcher(**kwargs):
-    """
-    Uploader les fichiers dans l'application.
-    """
-    path_input = kwargs.get("path_input")
-    path_backup = kwargs.get("path_backup")
-    path_biofiles = kwargs.get("path_biofiles")
-    config = kwargs.get("config")
-    config_file = kwargs.get("config_file")
+    """Uploader les fichiers dans l'application."""
+    kwargs = {
+            "path_input": kwargs.get("path_input"),
+            "path_biofiles": kwargs.get("path_biofiles"),
+            "path_backup": kwargs.get("path_backup"),
+            "config": kwargs.get("config"),
+            "config_file": kwargs.get("config_file")
+        }
+    # path_input = kwargs.get("path_input")
+    # path_backup = kwargs.get("path_backup")
+    # path_biofiles = kwargs.get("path_biofiles")
+    # config = kwargs.get("config")
+    # config_file = kwargs.get("config_file")
 
-    watch_directory(path_input, path_backup, path_biofiles, config, config_file)
+    watch_directory(**kwargs)
 
 # main
 def main():
@@ -59,7 +62,7 @@ def main():
 
     # Exécuter la fonction correspondante en fonction de la sous-commande passée en argument
     
-    # Create_inputs
+    # Create_inputs : ne sert plus ?
     if args.command == "create_inputs":
         try:
             input_file = args.input_file

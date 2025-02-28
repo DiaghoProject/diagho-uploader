@@ -65,11 +65,16 @@ def stop_watcher_on_signal(signum, frame): # pragma: no cover
 
 
 # Watcher
-def watch_directory(path_input, path_backup, path_biofiles, config, config_file): 
-    """
-    Surveille le répertoire spécifié et traite les fichiers JSON créés ou modifiés.
-    """
+def watch_directory(**kwargs): 
+    """Surveille le répertoire spécifié et traite les fichiers JSON créés ou modifiés."""
     function_name = inspect.currentframe().f_code.co_name
+    
+    # Get args
+    path_input = kwargs.get("path_input")
+    path_backup = kwargs.get("path_backup")
+    path_biofiles = kwargs.get("path_biofiles")
+    config = kwargs.get("config")
+    config_file = kwargs.get("config_file")
     
     previous_files = list_files(path_input)
     log_message(function_name, "INFO", f"Start watching directory: {path_input}")
@@ -125,7 +130,7 @@ def watch_directory(path_input, path_backup, path_biofiles, config, config_file)
                         except Exception as e:
                             log_message(function_name, "ERROR", f"Failed to process file: {os.path.basename(file_path)} - {e}")
 
-            # SI fichier modifié :
+            # Si fichier modifié :
             if modified_files:
                 for file in modified_files:
                     file_path = os.path.join(path_input, file)

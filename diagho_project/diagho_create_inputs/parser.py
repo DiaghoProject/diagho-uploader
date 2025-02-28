@@ -32,7 +32,7 @@ from diagho_create_inputs.utils import *
 from common.config_loader import load_configuration
 from common.log_utils import log_message
 from common.mail_utils import *
-from diagho_project.diagho_uploader.api_handler import api_get_project_from_slug
+from diagho_uploader.api_handler import api_get_project_from_slug
 
 
 
