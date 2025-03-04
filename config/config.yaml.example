@@ -28,6 +28,7 @@ diagho_api:
   username: ""
   password: ""
   url: "http://hostname:8080/api/v1/"
+  # allow_insecure: true 
 
 accessions:
   GRCh37: 1

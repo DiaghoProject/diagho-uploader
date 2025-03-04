@@ -104,6 +104,7 @@ def watch_directory(**kwargs):
             # Si nouveau fichier :
             if new_files:
                 for file in new_files:
+                    # TODO: gérer aussi .csv et .txt
                     if file.endswith(".json") or file.endswith(".tsv"): # prendre en compte uniquement les JSON ou TSV
                         file_path = os.path.join(path_input, file)
                         

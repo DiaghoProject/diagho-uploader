@@ -12,11 +12,13 @@ from common.log_utils import *
 
 # Problem SSL certificate
 import urllib3
-
 from common.mail_utils import *
+
+# TODO: si allow insecure = true alors tous les Verify=False
+# TODO: à tester
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-
+# TODO: log level
 
 
 
@@ -269,7 +271,7 @@ def api_post_biofile(**kwargs):
         log_message(function_name, "ERROR", f"{filename} - Error uploading biofile: {str(e)}")
         return {"error": f"Error uploading biofile: {str(e)}"}
     
-    
+# TODO: remplacer loading_status par get_biofiles
 def api_get_loadingstatus(**kwargs):
     """
     GET pour obtenir le loading_status du fichier (checksum).
@@ -287,7 +289,7 @@ def api_get_loadingstatus(**kwargs):
 
     # Construire l'URL avec le paramètre checksum
     url = diagho_api['loading_status']
-    url_with_params = f"{url}?checksum={checksum}"
+    url_with_params = f"{url}/?checksum={checksum}"
     
     try:
         response = requests.get(url_with_params, headers=headers, verify=False)

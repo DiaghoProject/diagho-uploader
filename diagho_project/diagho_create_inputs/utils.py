@@ -31,38 +31,38 @@ def remove_trailing_empty_lines(file_path, encoding):
         
         
         
-def validate_tsv_headers(input_file, required_headers, encoding='latin1'):
-    """
-    Validate the headers of a TSV file to ensure it contains all required columns.
-    """
-    function_name = inspect.currentframe().f_code.co_name
-    # Read only the headers (first row) from the TSV file
-    try:
-        df = pd.read_csv(input_file, delimiter='\t', encoding=encoding, nrows=0)
-        tsv_headers = list(df.columns)
+# def validate_tsv_headers(input_file, required_headers, encoding='latin1'):
+#     """
+#     Validate the headers of a TSV file to ensure it contains all required columns.
+#     """
+#     function_name = inspect.currentframe().f_code.co_name
+#     # Read only the headers (first row) from the TSV file
+#     try:
+#         df = pd.read_csv(input_file, delimiter='\t', encoding=encoding, nrows=0)
+#         tsv_headers = list(df.columns)
 
-        # Find missing columns
-        missing_headers = [header for header in required_headers if header not in tsv_headers]
+#         # Find missing columns
+#         missing_headers = [header for header in required_headers if header not in tsv_headers]
         
-        # Find unexpected columns
-        unexpected_headers = [header for header in tsv_headers if header not in required_headers]
+#         # Find unexpected columns
+#         # unexpected_headers = [header for header in tsv_headers if header not in required_headers]
         
-        if missing_headers:
-            message = f"Missing required columns: {missing_headers}"
-            log_message(function_name, "ERROR", f"Error: Missing required columns: {missing_headers}")
-            raise TSVValidationError(message)
-        if unexpected_headers:
-            message = f"Unexpected columns present: {unexpected_headers}"
-            log_message(function_name, "ERROR", f"Warning: Unexpected columns present: {unexpected_headers}")
-            raise TSVValidationError(message)
+#         if missing_headers:
+#             message = f"Missing required columns: {missing_headers}"
+#             log_message(function_name, "ERROR", f"Error: Missing required columns: {missing_headers}")
+#             raise TSVValidationError(message)
+#         # if unexpected_headers:
+#         #     message = f"Unexpected columns present: {unexpected_headers}"
+#         #     log_message(function_name, "ERROR", f"Warning: Unexpected columns present: {unexpected_headers}")
+#         #     raise TSVValidationError(message)
         
-        # Otherwise, return True indicating the headers are valid
-        return True
+#         # Otherwise, return True indicating the headers are valid
+#         return True
     
-    except Exception as e:
-        log_message(function_name, "ERROR", f"Error reading the file: {str(e)}")
-        raise TSVValidationError(f"Error reading the file: {str(e)}")
-        return False
+#     except Exception as e:
+#         log_message(function_name, "ERROR", f"Error reading the file: {str(e)}")
+#         raise TSVValidationError(f"Error reading the file: {str(e)}")
+#         return False
     
     
 def validate_tsv_columns(file_path, required_headers, encoding="utf-8"):
@@ -92,9 +92,8 @@ def validate_tsv_columns(file_path, required_headers, encoding="utf-8"):
                         raise TSVValidationError(message)
                 
         # Si tout est bon
-        log_message(function_name, "INFO", f"File '{file_path}' is valid.")
+        log_message(function_name, "DEBUG", f"File '{file_path}' is valid.")
         return True
-
 
 
 def validate_column_value(column_name, value):
@@ -148,9 +147,6 @@ def validate_column_value(column_name, value):
         return True  # Si aucune condition spécifique n'est définie, accepter par défaut
     
     
-    
-    
-    
 def parse_date(date_str):
     """
     Parses a date string in the format 'DD/MM/YYYY' and returns it in the format 'YYYY-MM-DD'.
@@ -197,33 +193,6 @@ def write_JSON_file(data_dict, key_name, output_file, encoding='utf-8'):
     with open(output_file, 'w', encoding=encoding) as f:
         json.dump({key_name: list(data_dict.values())}, f, ensure_ascii=False, indent=4)
     log_message(function_name, "SUCCESS", f"Write file: {output_file}")
-    
-    
-    
-# def md5(filepath):
-#     """
-#     Computes the MD5 hash of a file.
-    
-#     """
-#     function_name = inspect.currentframe().f_code.co_name
-#     hash_md5 = hashlib.md5()
-#     try:
-#         with open(filepath, 'rb') as f:
-#             for chunk in iter(lambda: f.read(8192), b""):
-#                 hash_md5.update(chunk)
-#         return hash_md5.hexdigest()
-#     except FileNotFoundError:
-#         error_msg = f"File not found: {filepath}"
-#         log_message(function_name, "ERROR", error_msg)
-#         raise
-#     except IOError as e:
-#         error_msg = f"IO error while reading {filepath}: {e}"
-#         log_message(function_name, "ERROR", error_msg)
-#         raise
-#     except Exception as e:
-#         error_msg = f"Unexpected error while computing MD5 for {filepath}: {e}"
-#         log_message(function_name, "ERROR", error_msg)
-#         raise
 
 
 def get_or_compute_checksum(sample_data, sample_id, biofiles_directory=None):
@@ -236,10 +205,10 @@ def get_or_compute_checksum(sample_data, sample_id, biofiles_directory=None):
 
     if not checksum:
         filename = sample_data.get("filename")
-        log_message(function_name, "WARNING", f"Sample: {sample_id} - Checksum not found for file: {filename}")
+        log_message(function_name, "INFO", f"Sample: {sample_id} - Checksum not found for file: {filename}")
 
         if biofiles_directory:
-            log_message(function_name, "WARNING", f"Sample: {sample_id} - Calculating MD5 for file: {filename}")
+            log_message(function_name, "DEBUG", f"Sample: {sample_id} - Calculating MD5 for file: {filename}")
             try:
                 file_path = os.path.join(biofiles_directory, filename)
                 checksum = md5(file_path)
@@ -253,8 +222,8 @@ def get_or_compute_checksum(sample_data, sample_id, biofiles_directory=None):
     return checksum
 
 
-
 # Charger un fichier json
+# TODO: A mettre dans config.yaml 
 def load_data_from_config_file(file):
     """Charge la configuration depuis un fichier JSON."""
     function_name = inspect.currentframe().f_code.co_name
@@ -262,7 +231,7 @@ def load_data_from_config_file(file):
         if not os.path.exists(file):
             log_message(function_name, "WARNING", f"File not found: {file}.")
             raise FileNotFoundError(f"File not found: {file}.")
-        log_message(function_name, "INFO", f"Import 'excludeColumns' from file: {os.path.abspath(file)}")
+        log_message(function_name, "DEBUG", f"Import 'excludeColumns' from file: {os.path.abspath(file)}")
         with open(file, "r", encoding="utf-8") as f:
             return json.load(f)
     except FileNotFoundError:

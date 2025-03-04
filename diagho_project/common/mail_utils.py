@@ -59,14 +59,16 @@ def send_mail(recipients: str, subject: str, content: str, config='config/config
 
 # Ces deux fonctions pour spécifier l'objet du mail
 def send_mail_alert(recipients: str, content: str):
-    function_name = inspect.currentframe().f_code.co_name
-    log_message(function_name, "WARNING", f"Send alert.")
-    subject = "[ALERT] Diagho-Uploader"
-    send_mail(recipients, subject, content)
+    if recipients:
+        function_name = inspect.currentframe().f_code.co_name
+        log_message(function_name, "WARNING", f"Send alert.")
+        subject = "[ALERT] Diagho-Uploader"
+        send_mail(recipients, subject, content)
 
     
 def send_mail_info(recipients: str, content: str):
-    function_name = inspect.currentframe().f_code.co_name
-    log_message(function_name, "INFO", f"Send info.")
-    subject = "[INFO] Diagho-Uploader"
-    send_mail(recipients, subject, content)
+    if recipients:
+        function_name = inspect.currentframe().f_code.co_name
+        log_message(function_name, "INFO", f"Send info.")
+        subject = "[INFO] Diagho-Uploader"
+        send_mail(recipients, subject, content)

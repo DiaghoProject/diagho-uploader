@@ -63,6 +63,7 @@ def main():
     # Exécuter la fonction correspondante en fonction de la sous-commande passée en argument
     
     # Create_inputs : ne sert plus ?
+    # TODO: à virer
     if args.command == "create_inputs":
         try:
             input_file = args.input_file

@@ -61,113 +61,113 @@ def log_biofile_message(logger_name, level, biofile_name, message):
 
 
 
-# INFO
-def log_info(logger_name, message):
-    """
-    Enregistre un message d'information dans les logs.
+# # INFO
+# def log_info(logger_name, message):
+#     """
+#     Enregistre un message d'information dans les logs.
 
-    Args:
-        logger_name (str): Nom du logger.
-        message (str): Message à enregistrer.
-    """
-    logging.getLogger(f"{logger_name}").info(f"{message}")
+#     Args:
+#         logger_name (str): Nom du logger.
+#         message (str): Message à enregistrer.
+#     """
+#     logging.getLogger(f"{logger_name}").info(f"{message}")
 
-def log_biofile_info(logger_name, biofile_name,  message):
-    """
-    Enregistre un message d'information pour un BIOFILE dans les logs.
+# def log_biofile_info(logger_name, biofile_name,  message):
+#     """
+#     Enregistre un message d'information pour un BIOFILE dans les logs.
 
-    Args:
-        logger_name (str): Nom du logger.
-        message (str): Message à enregistrer.
-    """
-    logging.getLogger(f"{logger_name}").info(f"{biofile_name} - {message}")
-
-
-# ERROR
-def log_error(logger_name, message):
-    """
-    Enregistre un message d'erreur dans les logs et le retourne sous forme de dictionnaire.
-
-    Args:
-        logger_name (str): Nom du logger.
-        message (str): Message d'erreur.
-
-    Returns:
-        dict: Contenant l'erreur.
-    """
-    logging.getLogger(f"{logger_name}").error(f"Error: {message}")
-    return {"error": message}
-
-def log_biofile_error(logger_name, biofile_name,message):
-    """
-    Enregistre un message d'erreur pour un BIOFILE dans les logs et le retourne sous forme de dictionnaire.
-
-    Args:
-        logger_name (str): Nom du logger.
-        message (str): Message d'erreur.
-
-    Returns:
-        dict: Contenant l'erreur.
-    """
-    logging.getLogger(f"{logger_name}").error(f"{biofile_name} - {message}")
-    return {"error": message}
+#     Args:
+#         logger_name (str): Nom du logger.
+#         message (str): Message à enregistrer.
+#     """
+#     logging.getLogger(f"{logger_name}").info(f"{biofile_name} - {message}")
 
 
-# WARNING
-def log_warning(logger_name, message):
-    """
-    Enregistre un message de warning dans les logs et le retourne sous forme de dictionnaire.
+# # ERROR
+# def log_error(logger_name, message):
+#     """
+#     Enregistre un message d'erreur dans les logs et le retourne sous forme de dictionnaire.
 
-    Args:
-        logger_name (str): Nom du logger.
-        message (str): Message d'erreur.
+#     Args:
+#         logger_name (str): Nom du logger.
+#         message (str): Message d'erreur.
 
-    Returns:
-        dict: Contenant l'erreur.
-    """
-    logging.getLogger(f"{logger_name}").warning(f"{message}")
-    return {"warning": message}
+#     Returns:
+#         dict: Contenant l'erreur.
+#     """
+#     logging.getLogger(f"{logger_name}").error(f"Error: {message}")
+#     return {"error": message}
 
-def log_biofile_warning(logger_name, biofile_name, message):
-    """
-    Enregistre un message de warning pour un BIOFILE dans les logs et le retourne sous forme de dictionnaire.
+# def log_biofile_error(logger_name, biofile_name,message):
+#     """
+#     Enregistre un message d'erreur pour un BIOFILE dans les logs et le retourne sous forme de dictionnaire.
 
-    Args:
-        logger_name (str): Nom du logger.
-        message (str): Message d'erreur.
+#     Args:
+#         logger_name (str): Nom du logger.
+#         message (str): Message d'erreur.
 
-    Returns:
-        dict: Contenant l'erreur.
-    """
-    logging.getLogger(f"{logger_name}").warning(f"{biofile_name} - {message}")
-    return {"warning": message}
+#     Returns:
+#         dict: Contenant l'erreur.
+#     """
+#     logging.getLogger(f"{logger_name}").error(f"{biofile_name} - {message}")
+#     return {"error": message}
 
 
-# SUCCESS
-def log_success(logger_name, message):
-    """
-    Enregistre un message de succès dans les logs et le retourne sous forme de dictionnaire.
+# # WARNING
+# def log_warning(logger_name, message):
+#     """
+#     Enregistre un message de warning dans les logs et le retourne sous forme de dictionnaire.
 
-    Args:
-        logger_name (str): Nom du logger.
-        message (str): Message d'erreur.
+#     Args:
+#         logger_name (str): Nom du logger.
+#         message (str): Message d'erreur.
 
-    Returns:
-        dict: Contenant l'erreur.
-    """
-    logging.getLogger(f"{logger_name}").success(f"{message}")
-    return {"warning": message}
+#     Returns:
+#         dict: Contenant l'erreur.
+#     """
+#     logging.getLogger(f"{logger_name}").warning(f"{message}")
+#     return {"warning": message}
 
-def log_biofile_success(logger_name, biofile_name, message):
-    """
-    Enregistre un message de succès pour un BIOFILE dans les logs et le retourne sous forme de dictionnaire.
+# def log_biofile_warning(logger_name, biofile_name, message):
+#     """
+#     Enregistre un message de warning pour un BIOFILE dans les logs et le retourne sous forme de dictionnaire.
 
-    Args:
-        logger_name (str): Nom du logger.
-        message (str): Message d'erreur.
+#     Args:
+#         logger_name (str): Nom du logger.
+#         message (str): Message d'erreur.
 
-    Returns:
-        dict: Contenant l'erreur.
-    """
-    logging.getLogger(f"{logger_name}").success(f"{biofile_name} - {message}")
-    return {"warning": message}
+#     Returns:
+#         dict: Contenant l'erreur.
+#     """
+#     logging.getLogger(f"{logger_name}").warning(f"{biofile_name} - {message}")
+#     return {"warning": message}
+
+
+# # SUCCESS
+# def log_success(logger_name, message):
+#     """
+#     Enregistre un message de succès dans les logs et le retourne sous forme de dictionnaire.
+
+#     Args:
+#         logger_name (str): Nom du logger.
+#         message (str): Message d'erreur.
+
+#     Returns:
+#         dict: Contenant l'erreur.
+#     """
+#     logging.getLogger(f"{logger_name}").success(f"{message}")
+#     return {"warning": message}
+
+# def log_biofile_success(logger_name, biofile_name, message):
+#     """
+#     Enregistre un message de succès pour un BIOFILE dans les logs et le retourne sous forme de dictionnaire.
+
+#     Args:
+#         logger_name (str): Nom du logger.
+#         message (str): Message d'erreur.
+
+#     Returns:
+#         dict: Contenant l'erreur.
+#     """
+#     logging.getLogger(f"{logger_name}").success(f"{biofile_name} - {message}")
+#     return {"warning": message}
