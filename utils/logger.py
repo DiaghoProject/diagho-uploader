@@ -9,13 +9,18 @@ config_file = "config/config.yaml"
 with open(config_file, "r") as file:
     config = yaml.safe_load(file)
 
-# Récupérer le log_directory depuis la config
-log_directory = config.get("log_directory", "logs")
-os.makedirs(log_directory, exist_ok=True)
+# Récupérer le répertoire des logs depuis la config
+LOG_DIRECTORY = config.get("logging", {}).get("log_directory", "logs")
+os.makedirs(LOG_DIRECTORY, exist_ok=True)
+
+# Récupérer les paramètres de rotation des logs depuis la config
+LOG_ROTATION_WHEN = config.get("logging", {}).get("log_rotation_when", "W0")
+LOG_ROTATION_INTERVAL = config.get("logging", {}).get("log_rotation_interval", 1)
+LOG_BACKUP_COUNT = config.get("logging", {}).get("log_backup_count", 52)
 
 # Chemin du fichier de log pour FILE_WATCHER
 log_filename = "diagho_uploader.log"
-log_file = os.path.join(log_directory, log_filename)
+log_file = os.path.join(LOG_DIRECTORY, log_filename)
 
 # Configuration du logger
 logger = logging.getLogger("FILE_WATCHER")
