@@ -63,9 +63,9 @@ def setup_logger(name, log_file, level=logging.INFO):
         # Handler pour la rotation des logs
         file_handler = TimedRotatingFileHandler(
             log_file, 
-            when="W0",              # W0 = chaque lundi
-            interval=1,             # Chaque semaine
-            backupCount=52,         # Conserver 52 semaines de logs (1 an)
+            when=LOG_ROTATION_WHEN,
+            interval=LOG_ROTATION_INTERVAL,
+            backupCount=LOG_BACKUP_COUNT,
             encoding="utf-8",
             delay=False
         )
@@ -91,9 +91,9 @@ if not logger.handlers:
         handlers=[
             TimedRotatingFileHandler(
                 log_file, 
-                when="W0",              # W0 = le lundi
-                interval=1,             # toute les semaine --> donc chaque lundi à minuit
-                backupCount=52,         # on conserve les 52 fichiers = 1 an
+                when=LOG_ROTATION_WHEN,
+                interval=LOG_ROTATION_INTERVAL,
+                backupCount=LOG_BACKUP_COUNT,
                 encoding="utf-8", 
                 delay=False),                                           # Rotation de logs
             logging.StreamHandler(sys.stdout),                          # Afficher les logs sur la console
