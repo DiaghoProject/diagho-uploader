@@ -13,19 +13,19 @@ from utils.logger import *
 import urllib3
 from utils.mail import *
 
-# TODO: si allow insecure = true alors tous les Verify=False
 # TODO: à tester
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-# TODO: log level
-
 # Charger le fichier de config
 # TODO est-ce que le fichier de config peut-être récupérer dynamiquement ?
-with open("config/config.yaml", "r") as file:
+config_file = "config/config.yaml"
+with open(config_file, "r") as file:
     config = yaml.safe_load(file)
     
-# Définir la variable globale (cf. config.yaml) 
-ALLOW_INSECURE = config.get("allow_insecure", False)  # Valeur par défaut : False
+# Définir la variable globale (cf. config.yaml)
+ALLOW_INSECURE = config.get("allow_insecure", False)
+# Si allow_insecure = true alors tous les Verify=False
+VERIFY = not ALLOW_INSECURE 
 
 def get_api_endpoints(config):
     """
@@ -39,12 +39,10 @@ def get_api_endpoints(config):
         'get_biofile': f"{url_diagho_api}bio_files/files",
         'post_biofile_snv': f"{url_diagho_api}bio_files/files/snv/",
         'post_biofile_cnv': f"{url_diagho_api}bio_files/files/cnv/",
-        'loading_status': f"{url_diagho_api}bio_files/files/",
         'post_config': f"{url_diagho_api}configurations/configurations/",
         'get_project': f"{url_diagho_api}projects/projects/"
     }
     # API 0.4.0
-    # TODO: remplacer loading_status par get_biofiles dans api_handler
     # url_diagho_api = config['diagho_api']['url'].removesuffix('/')
     # return {
     #     'healthcheck': f"{url_diagho_api}/healthcheck",
@@ -65,7 +63,7 @@ def api_healthcheck(diagho_api, exit_on_error=False):
     url = diagho_api['healthcheck']
     
     try:
-        response = requests.get(url, verify=False)
+        response = requests.get(url, verify=VERIFY)
         response.raise_for_status()
         return True # Succès
     except requests.exceptions.HTTPError as http_err:
@@ -169,7 +167,7 @@ def api_get_connected_user(**kwargs):
     headers = {'Authorization': f'Bearer {access_token}'}
     
     try:
-        response = requests.get(url, headers=headers, verify=False)
+        response = requests.get(url, headers=headers, verify=VERIFY)
         response.raise_for_status()
         user_data = response.json()
         if user_data.get('username') == config['diagho_api']['username']:
@@ -204,7 +202,7 @@ def api_post_login(**kwargs):
     
     for attempt in range(1, max_attempts + 1):
         try:
-            response = requests.post(url, headers=headers, json=payload, verify=False)
+            response = requests.post(url, headers=headers, json=payload, verify=VERIFY)
             response.raise_for_status()
             response_json = response.json()
             store_tokens(response_json)
@@ -276,7 +274,7 @@ def api_post_biofile(**kwargs):
     log_message(function_name, "DEBUG", f"{filename} - Test if Biofile is already uploaded.")
     
     try:
-        response = requests.get(url_with_params, headers=headers, verify=False)
+        response = requests.get(url_with_params, headers=headers, verify=VERIFY)
         response.raise_for_status()
         biofile_exist = response.json().get('count')
         if biofile_exist > 0:
@@ -291,7 +289,7 @@ def api_post_biofile(**kwargs):
     try:
         files = {'file': (filename, open(biofile, 'rb'), 'application/octet-stream')}
         url = get_url_post_biofile(biofile_type)
-        response = requests.post(url, headers=headers, files=files, data=data, verify=False)
+        response = requests.post(url, headers=headers, files=files, data=data, verify=VERIFY)
         response.raise_for_status()
         response_json = response.json()
         if isinstance(response_json, dict):
@@ -327,7 +325,7 @@ def api_get_loadingstatus(**kwargs):
     url_with_params = f"{url}/?checksum={checksum}"
     
     try:
-        response = requests.get(url_with_params, headers=headers, verify=False)
+        response = requests.get(url_with_params, headers=headers, verify=VERIFY)
         response.raise_for_status()
         results = response.json().get('results', [])
         if not results:
@@ -379,7 +377,7 @@ def api_post_config(**kwargs):
     # POST config
     try:
         url = diagho_api['post_config']
-        response = requests.post(url, headers=headers, json=json_data, verify=False)
+        response = requests.post(url, headers=headers, json=json_data, verify=VERIFY)
         response.raise_for_status()
         log_message(function_name, "INFO", f"JSON file '{file}' posted successfully.")
         return response
@@ -442,7 +440,7 @@ def api_get_project_from_slug(**kwargs):
     url_with_params = f"{url}{project_slug}"
     
     try:
-        response = requests.get(url_with_params, headers=headers, verify=False)
+        response = requests.get(url_with_params, headers=headers, verify=VERIFY)
         response.raise_for_status()
         slug = response.json().get('slug', [])
         return slug
