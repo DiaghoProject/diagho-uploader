@@ -15,6 +15,7 @@ from utils.tabulated_validator import *
 # Pour encodage fichiers de sortie
 sys.getdefaultencoding()
 
+
 def create_json_files(input_file, output_file, diagho_api, settings):
     """
     Creation of the JSON bulkCreation file.
@@ -35,7 +36,6 @@ def create_json_files(input_file, output_file, diagho_api, settings):
     # Load settings
     settings = load_configuration(config)
     path_biofiles = settings["path_biofiles"]
-    path_backup_data = settings["path_backup_data"]
     recipients = settings["recipients"]
     
     log_message(function_name, "DEBUG", f"Start create_json on file: {input_file}")
