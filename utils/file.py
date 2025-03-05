@@ -4,8 +4,8 @@ import json
 import os
 import time
 
+from utils.api import api_get_loadingstatus
 from utils.logger import *
-from diagho_uploader.api_handler import api_get_loadingstatus
 
 
 def get_biofile_informations(data, filename):
@@ -114,7 +114,7 @@ def check_loading_status(attempt, **kwargs):
     log_biofile_message(function_name, "DEBUG", biofile_filename, f"Loading initial status: {status}")
 
     # Plusieurs tentatives... Tant que le statut n'est pas 0 ou 3 (FAILURE ou SUCCESS)
-    while status not in [0, 3] and attempt < max_retries:
+    while status.lower() not in ["failure", "success"] and attempt < max_retries:
         log_biofile_message(function_name, "INFO", biofile_filename, f"Attempt {attempt + 1}: loading_status = {status} ... Retry...")
         time.sleep(delay)
         status = get_status()

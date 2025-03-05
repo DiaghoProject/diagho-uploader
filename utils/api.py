@@ -336,7 +336,7 @@ def api_get_loadingstatus(**kwargs):
             return {"error": "'loading' field not found in results"}
         
         # Retourner le statut
-        return {"loading": loading}
+        return {"loadingStatus": loading}
 
     except requests.exceptions.RequestException as e:
         log_message(function_name, "ERROR", f"{str(e)}")
