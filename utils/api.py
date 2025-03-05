@@ -17,9 +17,8 @@ from utils.mail import *
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # Charger le fichier de config
-# TODO est-ce que le fichier de config peut-être récupérer dynamiquement ?
-config_file = "config/config.yaml"
-with open(config_file, "r") as file:
+CONFIG_FILE = os.getenv("CONFIG_PATH", "config/config.yaml")
+with open(CONFIG_FILE, "r") as file:
     config = yaml.safe_load(file)
     
 # Définir la variable globale (cf. config.yaml)
