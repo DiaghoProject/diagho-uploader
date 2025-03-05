@@ -8,7 +8,7 @@ Upload automatisé des fichiers **biofiles** (SNV, CNV) dans Diagho.
 
 ## Pré-requis
 
-- Fichier TSV contenant les informations de chaque sample.
+- Fichier tabulé contenant les informations de chaque sample.
 - Colonnes attendues :
 
 
@@ -62,11 +62,6 @@ cp config/config.yaml.example config.yaml
 ```
 
 - Renseigner le fichier de config : `config.yaml`
-
-
-### Configurer les projets
-
-Modifier le fichier `diagho_project/diagho_create_inputs/config_projects.json` pour faire la correspondance entre les noms de projets et les slugs.
 
 
 
