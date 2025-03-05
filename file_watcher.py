@@ -6,7 +6,7 @@ import time
 import signal
 
 from utils.logger import *
-from .uploader import *
+from uploader import *
 
 # List files in directory
 def list_files(directory):
@@ -95,8 +95,7 @@ def watch_directory(**kwargs):
             # Si nouveau fichier ou ficher modifier :
             if new_files or modified_files:
                 for file in new_files:
-                    # TODO: gérer aussi .csv et .txt
-                    if file_path.endswith((".json", ".tsv", ".csv", ".txt")):
+                    if file.endswith((".json", ".tsv", ".csv", ".txt")):
                         file_path = os.path.join(path_input, file)
                         
                         log_message("NEW_FILE", "INFO", f"-----------------------------------------------------------------------------------------------")
@@ -115,8 +114,8 @@ def watch_directory(**kwargs):
                             }
                             diagho_upload_file(**kwargs)
 
-                            # Supprimer le fichier du répertoire 'input_data' après traitement
-                            remove_file(file_path)
+                            # # Supprimer le fichier du répertoire 'input_data' après traitement
+                            # remove_file(file_path)
                             log_message(function_name, "INFO", f"Back to file_watcher...\n")
 
                         except Exception as e:

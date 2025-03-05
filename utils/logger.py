@@ -9,6 +9,9 @@ config_file = "config/config.yaml"
 with open(config_file, "r") as file:
     config = yaml.safe_load(file)
 
+# Récupérer le niveau de logs du fichier de config (par défaut = INFO)
+LOG_LEVEL = config.get("logging", {}).get("log_level", "INFO")
+
 # Récupérer le répertoire des logs depuis la config
 LOG_DIRECTORY = config.get("logging", {}).get("log_directory", "logs")
 os.makedirs(LOG_DIRECTORY, exist_ok=True)
@@ -24,23 +27,10 @@ log_file = os.path.join(LOG_DIRECTORY, log_filename)
 
 # Configuration du logger
 logger = logging.getLogger("FILE_WATCHER")
-logger.setLevel(logging.INFO)
+logger.setLevel(LOG_LEVEL)
 
 
-
-
-# # Définition du niveau personnalisé SUCCESS
-# SUCCESS_LEVEL = 25
-# logging.addLevelName(SUCCESS_LEVEL, "SUCCESS")
-# # Fonction pour ajouter success() au logger
-# def success(self, message, *args, **kwargs):
-#     if self.isEnabledFor(SUCCESS_LEVEL):
-#         self._log(SUCCESS_LEVEL, message, args, **kwargs)
-# logging.Logger.success = success  # Ajout de la méthode au logger
-
-
-
-def setup_logger(name, log_file, level=logging.INFO):
+def setup_logger(name, log_file, level=LOG_LEVEL):
     """
     Creates and returns a logger with a specific file.
 
@@ -81,12 +71,12 @@ def setup_logger(name, log_file, level=logging.INFO):
 
     return logger
 
-# Utilisé pour les tests
+
 # Empêcher les handlers en double si le script est relancé
 if not logger.handlers:
     
     logging.basicConfig(
-        level=logging.INFO,                                             # Définir le niveau de log minimum
+        level=LOG_LEVEL,                                                # Définir le niveau de log minimum
         format="[%(asctime)s][%(levelname)s][%(name)s] %(message)s",    # Format du message
         handlers=[
             TimedRotatingFileHandler(

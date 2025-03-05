@@ -22,10 +22,12 @@ def wait_for_biofile(biofile, max_retries=100, delay=10):
     function_name = inspect.currentframe().f_code.co_name
     biofile_filename = os.path.basename(biofile)
 
+    # Biofile exists
     if os.path.exists(biofile):
         log_biofile_message(function_name, "INFO", biofile_filename, "Biofile found. Continue.")
         return True
     
+    # Biofile does not exist : wait and retry until max_retries
     for attempt in range(1, max_retries + 1):
         if os.path.exists(biofile):
             log_biofile_message(function_name, "INFO", biofile_filename, f"Biofile found. Continue.")
@@ -34,7 +36,7 @@ def wait_for_biofile(biofile, max_retries=100, delay=10):
         time.sleep(delay)
         
     log_biofile_message(function_name, "ERROR", biofile_filename, f"Biofile not found after {max_retries} attempt. Exit.")
-    return False  # Échec après toutes les tentatives
+    return False  # Fail after all attempts
 
 
 def get_biofile_type(biofile):

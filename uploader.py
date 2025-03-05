@@ -1,15 +1,13 @@
 import shutil
-import pandas as pd
 import os
 import time
-from concurrent.futures import ThreadPoolExecutor
 import concurrent.futures
-from datetime import datetime
 
 from tabulated2json import create_json_files
 from utils.api import *
 from utils.file import *
 from utils.config_loader import *
+from utils.json_validator import validate_json_input
 from utils.mail import *
 from utils.logger import *
 
@@ -20,9 +18,8 @@ def diagho_upload_file(**kwargs): # pragma: no cover
     """
     function_name = inspect.currentframe().f_code.co_name
     
-    # Args
+    # Arguments
     config = kwargs.get("config")
-    config_file = kwargs.get("config_file")
     file_path = kwargs.get("file_path")   
     
     log_message(function_name, "DEBUG", f"START UPLOADER : Input file: {file_path}")
@@ -57,32 +54,25 @@ def diagho_upload_file(**kwargs): # pragma: no cover
     if file_path.endswith((".tsv", ".csv", ".txt")):
         log_message(function_name, "INFO", f"Process tabulated file to create JSON.")
         
-        # Répertoire pour traitement 'create_json'
-        output_directory = os.path.join(os.path.dirname(file_path), "tsv2json")
+        # Fichier JSON à créer dans le sous-répertoire "json"
+        output_directory = os.path.join(os.path.dirname(file_path), "json")
         os.makedirs(output_directory, exist_ok=True)
-        
-        # Fichier JSON à créer
         output_filename = f"{os.path.splitext(os.path.basename(file_path))[0]}.json"
-        output_file = os.path.join(output_directory, output_filename)
-        output_prefix = os.path.splitext(os.path.basename(file_path))[0]
+        json_file = os.path.join(output_directory, output_filename)
         try:
-            create_json_files(file_path, output_file, diagho_api, output_prefix)
+            create_json_files(file_path, json_file, diagho_api, settings)
         except Exception as e:
             message = f"{e}"
             log_message(function_name, "ERROR", f"Erreur détectée: {e}.")
             send_mail_alert(recipients, message)
             return
         
-        # Valider que le JSON est bien écrit
-        if not os.path.exists(output_file):
-            log_message(function_name, "ERROR", f"JSON file not found: {output_file}")
-            raise FileNotFoundError(f"File not found: {output_file}.")
+        # Valider que le JSON est bien écrit pour continuer
+        if not os.path.exists(json_file):
+            log_message(function_name, "ERROR", f"JSON file not found: {json_file}")
+            raise FileNotFoundError(f"File not found: {json_file}.")
         
-        log_message(function_name, "DEBUG", f"File: {file_path} --> {output_file}")
-        
-        # Redéfinir les inputs pour la suite
-        # file_path = output_file
-        json_file = output_file
+        log_message(function_name, "DEBUG", f"File: {file_path} --> {json_file}")
         time.sleep(2)
         
     if file_path.endswith(".json"):
@@ -97,26 +87,7 @@ def diagho_upload_file(**kwargs): # pragma: no cover
         send_mail_alert(recipients, f"Erreur de validation du fichier JSON: {json_filename}\n\n{e}")
         return
     
-    # # Check Diagho API
-    # try:
-    #     api_healthcheck(diagho_api)
-    # except ValueError as e:
-    #     send_mail_alert(recipients, f"API healthcheck error : {e}")
-    #     return
-    
-    # # API login
-    # try:
-    #     result = api_login(config, diagho_api)
-    #     if result.get("error"):
-    #         error_message = result.get("error")
-    #         send_mail_alert(recipients, f"API login error: {error_message} ")
-    #         return
-    # except ValueError as e:
-    #     send_mail_alert(recipients, f"API login error: {e}")
-    #     return
-    
-    
-    # Traitements parallèles :
+    # Traitements parallèles
     futures = []
     with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
         
@@ -138,16 +109,16 @@ def diagho_upload_file(**kwargs): # pragma: no cover
         for future in concurrent.futures.as_completed(futures):
             if not future.result():  # Si une tâche a échoué : log + sortir du traitement
                 time.sleep(5)
-                log_message("PROCESS_BIOFILE", "ERROR", f"FAILED: one task failed, processing stopped. Exit.")
+                log_message(function_name, "ERROR", f"FAILED: one task failed, processing stopped. Exit.")
                 return
             
     # Tous les biofiles ont été traités.     
-    log_message("PROCESS_BIOFILE", "INFO", f"All biofiles have been loaded in Diagho: {filenames}")
+    log_message(function_name, "INFO", f"All biofiles have been loaded in Diagho: {filenames}")
 
     time.sleep(5)
     
     # Upload JSON file 
-    log_message("UPLOAD_JSON", "INFO", f"Upload JSON: {os.path.basename(json_file)}") 
+    log_message(function_name, "INFO", f"Upload JSON: {os.path.basename(json_file)}") 
     kwargs = {
         'diagho_api': diagho_api,
         'file': json_file,
@@ -164,12 +135,12 @@ def diagho_upload_file(**kwargs): # pragma: no cover
 # Gère le traitement d'un biofile
 def process_biofile_task(settings, biofile, biofile_infos, diagho_api): # pragma: no cover
     """
-    Traitement d'un fichier bio (VCF ou BED).
+    Process one biofile.
 
     Args:
-        settings (dict): paramétrages.
-        biofile (str): fichier VCF ou BED à traiter.
-        biofile_infos (dict): informations sur le biofile à traiter.
+        settings (dict): settings.
+        biofile (str): biofile name.
+        biofile_infos (dict): informations about the biofile.
         diagho_api (dict): endpoints.
     """
     function_name = inspect.currentframe().f_code.co_name
@@ -192,22 +163,21 @@ def process_biofile_task(settings, biofile, biofile_infos, diagho_api): # pragma
     # Biofile found
     log_biofile_message(function_name, "DEBUG", biofile_filename, f"Biofile found. Continue.")
         
-    # Get informations about biofile
+    # Get informations about the biofile
     try:
-        biofile_type = get_biofile_type(biofile)    # TODO: REVOIR CETTE PARTIE: commenta voir le biofile_type ??
+        biofile_type = get_biofile_type(biofile)
         assembly = biofile_infos["assembly"]
         accession_id = settings["accessions"][assembly]
     except ValueError as e:
         log_biofile_message(function_name, "ERROR", biofile_filename, f"{e}")
         send_mail_alert(settings["recipients"], f"{str(e)}")
         return False
-        
     
-    # Verifier le checksum du JSON et celui calculé du biofile
+    # Verifier le checksum fourni et celui calculé du biofile
     md5_biofile = md5(biofile)
     md5_from_json = biofile_infos.get("checksum")
     if not check_md5sum(md5_biofile, md5_from_json):
-        log_biofile_message(function_name, "ERROR", biofile_filename, f"MD5 checksum mismatch for biofile: {biofile_filename}.")
+        log_biofile_message(function_name, "ERROR", biofile_filename, f"MD5 checksum mismatch for biofile (TSV -> Calculated).")
         return False
     
     # Si checksum identiques : POST biofile
@@ -225,7 +195,7 @@ def process_biofile_task(settings, biofile, biofile_infos, diagho_api): # pragma
     
     # Vérifier que le checksum du biofile posté est le même que celui du biofile
     if not check_md5sum(checksum, md5_biofile):
-        log_biofile_message(function_name, "ERROR", biofile_filename, f"MD5 checksum mismatch for biofile: {biofile_filename}")
+        log_biofile_message(function_name, "ERROR", biofile_filename, f"MD5 checksum mismatch for biofile (Calculated -> biofile posted).")
         return False
     log_biofile_message(function_name, "DEBUG", biofile_filename, f"Checksums are identical. Continue.")
         
