@@ -113,15 +113,12 @@ def log_message(logger_name, level, message):
     """
     logger = logging.getLogger(logger_name)
 
-    # Log selon le niveau spécifié
     if level.upper() == 'INFO':
         logger.info(message)
     elif level.upper() == 'WARNING':
         logger.warning(message)
     elif level.upper() == 'ERROR':
         logger.error(message)
-    elif level.upper() == 'SUCCESS':
-        logger.success(message)
     elif level.upper() == 'DEBUG':
         logger.debug(message)
     else:
@@ -141,8 +138,6 @@ def log_biofile_message(logger_name, level, biofile_name, message):
         message (str): Message.
     """
     logger = logging.getLogger(logger_name)
-    
-    # Log selon le niveau spécifié
     log_message = f"{biofile_name} - {message}"
 
     if level.upper() == 'INFO':
@@ -151,8 +146,6 @@ def log_biofile_message(logger_name, level, biofile_name, message):
         logger.warning(log_message)
     elif level.upper() == 'ERROR':
         logger.error(log_message)
-    elif level.upper() == 'SUCCESS':
-        logger.success(log_message)
     elif level.upper() == 'DEBUG':
         logger.debug(log_message)
     else:
