@@ -94,8 +94,8 @@ def check_loading_status(attempt, **kwargs):
     Check the loadinfg status.
 
     Returns:
-        True : file is loaded (status 3)
-        False : loading failed (status 0)
+        True : file is loaded (status = 'success')
+        False : loading failed (status = 'failure')
         None : if number of attempts exceeded or status unknown
     """
     function_name = inspect.currentframe().f_code.co_name
@@ -126,10 +126,10 @@ def check_loading_status(attempt, **kwargs):
         return None
 
     # Vérifier les statuts finaux
-    if status == 3: # SUCCESS
+    if status.lower() == 'success': 
         log_biofile_message(function_name, "INFO", biofile_filename, f"Loading completed successfully.")
         return True
-    elif status == 0: # FAILURE
+    elif status.lower() == 'failure':
         log_biofile_message(function_name, "ERROR", biofile_filename, f"Loading failed.")
         return False
     else:

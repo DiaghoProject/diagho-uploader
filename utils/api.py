@@ -331,9 +331,9 @@ def api_get_loadingstatus(**kwargs):
             return {"error": "No results found in response"}
         
         # Récupérer le statut
-        loading = results[0].get('loading')
+        loading = results[0].get('loadingStatus')
         if loading is None:
-            return {"error": "'loading' field not found in results"}
+            return {"error": "'loadingStatus' field not found in results"}
         
         # Retourner le statut
         return {"loadingStatus": loading}
