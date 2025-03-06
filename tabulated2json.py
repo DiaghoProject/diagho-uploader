@@ -92,21 +92,21 @@ def create_json_files(input_file, output_file, diagho_api, settings):
     log_message(function_name, "INFO", f"Write JSON: {output_file}")
     
 
-def diagho_tsv2json(input_file, settings, encoding='utf-8'):
+def diagho_tsv2json(input_file, settings, encoding='latin1'):
     """
     Converts a TSV (Tab-Separated Values) file to a JSON file.
     """
     function_name = inspect.currentframe().f_code.co_name
-    recipients = settings["recipients"]
+    recipients = settings["recipients"]        
     
     log_message(function_name, "DEBUG", f"Processing input_file: {input_file}")
     
     # Remove empty rows
-    remove_trailing_empty_lines(input_file, encoding='utf-8')
-    
+    remove_trailing_empty_lines(input_file, encoding)
+        
     # Required columns (parsing will fail if missing one of them)
     required_headers = ['filename', 'checksum', 'file_type', 'sample', 'bam_path', 'family_id', 'person_id', 'father_id','mother_id', 'sex', 'is_affected', 'last_name', 'first_name', 'date_of_birth', 'hpo', 'interpretation_title', 'is_index', 'project', 'assignee', 'priority', 'person_note', 'assembly', 'data_title']
-
+        
     # Validate values in columns
     try:
         validate_tsv_columns(input_file, required_headers)
@@ -122,7 +122,7 @@ def diagho_tsv2json(input_file, settings, encoding='utf-8'):
         
     # Keep empty strings
     df = df.where(pd.notnull(df), "")
-
+    
     # Convert DataFrame to dictionary
     dict_final = df.to_dict(orient='index')
     
@@ -308,7 +308,17 @@ def get_interpretations(**kwargs):
             log_message(function_name, "ERROR", f"Error for sample '{sample_id}': project '{project}' does not exist.")
             raise ValueError(f"Error for sample '{sample_id}': project '{project}' does not exist.")        
         
-        priority = sample_data.get('priority', 2)
+        priority_tmp = sample_data.get('priority', 2)
+        
+        # priority mapping :
+        priority_mapping = {
+            "1": "low",
+            "2": "normal",
+            "3": "high",
+            "4": "highest"
+        }
+        priority = priority_mapping.get(priority_tmp, "")
+        
         is_affected = sample_data.get('is_affected', '')
         is_affected_boolean = (is_affected == "Affected" or str(is_affected) == "1" or is_affected == "true"  or is_affected == "True")
         assignee = sample_data.get('assignee', '')
