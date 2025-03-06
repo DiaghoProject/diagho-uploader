@@ -109,7 +109,7 @@ def check_loading_status(attempt, **kwargs):
     delay = settings["check_loading_delay"]
     
     def get_status():
-        return api_get_loadingstatus(**kwargs).get('loading')
+        return api_get_loadingstatus(**kwargs).get('loadingStatus')
 
     # Obtenir le statut de chargement initial
     status = get_status()
