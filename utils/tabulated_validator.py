@@ -126,18 +126,6 @@ def remove_empty_keys(d):
     return cleaned_dict
 
 
-
-# def write_JSON_file(data_dict, key_name, output_file, encoding='utf-8'):
-#     """
-#     Writes the values of a dictionary to a JSON file under a specified key.
-#     """
-#     function_name = inspect.currentframe().f_code.co_name
-#     # Fonction pour écrire le dictionnaire de données dans un fichier JSON
-#     with open(output_file, 'w', encoding=encoding) as f:
-#         json.dump({key_name: list(data_dict.values())}, f, ensure_ascii=False, indent=4)
-#     log_message(function_name, "SUCCESS", f"Write file: {output_file}")
-
-
 def get_or_compute_checksum(sample_data, sample_id, biofiles_directory=None):
     """
     Récupère le checksum d'un fichier depuis `sample_data` ou le calcule si nécessaire.
