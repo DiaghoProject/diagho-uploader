@@ -31,28 +31,28 @@ def get_api_endpoints(config):
     Returns the API endpoints from the configuration file.
     """
     url_diagho_api = config['diagho_api']['url']
-    return {
-        'healthcheck': f"{url_diagho_api}healthcheck",
-        'login': f"{url_diagho_api}auth/login/",
-        'get_user': f"{url_diagho_api}accounts/users/me",
-        'get_biofile': f"{url_diagho_api}bio_files/files",
-        'post_biofile_snv': f"{url_diagho_api}bio_files/files/snv/",
-        'post_biofile_cnv': f"{url_diagho_api}bio_files/files/cnv/",
-        'post_config': f"{url_diagho_api}configurations/configurations/",
-        'get_project': f"{url_diagho_api}projects/projects/"
-    }
-    # API 0.4.0
-    # url_diagho_api = config['diagho_api']['url'].removesuffix('/')
     # return {
-    #     'healthcheck': f"{url_diagho_api}/healthcheck",
-    #     'login': f"{url_diagho_api}/auth/login",
-    #     'get_user': f"{url_diagho_api}/users/me",
-    #     'get_biofile': f"{url_diagho_api}/bio-files",
-    #     'post_biofile_snv': f"{url_diagho_api}/bio-files/snv",
-    #     'post_biofile_cnv': f"{url_diagho_api}/bio-files/cnv",
-    #     'post_config': f"{url_diagho_api}/configurations,
-    #     'get_project': f"{url_diagho_api}/projects"
+    #     'healthcheck': f"{url_diagho_api}healthcheck",
+    #     'login': f"{url_diagho_api}auth/login/",
+    #     'get_user': f"{url_diagho_api}accounts/users/me",
+    #     'get_biofile': f"{url_diagho_api}bio_files/files",
+    #     'post_biofile_snv': f"{url_diagho_api}bio_files/files/snv/",
+    #     'post_biofile_cnv': f"{url_diagho_api}bio_files/files/cnv/",
+    #     'post_config': f"{url_diagho_api}configurations/configurations/",
+    #     'get_project': f"{url_diagho_api}projects/projects/"
     # }
+    # API 0.4.0
+    url_diagho_api = config['diagho_api']['url'].removesuffix('/')
+    return {
+        'healthcheck': f"{url_diagho_api}/healthcheck",
+        'login': f"{url_diagho_api}/auth/login/",
+        'get_user': f"{url_diagho_api}/users/me",
+        'get_biofile': f"{url_diagho_api}/bio-files",
+        'post_biofile_snv': f"{url_diagho_api}/bio-files/snv",
+        'post_biofile_cnv': f"{url_diagho_api}/bio-files/cnv",
+        'post_config': f"{url_diagho_api}/configurations",
+        'get_project': f"{url_diagho_api}/projects"
+    }
     
 def api_healthcheck(diagho_api, exit_on_error=False):
     """
@@ -125,22 +125,24 @@ def api_login(config, diagho_api):
     Handles the login process to the Diagho API.
     """
     function_name = inspect.currentframe().f_code.co_name
+    
     # Validate credentials
     username, password = validate_credentials(config)
         
     # Obtain the current access token
     access_token = get_access_token()
     
+    # Define arguments
     kwargs = {
         "access_token": access_token,
         "config": config,
         "diagho_api": diagho_api
     }
+    
     # If access_token not found : authentification
     if "error" in access_token:
         return api_post_login(**kwargs)
-    else:
-        # Access_token found
+    else:   # Access_token found
         # Check if the user is already logged in
         if api_get_connected_user(**kwargs):
             log_message(function_name, "DEBUG", f"User '{username}' already connected.")
@@ -193,9 +195,9 @@ def api_post_login(**kwargs):
     username = config['diagho_api']['username']
     password = config['diagho_api']['password']
     url = diagho_api['login']
-    
+
     headers = {'accept': '*/*', 'Content-Type': 'application/json'}
-    payload = {'username': username, 'password': password}
+    payload = {'identifier': username, 'password': password}
     
     max_attempts = 3
     
@@ -373,10 +375,19 @@ def api_post_config(**kwargs):
         log_message(function_name, "ERROR", f"Config file '{file}' is not valid JSON")
         return {"error": f"Config file '{file}' is not valid JSON"}
     
+    print("json_data:", json_data)
+    url = diagho_api['post_config']
+    print(url)
+    response = requests.post(url, headers=headers, json=json_data, verify=VERIFY)
+    print("status_code:", response.status_code)
+    print("response:", response.json())
+    
+    
     # POST config
     try:
         url = diagho_api['post_config']
         response = requests.post(url, headers=headers, json=json_data, verify=VERIFY)
+        print(response.json())
         response.raise_for_status()
         log_message(function_name, "INFO", f"JSON file '{file}' posted successfully.")
         return response
@@ -436,7 +447,7 @@ def api_get_project_from_slug(**kwargs):
     }
     
     url = diagho_api['get_project']
-    url_with_params = f"{url}{project_slug}"
+    url_with_params = f"{url}/{project_slug}"
     
     try:
         response = requests.get(url_with_params, headers=headers, verify=VERIFY)
