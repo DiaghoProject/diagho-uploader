@@ -85,7 +85,7 @@ def watch_directory(**kwargs):
                 send_mail_alert(recipients, "Diagho file_watcher has been stopped.")
                 break
             
-            time.sleep(5)  # Toutes les 5 secondes
+            time.sleep(5)
             current_files = list_files(path_input)
 
             # Comparer les fichiers créés et modifiés
@@ -114,8 +114,8 @@ def watch_directory(**kwargs):
                             }
                             diagho_upload_file(**kwargs)
 
-                            # # Supprimer le fichier du répertoire 'input_data' après traitement
-                            # remove_file(file_path)
+                            # Supprimer le fichier du répertoire 'input_data' après traitement
+                            remove_file(file_path)
                             log_message(function_name, "INFO", f"Back to file_watcher...\n")
 
                         except Exception as e:
