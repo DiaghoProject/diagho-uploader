@@ -98,7 +98,7 @@ def log_message(logger_name, level, message):
 
     Args:
         logger_name (str): logger name.
-        level (str): log level (INFO, WARNING, ERROR, SUCCESS, etc.).
+        level (str): log level (INFO, WARNING, ERROR, etc.).
         message (str): Message.
     """
     logger = logging.getLogger(logger_name)
@@ -123,7 +123,7 @@ def log_biofile_message(logger_name, level, biofile_name, message):
 
     Args:
         logger_name (str): logger name.
-        level (str): log level (INFO, WARNING, ERROR, SUCCESS, etc.).
+        level (str): log level (INFO, WARNING, ERROR, etc.).
         biofile_name (str): name of the biofile.
         message (str): Message.
     """
