@@ -69,40 +69,69 @@ cp config/config.yaml.example config.yaml
 
 ```
 # Activate python venv
-source venv/bin/activate
+=======
+- Compléter le fichier `config.yaml` :
+  - **input_data**: répertoire des fichiers JSON
+  - **input_biofiles**: répertoire des biofiles (VCF, BED...)
+  - **backup_data_files**: backup JSON (une fois chargé)
+  - **backup_biofiles**: backup biofiles (une fois chargé)
+  - **emails > recipients** : liste des adresses emails pour recevoir les mails d'info/alerte
+    - si plusieurs : `"user1@example.com,userb@example.com"`
+  - **diagho_api** : renseigner les informations de connexion à l'API
+  - **accessions** : indiquer l'ID d'accession pour GRCh37 et GRCh38
 
-cd diagho_project
 
-# Start file_watcher
-python main.py start_file_watcher
-```
 
-### Start in background
+<br>
+<br>
 
-```
-# Activate python venv
-source venv/bin/activate
+## Utilisation
 
-cd diagho_project
+### Pré-requis
 
-nohup python main.py start_file_watcher &
-```
+Créer 2 répertoires :
+- **input_biofiles** : va contenir les fichiers VCF et BED
+- **input_data** : va contenir les fichiers JSON (informations sur les échantillons)
 
-## Usage
+<br>
+<br>
 
-- Déposer les fichiers VCF/BED dans : `input_biofiles`
-- Déposer les fichiers TSV ou JSON dans : `input_data`
+### Etape 1 : création du fichier JSON d'input
 
-### Pipeline
+- Template TSV
+- Colonnes :
 
-- Si un fichier TSV est déposé : il va être converti en JSON
-- A partir du JSON : récupération des **biofiles** et import dans Diagho
-- Si tous les biofiles sont importés : chargement du JSON dans Diagho (création des familles et des interprétations)
+| Column name   | Content       |
+| ------------- | ------------- |
+| id            | identifiat unique  |
+| filename      | Nom du fichier (VCF ou BED) |
+| checksum	    | Checksum du fichier (optionnel) |
+| file_type     | **SNV** ou **CNV** |
+| assembly      | **GRCh37** ou **GRCh38** |
+| sample        | ID du sample |
+| bam_path      | Chemin du fichier bam |
+| family_id     | ID de la famille | 
+| person_id	    | ID du patient | 
+| father_id	    | ID père |
+| mother_id	    | ID mère |
+| sex           | **female** ou **male** ou **unknown** |
+| is_affected   | boolean : 0 , 1 |
+| first_name    | Prénom |
+| last_name     | Nom de famille | 
+| date_of_birth | Date de naissance | 
+| hpo           | Codes HPO (séparateur ` ; `) (optionnel) | 
+| interpretation_title | Titre de l'interprétation ; exemple `Family_ID (Cas_Index_ID)` |
+| is_index      | boolean : 0 , 1 |
+| project       | Nom du projet |
+| assignee      | Username de l'assigné (optionnel) | 
+| priority      | 0, 1, 2, 3, 4 (optionnel) |
+| person_note   | Texte (optionnel) |
+| data_title    | Titre de l'onglet de données SNV ou CNV (optionnel) |
 
-### Troubleshooting
 
-- Alertes par mail : renseigner les adresses email dans la config
-- Logs : définir le répertoire des logfiles dans la config
+- Création du fichier JSON :
+```bash
+
 
 
 
