@@ -39,8 +39,8 @@ def get_api_endpoints(config):
         'login': f"{url_diagho_api}/auth/login/",
         'get_user': f"{url_diagho_api}/users/me",
         'get_biofile': f"{url_diagho_api}/bio-files",
-        'post_biofile_snv': f"{url_diagho_api}/bio-files/snv",
-        'post_biofile_cnv': f"{url_diagho_api}/bio-files/cnv",
+        'post_biofile_snv': f"{url_diagho_api}/bio-files/snv/",
+        'post_biofile_cnv': f"{url_diagho_api}/bio-files/cnv/",
         'post_config': f"{url_diagho_api}/configurations/",
         'get_project': f"{url_diagho_api}/projects"
     }
