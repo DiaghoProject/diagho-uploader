@@ -1,32 +1,52 @@
-# diagho-uploader
+# Diagho Uploader
+
+## Description
+
+Upload automatisé des fichiers **biofiles** (SNV, CNV) dans Diagho.
 
 
-## Table des Matières
 
-1. [Installation](#installation)
+## Pré-requis
 
-2. [Utilisation](#utilisation)
+- Fichier tabulé contenant les informations de chaque sample.
+- Colonnes attendues :
 
-   2.1 [Création du fichier json d'input](#etape-1--création-du-fichier-json-dinput)
 
-   2.2 [Upload des fichiers dans Diagho](#etape-2--upload-des-fichiers-dans-diagho)
+| **Colonne**              | **Description** |
+|--------------------------|----------------|
+| `filename`              | Nom du fichier VCF ou BED |
+| `checksum`              | Checksum du fichier (optionnel) |
+| `file_type`             | Type de fichier : SNV ou CNV |
+| `assembly`              | Version du génome de référence utilisée : GRCh37 ou GRCh38 |
+| `sample`                | ID du sample |
+| `bam_path`              | Chemin du fichier BAM (optionnel) |
+| `family_id`            | ID de la famille de l'échantillon |
+| `person_id`            | ID unique de l'induvidu |
+| `father_id`            | ID du père |
+| `mother_id`            | ID de la mère |
+| `sex`                  | Sexe de l'individu (`male`/`female`/`unknown`). |
+| `is_affected`          | Indique si l'individu est atteint (`1 = affecté`, `0 = non affecté`). |
+| `first_name`           | Prénom (optionnel) |
+| `last_name`            | Nom de famille (optionnel) |
+| `date_of_birth`        | Date de naissance (format `JJ/MM/AAAA`) |
+| `hpo`                  | Termes HPO associés (optionnel) |
+| `interpretation_title` | Titre de l'interprétation Diagho |
+| `is_index`             | Indique si l'individu est le cas index de la famille (`1 = oui`, `0 = non`). |
+| `project`              | Nom du projet |
+| `assignee`             | Utilisateur assignée à l'analyse (optionnel) |
+| `priority`             | Niveau de priorité de l'analyse (ex. `1 = haute priorité`, `2 = normale`, etc.) (défaut = 2) |
+| `person_note`          | Notes ou remarques concernant l'individu (optionnel) |
+| `data_title`           | Titre des données de l'analyse (optionnel) |
 
-<br>
-<br>
 
 ## Installation
 
-### Pré-requis
-
-- Python 3.x
-
-### Installation
+- Cloner le repo
 
 ```bash
-
 git clone https://github.com/DiaghoProject/diagho-uploader.git
 
-cd diagho-uploader
+cd diagho-uploader/diagho_project
 
 # Create venv
 python -m venv venv
@@ -39,9 +59,17 @@ pip install -r requirements.txt
 
 # Copy config file
 cp config/config.yaml.example config.yaml
-
 ```
 
+- Renseigner le fichier de config : `config.yaml`
+
+
+
+## Start uploader
+
+```
+# Activate python venv
+=======
 - Compléter le fichier `config.yaml` :
   - **input_data**: répertoire des fichiers JSON
   - **input_biofiles**: répertoire des biofiles (VCF, BED...)
@@ -103,40 +131,7 @@ Créer 2 répertoires :
 
 - Création du fichier JSON :
 ```bash
-source venv/bin/activate
-
-BATCHID="RUN-001"                       # utilisé pour nommer les fichiers de sortie (généralement le nom du run)
-INPUT_FILE="path/to/input_file.tsv"     # ficher d'input TSV (selon le template défini)
-DIR_BIOFILES="path/to/input_biofiles"   # répertoire où sont stockés les VCFs et les BEDs
-OUTPUT_DIR="./output_json/${BATCHID}"   # répertoire de sortie
-OUTPUT_PREFIX="${BATCHID}"              # préfix fichier de sortie
-mkdir -p $OUTPUT_DIR
 
 
-python ./diagho-create-inputs/diagho-create-inputs.py \
-    --input_file $INPUT_FILE \
-    --output_directory $OUTPUT_DIR \
-    --output_prefix $OUTPUT_PREFIX \
-    --biofiles_directory $DIR_BIOFILES
 
-```
 
-- Déposer le fichier JSON créé dans le répertoire **input_data** pour la suite
-
-<br>
-<br>
-
-### Etape 2 : upload des fichiers dans Diagho
-
-- Le fichier json créé doit être déposé dans le répertoire **input_data**
-- **input_biofiles** doit contenir les fichiers VCF et BED
-
-```bash
-source venv/bin/activate
-
-python diagho-uploader/file_watcher.py 
-
-# ou :
-nohup python ./diagho-uploader/file_watcher.py &
-
-```

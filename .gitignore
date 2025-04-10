@@ -21,3 +21,4 @@ nohup.out
 app.log
 logs/
 tokens.json
+start_watcher.flag
