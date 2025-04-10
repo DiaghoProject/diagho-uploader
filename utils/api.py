@@ -31,16 +31,7 @@ def get_api_endpoints(config):
     Returns the API endpoints from the configuration file.
     """
     url_diagho_api = config['diagho_api']['url']
-    # return {
-    #     'healthcheck': f"{url_diagho_api}healthcheck",
-    #     'login': f"{url_diagho_api}auth/login/",
-    #     'get_user': f"{url_diagho_api}accounts/users/me",
-    #     'get_biofile': f"{url_diagho_api}bio_files/files",
-    #     'post_biofile_snv': f"{url_diagho_api}bio_files/files/snv/",
-    #     'post_biofile_cnv': f"{url_diagho_api}bio_files/files/cnv/",
-    #     'post_config': f"{url_diagho_api}configurations/configurations/",
-    #     'get_project': f"{url_diagho_api}projects/projects/"
-    # }
+    
     # API 0.4.0
     url_diagho_api = config['diagho_api']['url'].removesuffix('/')
     return {
@@ -50,7 +41,7 @@ def get_api_endpoints(config):
         'get_biofile': f"{url_diagho_api}/bio-files",
         'post_biofile_snv': f"{url_diagho_api}/bio-files/snv",
         'post_biofile_cnv': f"{url_diagho_api}/bio-files/cnv",
-        'post_config': f"{url_diagho_api}/configurations",
+        'post_config': f"{url_diagho_api}/configurations/",
         'get_project': f"{url_diagho_api}/projects"
     }
     
@@ -64,7 +55,7 @@ def api_healthcheck(diagho_api, exit_on_error=False):
     try:
         response = requests.get(url, verify=VERIFY)
         response.raise_for_status()
-        return True # Succès
+        return True
     except requests.exceptions.HTTPError as http_err:
         error_message = f"HTTP Error: {http_err}"
     except requests.exceptions.RequestException as req_err:
@@ -375,13 +366,7 @@ def api_post_config(**kwargs):
         log_message(function_name, "ERROR", f"Config file '{file}' is not valid JSON")
         return {"error": f"Config file '{file}' is not valid JSON"}
     
-    print("json_data:", json_data)
     url = diagho_api['post_config']
-    print(url)
-    response = requests.post(url, headers=headers, json=json_data, verify=VERIFY)
-    print("status_code:", response.status_code)
-    print("response:", response.json())
-    
     
     # POST config
     try:
