@@ -432,7 +432,7 @@ def api_get_project_from_slug(**kwargs):
     }
     
     url = diagho_api['get_project']
-    url_with_params = f"{url}/{project_slug}"
+    url_with_params = f"{url}/{project_slug}/"
     
     try:
         response = requests.get(url_with_params, headers=headers, verify=VERIFY)
