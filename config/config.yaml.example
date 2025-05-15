@@ -1,6 +1,6 @@
 input_data: "path/to/input/data"
 input_biofiles: "path/to/input/data"
-backup_data_files: "path/to/backup/data"
+backup_data: "path/to/backup/data"
 backup_biofiles: "path/to/backup/biofiles"
 
 check_biofile:
