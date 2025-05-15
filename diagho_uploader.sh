@@ -4,6 +4,7 @@ START=false
 STOP=false
 FORCE=false
 UPDATE=false
+DEBUG=false
 
 
 while [[ $# -gt 0 ]]; do
@@ -24,6 +25,10 @@ while [[ $# -gt 0 ]]; do
       UPDATE=true
       shift
       ;;
+    --debug)
+      DEBUG=true
+      shift
+      ;;
     *)
       echo "Option inconnue : $1"
       exit 1
@@ -32,21 +37,84 @@ while [[ $# -gt 0 ]]; do
 done
 
 
+#--------------
+
+# source venv
+source venv/bin/activate
+
 # Start watcher
 if [ "$START" = true ]; then
-  bash start_uploader.sh
+  echo "
+  #################################
+  #        START WATCHER          #
+  #################################
+  "
+  nohup python main.py start_file_watcher &
 fi
 
 # Stop watcher (+/- forcer l'arrêt du process)
 if [ "$STOP" = true ]; then
+  echo "
+  #################################
+  #        STOP WATCHER           #
+  #################################
+  "
+  CMD="python main.py start_file_watcher"
+  PID=$(pgrep -f "$CMD")
+
+  # Arrêt du watcher
+  touch stop_watcher.flag
+
   if [ "$FORCE" = true ]; then
-    bash stop_uploader.sh 1
-  else
-    bash stop_uploader.sh 0
+    echo "> FORCE"
+    echo " "
+    
+    echo "Process found with PID: $PID"
+    echo "Kill process..."
+
+    kill -9 $PID
+
+    echo "Process $PID terminated."
+
   fi
 fi
 
 # Update script from Github
 if [ "$UPDATE" = true ]; then
-  bash update.sh
+  
+  # Arrêt du watcher
+  echo "
+  #################################
+  #        STOP WATCHER           #
+  #################################
+  "
+  touch stop_watcher.flag
+
+  # Pull
+  echo "
+  #################################
+  #        UPDATE                 #
+  #################################
+  "
+  git pull
+
+  # Start watcher
+  echo "
+  #################################
+  #        START WATCHER          #
+  #################################
+  "
+  nohup python main.py start_file_watcher &
+
+fi
+
+# Debug mode (not started in background)
+if [ "$DEBUG" = true ]; then
+  echo "
+  #################################
+  #        START WATCHER          #
+  #################################
+  > DEBUG
+  "
+  python main.py start_file_watcher
 fi
