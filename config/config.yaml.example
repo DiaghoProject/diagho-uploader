@@ -28,6 +28,7 @@ smtp:
   from_email_format: "diagho-uploader-{hostname}@example.fr"
 
 logging:
+  log_level: "INFO"
   log_directory: "path/to/logs/folder"
   log_rotation_when: "W0"   # chaque lundi
   log_rotation_interval: 1  # intervalle
