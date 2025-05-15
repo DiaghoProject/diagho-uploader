@@ -49,7 +49,23 @@ if [ "$START" = true ]; then
   #        START WATCHER          #
   #################################
   "
-  nohup python main.py start_file_watcher &
+
+  # Debug mode (not started in background)
+  if [ "$DEBUG" = true ]; then
+
+    echo "
+    #################################
+    #        START WATCHER          #
+    #################################
+    > DEBUG
+    "
+    python main.py start_file_watcher
+  
+  else
+
+    nohup python main.py start_file_watcher &
+
+  fi
 fi
 
 # Stop watcher (+/- forcer l'arrêt du process)
@@ -106,15 +122,4 @@ if [ "$UPDATE" = true ]; then
   "
   nohup python main.py start_file_watcher &
 
-fi
-
-# Debug mode (not started in background)
-if [ "$DEBUG" = true ]; then
-  echo "
-  #################################
-  #        START WATCHER          #
-  #################################
-  > DEBUG
-  "
-  python main.py start_file_watcher
 fi
