@@ -1,5 +1,12 @@
 #!/bin/bash
 
+echo "
+#################################
+#        START WATCHER          #
+#################################
+
+"
+
 # source venv
 source venv/bin/activate
 
