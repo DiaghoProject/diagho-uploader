@@ -18,7 +18,7 @@ if [[ -n "$PID" ]]; then
     touch stop_watcher.flag
 
     # Forcer l'arrêt de l'uploader (si en cours d'upload)
-    if [[ "${FORCE:-}" == "force" ]]; then 
+    if [[ "${FORCE:-}" == 1 ]]; then 
         echo "Force stop uploader"
 
         echo "Process found with PID: $PID"

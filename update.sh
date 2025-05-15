@@ -1,6 +1,6 @@
 #!/bin/bash
 
-bash stop_uploader.sh
+bash stop_uploader.sh 0
 
 echo " "
 

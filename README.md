@@ -87,23 +87,29 @@ cp config/config.yaml.example config/config.yaml
 
 
 
-## Start uploader
+## Start watcher
 
 ```bash
-bash start_uploader.sh
+bash diagho_uploader --start
 ```
 
 
 
-## Stop uploader
+## Stop watcher
 
 ```bash
-bash stop_uploader.sh
+bash diagho_uploader --stop
+```
+
+### Forcer le stop de l'uploader (kill le process si en cours)
+
+```bash
+bash diagho_uploader --stop --force
 ```
 
 
 ## Update
 
 ```bash
-bash update.sh
+bash diagho_uploader --update
 ```
