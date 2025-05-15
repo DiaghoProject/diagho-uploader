@@ -1,3 +1,4 @@
+from datetime import datetime
 from pathlib import Path
 import time
 import os
@@ -23,8 +24,16 @@ def copy_file(file_path, target_directory):
     """Copy 'file_path' file to 'target_directory'."""
     function_name = inspect.currentframe().f_code.co_name
     Path(target_directory).mkdir(parents=True, exist_ok=True)
-    shutil.copy(file_path, target_directory)
-    log_message(function_name, "DEBUG", f"Copy file: {file_path} to: {target_directory}")
+    
+    # CLD-98: Add timestamp to filename
+    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+    file_name = Path(file_path).name
+    file_stem, file_ext = Path(file_name).stem, Path(file_name).suffix
+    new_file_name = f"{file_stem}_{timestamp}{file_ext}"
+    target_path = Path(target_directory) / new_file_name
+    
+    shutil.copy(file_path, target_path)
+    log_message(function_name, "DEBUG", f"Copy file: {file_path} to: {target_path}")
 
 # Remove file
 def remove_file(file_path):
