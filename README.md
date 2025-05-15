@@ -89,10 +89,16 @@ cp config/config.yaml.example config/config.yaml
 
 ## Start watcher
 
+### Start un background
 ```bash
 bash diagho_uploader.sh --start
 ```
 
+### Start in debug mode
+
+```bash
+bash diagho_uploader.sh --start --debug
+```
 
 ## Stop watcher
 
