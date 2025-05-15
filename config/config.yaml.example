@@ -1,5 +1,5 @@
 input_data: "path/to/input/data"
-input_biofiles: "path/to/input/data"
+input_biofiles: "path/to/input/biofiles"
 backup_data: "path/to/backup/data"
 backup_biofiles: "path/to/backup/biofiles"
 
@@ -14,6 +14,9 @@ check_loading:
 check_authent:
   max_retries: 5
   delay: 10
+
+settings:
+  max_workers: 4
 
 emails:
   recipients: "xxxx@example.fr"

@@ -35,6 +35,7 @@ def load_configuration(config):
         "get_biofile_delay": config['check_biofile']['delay'],
         "check_loading_max_retries": config['check_loading']['max_retries'],
         "check_loading_delay": config['check_loading']['delay'],
+        "max_workers": config['settings']['max_workers'],
         "accessions": config['accessions'],
         "excludeColumns": config['interpretations']['excludeColumns'],
         "projects": config['interpretations']['projects']

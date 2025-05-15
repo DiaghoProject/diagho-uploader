@@ -89,7 +89,8 @@ def diagho_upload_file(**kwargs): # pragma: no cover
     
     # Traitements parallèles
     futures = []
-    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+    max_workers = settings["max_workers"]
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
         
         # Get filenames of the biofiles
         biofiles = json_data["files"]
