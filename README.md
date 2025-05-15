@@ -100,3 +100,10 @@ bash start_uploader.sh
 ```bash
 bash stop_uploader.sh
 ```
+
+
+## Update
+
+```bash
+bash update.sh
+```
