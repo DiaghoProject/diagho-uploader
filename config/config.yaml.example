@@ -16,7 +16,7 @@ check_authent:
   delay: 10
 
 settings:
-  max_workers: 4
+  max_workers: 4  # This value should remain inferior or equal to MAXIMUM_CONCURRENT_TASKS settings in Diagho
 
 emails:
   recipients: "xxxx@example.fr"
