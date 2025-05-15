@@ -9,24 +9,27 @@ echo "
 
 FORCE=$1
 
-# Arrêt du watcher
-touch stop_watcher.flag
+CMD="python main.py start_file_watcher"
+PID=$(pgrep -f "$CMD")
 
-# Forcer l'arrêt de l'uploader (si en cours d'upload)
-if [[ "${FORCE:-}" == "force" ]]; then 
-    echo "Force stop uploader"
-    
-    CMD="python main.py start_file_watcher"
-    PID=$(pgrep -f "$CMD")
-    if [[ -n "$PID" ]]; then
+if [[ -n "$PID" ]]; then
+
+    # Arrêt du watcher
+    touch stop_watcher.flag
+
+    # Forcer l'arrêt de l'uploader (si en cours d'upload)
+    if [[ "${FORCE:-}" == "force" ]]; then 
+        echo "Force stop uploader"
+
         echo "Process found with PID: $PID"
         echo "Kill process..."
 
         kill -9 $PID
 
         echo "Process $PID terminated."
-
-    else
-        echo "No process found for: $CMD"
     fi
+
+else
+    echo "No process found for: $CMD"
 fi
+
