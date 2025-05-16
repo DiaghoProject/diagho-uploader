@@ -34,7 +34,7 @@ Upload automatisé des fichiers **biofiles** (SNV, CNV) et des informations pati
 | **is_index**             | Indique si l'individu est le cas index de la famille (`1 = oui`, `0 = non`). |
 | **project**              | Nom du projet |
 | **assignee**             | Utilisateur assignée à l'analyse (optionnel) |
-| **priority**             | Niveau de priorité de l'analyse (ex. `1 = low`, `2 = normal`, `3 = high`, etc.) (défaut = 2) |
+| **priority**             | Niveau de priorité de l'analyse (ex. `low`, `normal`, `high`) (défaut = `normal`) |
 | **person_note**          | Notes ou remarques concernant l'individu (optionnel) |
 | **data_title**           | Titre des données de l'analyse (optionnel) |
 
