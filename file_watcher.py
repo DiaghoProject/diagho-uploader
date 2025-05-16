@@ -134,4 +134,4 @@ def watch_directory(**kwargs):
             previous_files = current_files
 
     except KeyboardInterrupt:
-        print("Stop watching directory.")
+        log_message(function_name, "WARNING", f"KeyboardInterrupt. Stop watcher.")

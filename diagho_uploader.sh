@@ -5,6 +5,7 @@ STOP=false
 FORCE=false
 UPDATE=false
 DEBUG=false
+STATUS=false
 
 
 while [[ $# -gt 0 ]]; do
@@ -29,6 +30,10 @@ while [[ $# -gt 0 ]]; do
       DEBUG=true
       shift
       ;;
+    --status)
+      STATUS=true
+      shift
+      ;;
     *)
       echo "Option inconnue : $1"
       exit 1
@@ -42,6 +47,10 @@ done
 # source venv
 source venv/bin/activate
 
+# PID (pour tester si process actif)
+SCRIPT_NAME=$(basename "$0")
+PID_FILE="${SCRIPT_NAME}.pid"
+
 # Start watcher
 if [ "$START" = true ]; then
   echo "
@@ -49,6 +58,11 @@ if [ "$START" = true ]; then
   #        START WATCHER          #
   #################################
   "
+
+  if [ -f "$PID_FILE" ] && kill -0 "$(cat "$PID_FILE")" 2>/dev/null; then
+    echo "Le script est déjà en cours d'exécution avec le PID $(cat "$PID_FILE")."
+    exit 1
+  fi
 
   # Debug mode (not started in background)
   if [ "$DEBUG" = true ]; then
@@ -65,6 +79,10 @@ if [ "$START" = true ]; then
 
     nohup python main.py start_file_watcher &
 
+    # Ecrire le PID dans le fichier
+    echo $! > "$PID_FILE"
+    echo "Script lancé avec le PID $(cat "$PID_FILE")."
+
   fi
 fi
 
@@ -75,24 +93,21 @@ if [ "$STOP" = true ]; then
   #        STOP WATCHER           #
   #################################
   "
-  CMD="python main.py start_file_watcher"
-  PID=$(pgrep -f "$CMD")
 
-  # Arrêt du watcher
+  # Arrêt du watcher avec le flag
   touch stop_watcher.flag
 
-  if [ "$FORCE" = true ]; then
-    echo "> FORCE"
-    echo " "
-    
-    echo "Process found with PID: $PID"
-    echo "Kill process..."
-
-    kill -9 $PID
-
-    echo "Process $PID terminated."
-
+  # Si "force" : kill le process
+  if [ "$FORCE" = true ] && [ -f "$PID_FILE" ] && kill -0 "$(cat "$PID_FILE")" 2>/dev/null; then
+    PID=$(cat "$PID_FILE")
+    echo "Option --force activée. Arrêt forcé..."
+    kill "$PID"
+    echo "Processus $PID terminé de force."
   fi
+
+  # Suppression du fichier car plus de process actif
+  rm -f "$PID_FILE"
+
 fi
 
 # Update script from Github
@@ -121,5 +136,17 @@ if [ "$UPDATE" = true ]; then
   #################################
   "
   nohup python main.py start_file_watcher &
+
+fi
+
+# Status
+
+if [ "$STATUS" = true ]; then
+
+ if [ -f "$PID_FILE" ] && kill -0 "$(cat "$PID_FILE")" 2>/dev/null; then
+    echo "Le script est en cours d'exécution avec le PID $(cat "$PID_FILE")."
+  else
+    echo "Le script n'est pas en cours d'exécution."
+  fi
 
 fi
