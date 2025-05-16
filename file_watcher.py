@@ -76,11 +76,13 @@ def watch_directory(**kwargs):
     config = kwargs.get("config")
     config_file = kwargs.get("config_file")
     
-    previous_files = list_files(path_input)
-    log_message(function_name, "INFO", f"Start watching directory: {path_input}")
-    
     settings = load_configuration(config)
     recipients = settings["recipients"]
+        
+    previous_files = list_files(path_input)
+    
+    log_message(function_name, "INFO", f"Start watching directory: {path_input}")
+    send_mail_info(recipients,  f"Diagho file_watcher - Start watching directory: {path_input}")
     
     try:
         while True:
