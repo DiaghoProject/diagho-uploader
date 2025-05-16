@@ -1,0 +1,68 @@
+# Paths for input data and biofiles
+input_data: "path/to/input/data"
+input_biofiles: "path/to/input/biofiles"
+
+# Paths for backup directories
+backup_data: "path/to/backup/data"
+backup_biofiles: "path/to/backup/biofiles"
+
+# Configuration for biofiles checking
+check_biofile:
+  max_retries: 100      # Maximum number of retries
+  delay: 10             # Delay (in seconds) between each retry
+
+# Configuration for loading checks
+check_loading:
+  max_retries: 500      # Maximum number of retries
+  delay: 60             # Delay (in seconds) between each retry
+
+# Configuration for authentication checks
+check_authent:
+  max_retries: 5        # Maximum number of retries
+  delay: 10             # Delay (in seconds) between each retry
+
+# App settings
+settings:
+  max_workers: 4        # This value should remain inferior or equal to MAXIMUM_CONCURRENT_TASKS settings in Diagho
+
+# Email settings
+emails:
+  send_mail_flag: 1                 # Enables or disables email notifications. Set to 1 to enable, 0 to disable.
+  recipients: "xxxx@example.fr"     # Email addresses for notification recipients. For multiple addresses, separate with commas, e.g., "user1@example.fr,user2@example.fr"
+
+# SMTP server configuration
+smtp:
+  server: "servmail"
+  port: 25
+  use_tls: false
+  from_email_format: "diagho-uploader-{hostname}@example.fr"
+
+# Logging settings
+logging:
+  log_level: "INFO"                       # Default logging level (e.g., DEBUG, INFO, WARNING, ERROR)
+  log_directory: "path/to/logs/folder"    # Directory to store log files
+  log_rotation_when: "W0"                 # Rotation schedule: "W0" means every Monday
+  log_rotation_interval: 1                # Rotation interval (1 week in this case)
+  log_backup_count: 52                    # Number of log files to retain
+
+# Diagho API configuration
+diagho_api:
+  username: ""
+  password: ""
+  url: "http://hostname:8080/api/v1/"
+  allow_insecure: true                    # Allow insecure connections (e.g., HTTP instead of HTTPS)
+
+# Genome accessions mapping
+accessions:
+  GRCh37: 1             # ID in Diagho for GRCh37 reference genome
+  GRCh38: 2             # ID in Diagho for GRCh38 reference genome
+
+# Interpretation settings
+interpretations:
+  excludeColumns: [
+        "ad_allele_1", "ad_allele_2", "gt_allele_1", "gt_allele_2", "name", "gt_phased", "OLD_MULTIALLELIC", "OLD_VARIANT", "columns", "AC", "ADJAF", "AF", "AN", "AQ", "BaseQRankSum", "BIAS", "CALLER", "CIGAR", "CIPOS", "DB", "DP", "DUPRATE", "ExcessHet", "FS", "HIAF", "HICNT", "HICOV", "HOMLEN", "HOMSEQ", "LSEQ", "MLEAC", "MLEAF", "MQ", "MQRankSum", "MSI", "MSILEN", "NM", "ODDRATIO", "OLD_CLUMPED", "PMEAN", "PSTD", "QD", "QSTD", "QUAL", "ReadPosRankSum", "REFBIAS", "RSEQ", "SAMPLE", "SBF", "SHIFT3", "SN", "SOR", "SPANPAIR", "SPLITREAD", "SVLEN", "VARBIAS", "VD"
+        ]
+  # Mappings for Project name and slug
+  projects:
+    "Nom du projet Test 1": "test1-project-slug"
+    "Nom du projet Test 2": "test2-project-slug"

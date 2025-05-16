@@ -67,7 +67,7 @@ source venv/bin/activate
 pip install -r requirements.txt
 
 # Copy config file
-cp config/config.yaml.example config/config.yaml
+cp config/config.example.yaml config/config.yaml
 ```
 
 
@@ -78,7 +78,8 @@ cp config/config.yaml.example config/config.yaml
   - **input_biofiles** : répertoire d'input des biofiles (VCF, BED,...)
   - **backup_data** : backup fichiers TSV (une fois chargé)
   - **backup_biofiles**: backup biofiles (une fois chargé)
-  - **logging > log_directory** : répertoire des fichiers de logs
+  - **logging**
+    - **log_directory** : répertoire des fichiers de logs
   - **emails**
     - **recipients** : liste des adresses emails pour recevoir les mails d'info/alerte (si plusieurs : `"user1@example.com,user2@example.com"`)
     - **send_mail_flag** : mettre à `1` pour activer l'envoi de mail, sinon `0` pour désactiver
