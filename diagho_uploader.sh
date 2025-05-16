@@ -121,6 +121,8 @@ if [ "$UPDATE" = true ]; then
   "
   touch stop_watcher.flag
 
+  sleep 5
+
   # Pull
   echo "
   #################################
@@ -129,6 +131,8 @@ if [ "$UPDATE" = true ]; then
   "
   git pull
 
+  sleep 5
+
   # Start watcher
   echo "
   #################################
@@ -136,6 +140,10 @@ if [ "$UPDATE" = true ]; then
   #################################
   "
   nohup python main.py start_file_watcher &
+
+  # Ecrire le PID dans le fichier
+  echo $! > "$PID_FILE"
+  echo "Script lancé avec le PID $(cat "$PID_FILE")."
 
 fi
 
