@@ -13,7 +13,6 @@ from utils.logger import *
 import urllib3
 from utils.mail import *
 
-# TODO: à tester
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # Charger le fichier de config
