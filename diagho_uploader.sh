@@ -51,6 +51,9 @@ source venv/bin/activate
 SCRIPT_NAME=$(basename "$0")
 PID_FILE="${SCRIPT_NAME}.pid"
 
+DURATION=5
+INCREMENT=0.05
+
 # Start watcher
 if [ "$START" = true ]; then
   echo "
@@ -77,7 +80,8 @@ if [ "$START" = true ]; then
   
   else
 
-    nohup python main.py start_file_watcher &
+    nohup python main.py start_file_watcher > /dev/null 2>&1 &
+    disown
 
     # Ecrire le PID dans le fichier
     echo $! > "$PID_FILE"
@@ -115,31 +119,62 @@ if [ "$UPDATE" = true ]; then
   
   # Arrêt du watcher
   echo "
+
   #################################
   #        STOP WATCHER           #
   #################################
   "
   touch stop_watcher.flag
 
-  sleep 5
+  echo -n "["
+  ELAPSED=0
+  while (( $(echo "$ELAPSED < $DURATION" | bc -l) )); do
+    echo -n "#"
+    sleep "$INCREMENT"
+    ELAPSED=$(echo "$ELAPSED + $INCREMENT" | bc -l)
+  done
+  echo "] - Terminé !"
 
   # Pull
   echo "
+  
   #################################
   #        UPDATE                 #
   #################################
   "
   git pull
 
-  sleep 5
+  sleep 1
+
+  pip install -r requirements.txt
+
+  echo -n "["
+  ELAPSED=0
+  while (( $(echo "$ELAPSED < $DURATION" | bc -l) )); do
+    echo -n "#"
+    sleep "$INCREMENT"
+    ELAPSED=$(echo "$ELAPSED + $INCREMENT" | bc -l)
+  done
+  echo "] - Terminé !"
 
   # Start watcher
   echo "
+
   #################################
   #        START WATCHER          #
   #################################
   "
-  nohup python main.py start_file_watcher &
+  nohup python main.py start_file_watcher > /dev/null 2>&1 &
+  disown
+
+  echo -n "["
+  ELAPSED=0
+  while (( $(echo "$ELAPSED < $DURATION" | bc -l) )); do
+    echo -n "#"
+    sleep "$INCREMENT"
+    ELAPSED=$(echo "$ELAPSED + $INCREMENT" | bc -l)
+  done
+  echo "] - Terminé !"
 
   # Ecrire le PID dans le fichier
   echo $! > "$PID_FILE"
