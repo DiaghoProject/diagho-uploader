@@ -17,7 +17,7 @@ def get_send_mail_flag(config_path):
         config = yaml.safe_load(file)
     return config.get('emails', {}).get('send_mail_flag', 0)
 
-SEND_MAIL_FLAG = get_send_mail_flag()(CONFIG_FILE)
+SEND_MAIL_FLAG = get_send_mail_flag(CONFIG_FILE)
 
 def send_mail(recipients: str, subject: str, content: str, config=CONFIG_FILE):
     """
