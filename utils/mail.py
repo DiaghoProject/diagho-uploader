@@ -11,6 +11,14 @@ from utils.logger import *
 
 CONFIG_FILE = os.getenv("CONFIG_PATH", "config/config.yaml")
 
+def get_send_mail_flag(config_path):
+    """Get the value of 'send_mail_flag" in config."""
+    with open(config_path, 'r') as file:
+        config = yaml.safe_load(file)
+    return config.get('emails', {}).get('send_mail_flag', 0)
+
+SEND_MAIL_FLAG = get_send_mail_flag()(CONFIG_FILE)
+
 def send_mail(recipients: str, subject: str, content: str, config=CONFIG_FILE):
     """
     Sends an email.
@@ -62,15 +70,15 @@ def send_mail(recipients: str, subject: str, content: str, config=CONFIG_FILE):
         
 
 # Ces deux fonctions pour spécifier l'objet du mail par défaut : ALERT ou INFO
-def send_mail_alert(recipients: str, content: str):
-    if recipients:
+def send_mail_alert(recipients: str, content: str,send_mail_flag=SEND_MAIL_FLAG):
+    if send_mail_flag and recipients:
         function_name = inspect.currentframe().f_code.co_name
         log_message(function_name, "WARNING", f"Send alert.")
         subject = "[ALERT] Diagho-Uploader"
         send_mail(recipients, subject, content)
 
-def send_mail_info(recipients: str, content: str):
-    if recipients:
+def send_mail_info(recipients: str, content: str, send_mail_flag=SEND_MAIL_FLAG):
+    if send_mail_flag and recipients:
         function_name = inspect.currentframe().f_code.co_name
         log_message(function_name, "INFO", f"Send info.")
         subject = "[INFO] Diagho-Uploader"
