@@ -23,3 +23,4 @@ logs/
 tokens.json
 start_watcher.flag
 logs
+diagho_uploader.sh.pid
