@@ -225,7 +225,7 @@ def api_post_biofile(**kwargs):
     assembly = kwargs.get("assembly")
     accession_id = kwargs.get("accession_id")
     checksum = kwargs.get("checksum")
-    tabfiles_columns_index = settings["tabfiles_columns_index"]
+    # tabfiles_columns_index = settings["tabfiles_columns_index"]
     dedup = settings["dedup_biofiles"]
     
     # Récupérer l'info en fonction du type de biofile
@@ -233,7 +233,9 @@ def api_post_biofile(**kwargs):
         if biofile_type == "SNV":
             return {'accession': accession_id, 'dedup': dedup}
         elif biofile_type == "CNV":
-            return {'assembly': assembly, 'dedup': dedup, 'columnIndex': tabfiles_columns_index}
+            # TODO: fix column_index POST
+            # return {'assembly': assembly, 'dedup': dedup, 'columnIndex': tabfiles_columns_index}
+            return {'assembly': assembly, 'dedup': dedup}
         return None
     
     # Récupérer l'URL du POST en fonction du type de biofile

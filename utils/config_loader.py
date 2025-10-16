@@ -40,5 +40,5 @@ def load_configuration(config):
         "excludeColumns": config['interpretations']['excludeColumns'],
         "projects": config['interpretations']['projects'],
         "dedup_biofiles": config['dedup_biofiles'],
-        "tabfiles_columns_index": config['tabfiles_columns_index']
+        # "tabfiles_columns_index": config['tabfiles_columns_index']
     }
