@@ -326,6 +326,9 @@ def get_interpretations(**kwargs):
         interpretation_title = sample_data.get('interpretation_title', '')
         data_title = sample_data.get('data_title', '')
 
+        is_cohort = sample_data.get('is_cohort', '')
+        is_cohort_boolean = (str(is_cohort) == "1" or is_cohort == "true"  or is_cohort == "True")         
+
         # pretags to list
         pretags_raw = sample_data.get('pretags', '')
         if isinstance(pretags_raw, list):
@@ -354,7 +357,7 @@ def get_interpretations(**kwargs):
                 "priority": priority,
             }
         
-        v_data_tuple = (data_title or biofile_type, biofile_type, pretags, {
+        v_data_tuple = (data_title or biofile_type, biofile_type, pretags, is_cohort_boolean, {
             "name": sample_id,
             "isAffected": is_affected_boolean,
             "checksum": checksum,
@@ -396,12 +399,9 @@ def get_interpretations(**kwargs):
         datas_dict = {}
 
         # Créer les objets sample
-        for title, file_type, pretags, sample in interpretation["datas_tuples"]:
+        for title, file_type, pretags, is_cohort_boolean, sample in interpretation["datas_tuples"]:
             composite_key = (title, file_type)
 
-            is_cohort = sample_data.get('is_cohort', '')
-            is_cohort_boolean = (str(is_cohort) == "1" or is_cohort == "true"  or is_cohort == "True")            
-            
             # Charger les colonnes à exclure
             exclude_columns = settings['excludeColumns']
             if composite_key not in datas_dict:
