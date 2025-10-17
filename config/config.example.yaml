@@ -66,3 +66,6 @@ interpretations:
   projects:
     "Nom du projet Test 1": "test1-project-slug"
     "Nom du projet Test 2": "test2-project-slug"
+
+tabfiles_columns_index: {"1": "CHROM", "2": "START", "3": "END"}  # Index (base 1) of mandatory columns, here .bed as example 
+dedup_biofiles: true    # Remove duplicate variants in uploaded biofiles

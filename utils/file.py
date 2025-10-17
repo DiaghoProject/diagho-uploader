@@ -49,9 +49,16 @@ def get_biofile_type(biofile):
     Returns:
         str: 'SNV' ou 'CNV'
     """
+    cnv_exts = [
+        '.csv', '.tsv', '.psv', '.json', '.xml', '.xls', '.xlsx',
+        '.ods', '.dif', '.sylk', '.dbf', '.bed'
+    ]
+    cnv_exts_gz = [ext + '.gz' for ext in cnv_exts]
+    all_cnv_exts = cnv_exts + cnv_exts_gz
+
     if biofile.endswith('.vcf') or biofile.endswith('.vcf.gz'):
         return 'SNV'
-    elif biofile.endswith('.bed') or biofile.endswith('.tsv'):
+    elif any(biofile.endswith(ext) for ext in all_cnv_exts):
         return 'CNV'
     else:
         error_message = f"Unsupported biofile type for file: {biofile}"

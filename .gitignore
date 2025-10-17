@@ -24,3 +24,14 @@ tokens.json
 start_watcher.flag
 logs
 diagho_uploader.sh.pid
+
+# Biofiles and metadata files
+*.csv*
+*.tsv*
+*.vcf*
+
+# Prod directories
+/archives
+/biofiles
+/data
+/metadata

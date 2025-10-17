@@ -190,7 +190,9 @@ def process_biofile_task(settings, biofile, biofile_infos, diagho_api): # pragma
         "biofile_type": biofile_type,
         "assembly": assembly,
         "accession_id": accession_id,
-        "checksum": md5_biofile
+        "checksum": md5_biofile,
+        # TODO: check if necessary
+        # "dedup": settings['dedup_biofiles']
     }
     checksum = api_post_biofile(**kwargs).get("checksum")
     

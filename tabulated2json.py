@@ -105,7 +105,7 @@ def diagho_tsv2json(input_file, settings, encoding='latin1'):
     remove_trailing_empty_lines(input_file, encoding)
         
     # Required columns (parsing will fail if missing one of them)
-    required_headers = ['filename', 'checksum', 'file_type', 'sample', 'bam_path', 'family_id', 'person_id', 'father_id','mother_id', 'sex', 'is_affected', 'last_name', 'first_name', 'date_of_birth', 'hpo', 'interpretation_title', 'is_index', 'project', 'assignee', 'priority', 'person_note', 'assembly', 'data_title']
+    required_headers = ['filename', 'checksum', 'file_type', 'sample', 'bam_path', 'family_id', 'person_id', 'father_id','mother_id', 'sex', 'is_affected', 'last_name', 'first_name', 'date_of_birth', 'interpretation_title', 'is_index', 'project', 'assignee', 'priority', 'assembly', 'data_title']
         
     # Validate values in columns
     try:
@@ -231,7 +231,7 @@ def get_biofiles(**kwargs):
         bam_path = sample_data.get('bam_path', '')
         assembly = sample_data.get('assembly', '')
         filename = sample_data.get('filename', '')
-        
+        run = sample_data.get('run', '')
         
         # Get the checksum of the biofile or calculate it
         try:
@@ -255,7 +255,8 @@ def get_biofiles(**kwargs):
                 "filename": filename,
                 "samples": [dict_sample],
                 "checksum": checksum,
-                "assembly": assembly
+                "assembly": assembly,
+                "run": run,
             }
         else:
             # If the current biofile already exists, add the current sample
@@ -324,8 +325,27 @@ def get_interpretations(**kwargs):
         assignee = sample_data.get('assignee', '')
         interpretation_title = sample_data.get('interpretation_title', '')
         data_title = sample_data.get('data_title', '')
+
+        is_cohort = sample_data.get('is_cohort', '')
+        is_cohort_boolean = (str(is_cohort) == "1" or is_cohort == "true"  or is_cohort == "True")         
+
+        # pretags to list
+        pretags_raw = sample_data.get('pretags', '')
+        if isinstance(pretags_raw, list):
+            pretags = pretags_raw
+        elif isinstance(pretags_raw, str) and pretags_raw.strip():
+            try:
+                pretags = json.loads(pretags_raw)
+            except Exception:
+                try:
+                    pretags = yaml.safe_load(pretags_raw)
+                except Exception:
+                    pretags = []
+        else:
+            pretags = []
         
         # Get the checksum of the biofile or calculate it
+        # TODO: compute on load in case biofiles is uploaded after metadata file
         checksum = get_or_compute_checksum(sample_data, sample_id, biofiles_directory)
 
         # Create dictionnary
@@ -337,7 +357,7 @@ def get_interpretations(**kwargs):
                 "priority": priority,
             }
         
-        v_data_tuple = (data_title or biofile_type, biofile_type, {
+        v_data_tuple = (data_title or biofile_type, biofile_type, pretags, is_cohort_boolean, {
             "name": sample_id,
             "isAffected": is_affected_boolean,
             "checksum": checksum,
@@ -379,9 +399,9 @@ def get_interpretations(**kwargs):
         datas_dict = {}
 
         # Créer les objets sample
-        for title, file_type, sample in interpretation["datas_tuples"]:
+        for title, file_type, pretags, is_cohort_boolean, sample in interpretation["datas_tuples"]:
             composite_key = (title, file_type)
-            
+
             # Charger les colonnes à exclure
             exclude_columns = settings['excludeColumns']
             if composite_key not in datas_dict:
@@ -390,23 +410,15 @@ def get_interpretations(**kwargs):
                     "type": file_type,
                     "samples": [],
                     "excludeColumns" : exclude_columns,
-                    "pretags": []
+                    "pretags": pretags,
+                    "isCohort": is_cohort_boolean
                 }
                 
-            # Ajout des pretags en fonction du projet --> enlever depuis màj diagho
-            # set_pretags_by_project(interpretation, datas_dict, composite_key)
-            
             datas_dict[composite_key]["samples"].append(sample)
 
         del interpretation["datas_tuples"]
         interpretation["datas"] = list(datas_dict.values())
         
-        # Supprimer 'pretags' si aucun pretag
-        for data in interpretation["datas"]:
-            if "pretags" in data:
-                if all(not tag.get("tag") and not tag.get("filter") for tag in data["pretags"]):
-                    del data["pretags"]
-                    
     dict_interpretations = remove_empty_keys(dict_interpretations)    
     list_interpretations = [value for value in dict_interpretations.values()]
     return list_interpretations

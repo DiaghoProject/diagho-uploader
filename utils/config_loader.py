@@ -38,5 +38,7 @@ def load_configuration(config):
         "max_workers": config['settings']['max_workers'],
         "accessions": config['accessions'],
         "excludeColumns": config['interpretations']['excludeColumns'],
-        "projects": config['interpretations']['projects']
+        "projects": config['interpretations']['projects'],
+        "dedup_biofiles": config['dedup_biofiles'],
+        # "tabfiles_columns_index": config['tabfiles_columns_index']
     }
