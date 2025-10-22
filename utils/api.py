@@ -161,7 +161,7 @@ def api_get_connected_user(**kwargs):
         response = requests.get(url, headers=headers, verify=VERIFY)
         response.raise_for_status()
         user_data = response.json()
-        if user_data.get('username') == config['diagho_api']['username']:
+        if user_data.get('id') is not None:
             return True
         else:
             return False
@@ -268,6 +268,17 @@ def api_post_biofile(**kwargs):
     url_with_params = f"{url_get_biofile}/?checksum={checksum}"
     log_message(function_name, "DEBUG", f"{filename} - Test if Biofile is already uploaded.")
     
+    # Check authentication
+    try:
+        result = api_login(config, diagho_api)
+        if result.get("error"):
+            error_message = result.get("error")
+            log_message(function_name, "ERROR", f"{str(error_message)}")
+            return
+    except ValueError as e:
+        log_message(function_name, "ERROR", f"{str(e)}")
+        return
+    
     try:
         response = requests.get(url_with_params, headers=headers, verify=VERIFY)
         response.raise_for_status()
@@ -318,6 +329,17 @@ def api_get_loadingstatus(**kwargs):
     # Construire l'URL avec le paramètre checksum
     url = diagho_api['get_biofile']
     url_with_params = f"{url}/?checksum={checksum}"
+
+    # Check authentication
+    try:
+        result = api_login(config, diagho_api)
+        if result.get("error"):
+            error_message = result.get("error")
+            log_message(function_name, "ERROR", f"{str(error_message)}")
+            return
+    except ValueError as e:
+        log_message(function_name, "ERROR", f"{str(e)}")
+        return
     
     try:
         response = requests.get(url_with_params, headers=headers, verify=VERIFY)
@@ -370,6 +392,17 @@ def api_post_config(**kwargs):
         return {"error": f"Config file '{file}' is not valid JSON"}
     
     url = diagho_api['post_config']
+
+    # Check authentication
+    try:
+        result = api_login(config, diagho_api)
+        if result.get("error"):
+            error_message = result.get("error")
+            log_message(function_name, "ERROR", f"{str(error_message)}")
+            return
+    except ValueError as e:
+        log_message(function_name, "ERROR", f"{str(e)}")
+        return
     
     # POST config
     try:
@@ -436,6 +469,17 @@ def api_get_project_from_slug(**kwargs):
     
     url = diagho_api['get_project']
     url_with_params = f"{url}/{project_slug}/"
+
+    # Check authentication
+    try:
+        result = api_login(config, diagho_api)
+        if result.get("error"):
+            error_message = result.get("error")
+            log_message(function_name, "ERROR", f"{str(error_message)}")
+            return
+    except ValueError as e:
+        log_message(function_name, "ERROR", f"{str(e)}")
+        return
     
     try:
         response = requests.get(url_with_params, headers=headers, verify=VERIFY)
