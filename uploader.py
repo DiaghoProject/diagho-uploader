@@ -204,7 +204,7 @@ def process_biofile_task(settings, biofile, biofile_infos, diagho_api): # pragma
         
     # check le statut de chargement
     # TODO: à tester avec la 0.4.0 et remove
-    time.sleep(20) # nécessaire pour l'instant car bug initial (statut en FAILURE)
+    time.sleep(3) # nécessaire pour l'instant car bug initial (statut en FAILURE)
     
     attempt = 1
     loading_status = check_loading_status(attempt, **kwargs)
