@@ -1,37 +1,17 @@
 from collections import OrderedDict
 from typing import List, Dict, Any, Tuple
-from models import TsvRow, HardValidationError, PretagItem
+from schemas import TsvRow, HardValidationError, PretagItem
 import logging
 
 logger = logging.getLogger("uploader_v2")
 
+# To change for batch interpretations
 def ensure_single_index(interp_rows: List[TsvRow], title: str):
     indexes = list(set((r.person_id, r.is_index) for r in interp_rows if r.is_index))
-    print(indexes)
     if len(indexes) > 1:
         raise HardValidationError(f"Interpretation '{title}' has multiple index cases: {indexes}")
     if len(indexes) == 0:
         raise HardValidationError(f"Interpretation '{title}' has no index case (required)")
-
-def validate_pretags_list(raw):
-    if raw is None:
-        return None
-    validated = []
-    for item in raw:
-        if not isinstance(item, dict):
-            logger.warning("Pretag item not a dict, dropping it")
-            continue
-        if "tag_id" not in item or "filter_id" not in item:
-            logger.warning("Pretag missing tag_id or filter_id, dropping it")
-            continue
-        try:
-            tag_id = int(item["tag_id"])
-            filter_id = int(item["filter_id"])
-        except Exception:
-            logger.warning("Pretag tag_id/filter_id not int, dropping it")
-            continue
-        validated.append({"tag_id": tag_id, "filter_id": filter_id})
-    return validated or None
 
 def build_families(rows: List[TsvRow]) -> List[Dict[str, Any]]:
     families: Dict[str, Dict[str, Any]] = {}
@@ -103,7 +83,7 @@ def build_interpretations(rows: List[TsvRow]) -> List[Dict[str, Any]]:
             samp = {"name": r.sample, "isAffected": bool(r.is_affected), "checksum": r.checksum}
             data["samples"].append(samp)
             if data["pretags"] is None and r.pretags is not None:
-                data["pretags"] = validate_pretags_list(r.pretags)
+                data["pretags"] = [p.model_dump() for p in r.pretags]
             if r.is_cohort:
                 data["isCohort"] = True
         info["datas"] = list(info["datas"].values())
@@ -117,8 +97,11 @@ def build_payload(rows: List[TsvRow]) -> Dict[str, Any]:
         if key in mapping and mapping[key] != r.person_id:
             raise HardValidationError(f"Sample+checksum {key} mapped to multiple persons: {mapping[key]} vs {r.person_id} at line {r._line}")
         mapping[key] = r.person_id
-    return {
+
+    payload = {
         "families": build_families(rows),
         "files": build_files(rows),
         "interpretations": build_interpretations(rows)
     }
+
+    return payload

@@ -1,6 +1,7 @@
 import csv
 from typing import List
-from models import TsvRow
+from builder import build_payload
+from schemas import TsvRow
 import logging
 
 logger = logging.getLogger("uploader_v2")
@@ -18,5 +19,6 @@ def parse_tsv_text(tsv_text: str) -> List[TsvRow]:
             rows.append(r)
         except Exception as e:
             raise ValueError(f"TSV parse error at line {i}: {e}") from e
-    print(rows)
-    return rows
+    
+    # return rows
+    return build_payload(rows)
