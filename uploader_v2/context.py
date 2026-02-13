@@ -12,6 +12,4 @@ class Context:
     files_dir: Path
     archives_dir: Path
 
-    # poll_interval: int
-
     # logger: object  # replace with logging.Logger if you want
