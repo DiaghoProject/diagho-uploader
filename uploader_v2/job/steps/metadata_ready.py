@@ -1,26 +1,8 @@
+from datetime import datetime
 from uploader_v2.job.states import JobState
 from uploader_v2.metadata.parser import build_from_tsv
 from uploader_v2.metadata.validator import validate_payload
-
-
-# def step(job, ctx):
-#     path = job.metadata_path
-
-#     try:
-#         if path.suffix == ".tsv":
-#             raw = build_from_tsv(path)
-#         else:
-#             raw = ctx.json_loader(path)
-
-#         validated = validate_payload(raw)
-
-#         job.metadata_json = validated
-#         job.expected_files = extract_expected_files(validated)
-#         job.state = JobState.WAITING_BIOFILES
-
-#     except Exception as e:
-#         job.last_error = str(e)
-#         job.state = JobState.FAILED
+import shutil
 
 def step(job, ctx):
     files = list(ctx.metadata_dir.glob("*.tsv")) + list(ctx.metadata_dir.glob("*.json"))
@@ -28,21 +10,34 @@ def step(job, ctx):
         return
 
     path = files[0]
+    with open(path, encoding="utf-8") as f:
+        content = f.read()
 
     try:
-        if path.suffix == ".tsv":
-            raw = build_from_tsv(path)
+        if path.suffix == ".json":
+            raw = content
+        elif path.suffix == ".tsv":
+            raw = build_from_tsv(content)
         else:
-            raw = ctx.json_loader(path)
+            raise Exception(f"Incompatible file format: {path}")
 
         validated = validate_payload(raw)
 
         job.metadata_path = path
         job.metadata_json = validated
         job.expected_files = extract_expected_files(validated)
-        job.state = JobState.WAITING_FILES
+        job.state = JobState.WAITING_BIOFILES
+
+        # Archive parsed metadata file
+        timestamp = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%S")
+        archived_name = f"{path.stem}_{timestamp}{path.suffix}"
+        dst = ctx.archives_dir / archived_name
+        shutil.move(str(path), str(dst))
+        print(f"moved {path.stem} to {dst}")
+
 
     except Exception as e:
+        print(e)
         job.last_error = str(e)
         job.state = JobState.FAILED
 

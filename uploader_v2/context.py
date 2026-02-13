@@ -10,7 +10,8 @@ class Context:
 
     metadata_dir: Path
     files_dir: Path
+    archives_dir: Path
 
-    poll_interval: int
+    # poll_interval: int
 
-    logger: object  # replace with logging.Logger if you want
+    # logger: object  # replace with logging.Logger if you want

@@ -156,7 +156,7 @@ class Family(BaseModel):
 class FileSample(BaseModel):
     name: str
     person: str
-    bamPath: str
+    bamPath: Optional[str] = None
 
 class File(BaseModel):
     checksum: str

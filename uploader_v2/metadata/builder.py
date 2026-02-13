@@ -1,11 +1,11 @@
 from collections import OrderedDict
 from typing import List, Dict, Any, Tuple
-from schemas import TsvRow, HardValidationError, PretagItem
-import logging
+from uploader_v2.metadata.schemas import TsvRow, HardValidationError, PretagItem
+# import logging
 
-logger = logging.getLogger("uploader_v2")
+# logger = logging.getLogger("uploader_v2")
 
-# To change for batch interpretations
+# TODO: To change for batch interpretations
 def ensure_single_index(interp_rows: List[TsvRow], title: str):
     indexes = list(set((r.person_id, r.is_index) for r in interp_rows if r.is_index))
     if len(indexes) > 1:
