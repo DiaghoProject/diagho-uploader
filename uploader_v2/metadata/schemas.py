@@ -162,6 +162,9 @@ class File(BaseModel):
     checksum: str
     filename: str
     samples: List[FileSample]
+    # for biofile upload payload:
+    assembly: str
+    fileType: DataType
 
 # interpretations
 class InterpretationSample(BaseModel):

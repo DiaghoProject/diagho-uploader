@@ -42,18 +42,13 @@ def step(job, ctx):
         job.state = JobState.FAILED
 
 def extract_expected_files(metadata: dict) -> dict[str, str]:
-    files = {}
-
-    for f in metadata["files"]:
-        filename = f["filename"]
-        checksum = f["checksum"]
-
-        # TODO: fix that
-        # if filename in files and files[filename] != checksum:
-        #     ctx.logger.warning(
-        #         f"Same filename with different checksum: {filename}"
-        #     )
-
-        files[filename] = checksum
+    files = {
+        f["filename"]: {
+            "checksum": f["checksum"],
+            "file_type": f["fileType"],
+            "assembly": f["assembly"],
+        }
+        for f in metadata["files"]
+    }
 
     return files

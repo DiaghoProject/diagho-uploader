@@ -43,7 +43,7 @@ def build_files(rows: List[TsvRow]) -> List[Dict[str, Any]]:
     for r in rows:
         key = (r.filename, r.checksum)
         if key not in files:
-            files[key] = {"checksum": r.checksum, "filename": r.filename, "samples": [], "run": r.run}
+            files[key] = {"checksum": r.checksum, "filename": r.filename, "samples": [], "run": r.run, "assembly": r.assembly, "fileType": r.file_type}
         sample_obj = {"name": r.sample, "person": r.person_id}
         if r.bam_path:
             sample_obj["bamPath"] = r.bam_path
