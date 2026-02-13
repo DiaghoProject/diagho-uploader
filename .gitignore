@@ -11,27 +11,24 @@ __pycache__/
 dist/
 build/
 
-# Config files
-config/.env
-config/config.yaml
-
-# Divers
-README.save.md
+# Runtime files
 nohup.out
-app.log
-logs/
 tokens.json
-start_watcher.flag
-logs
 diagho_uploader.sh.pid
+
+# Config files
+config/*
+!config/config.example.yaml
 
 # Biofiles and metadata files
 *.csv*
 *.tsv*
 *.vcf*
+*.log*
 
 # Prod directories
-/archives
-/biofiles
-/data
-/metadata
+/archives/*
+/biofiles/*
+/data/*
+/logs/*
+/metadata/*
