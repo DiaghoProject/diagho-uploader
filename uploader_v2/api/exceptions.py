@@ -7,6 +7,9 @@ class AuthenticationError(ApiError):
     def __init__(self, message="Access denied, relogging required"):
         super().__init__(message)
 
+class TokenRefreshError(AuthenticationError):
+    pass
+
 class ChecksumMismatchError(ApiError):
     """Raised when local checksum != remote checksum during file upload"""
     def __init__(self, filename: str, local: str, remote: str):

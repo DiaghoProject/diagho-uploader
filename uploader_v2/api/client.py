@@ -7,7 +7,7 @@ class ApiClient:
     def __init__(self, config: dict):
         self.config = config
         self.endpoints = get_api_endpoints(config)
-        self.auth = AuthHandler(config)
+        self.auth = AuthHandler(config, endpoints=self.endpoints)
         self.session = requests.Session()
         self.verify = not config.get("allow_insecure", False)
 
@@ -34,8 +34,7 @@ class ApiClient:
 
         except requests.exceptions.HTTPError as e:
             if e.response.status_code == 401:
-                # automatically re-login and retry once
-                self.auth.login()
+                self.auth.refresh_or_login()
                 r = self.session.post(url, headers=self._headers(), files={"file": open(path, "rb")}, verify=self.verify)
                 if r.status_code == 401:
                     raise AuthenticationError() from e
