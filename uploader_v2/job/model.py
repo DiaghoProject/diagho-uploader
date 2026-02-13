@@ -12,7 +12,7 @@ class IngestionJob:
     metadata_path: Optional[Path] = None
     metadata_json: Optional[dict] = None
 
-    expected_files: Dict[str, str] = field(default_factory=dict)
+    expected_files: Dict[str, Dict[str, str]] = field(default_factory=dict)
     uploaded_files: Dict[str, str] = field(default_factory=dict)
 
     last_error: Optional[str] = None

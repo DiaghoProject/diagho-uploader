@@ -13,6 +13,9 @@ def build_context(config):
         metadata_dir=Path(config["metadata_dir"]),
         files_dir=Path(config["files_dir"]),
         archives_dir=Path(config["archives_dir"]),
+        accessions=config["accessions"],
+        tabfiles_columns_index=config["tabfiles_columns_index"],
+        dedup_biofiles=config["dedup_biofiles"],
         # logger=config.logger,
     )
 

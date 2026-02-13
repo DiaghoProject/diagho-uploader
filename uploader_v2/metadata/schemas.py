@@ -165,6 +165,8 @@ class File(BaseModel):
     # for biofile upload payload:
     assembly: str
     fileType: DataType
+    priority: str = Field(default=Priority.normal)
+    run: Optional[str] = None
 
 # interpretations
 class InterpretationSample(BaseModel):

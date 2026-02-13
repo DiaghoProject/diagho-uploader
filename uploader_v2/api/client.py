@@ -1,3 +1,4 @@
+from pathlib import Path
 import requests
 from .auth import AuthHandler
 from .endpoints import get_api_endpoints
@@ -21,30 +22,29 @@ class ApiClient:
         if r.status_code != 200:
             raise ApiError("Healthcheck failed")
         return r.json()
-
-    def upload_file(self, path, expected_checksum):
-        filename = path.name
-        file_type = "SNV" if (filename.endswith(".vcf") or filename.endswith(".vcf.gz")) else "CNV"
-        url = self.endpoints[f"post_biofile_{file_type.lower()}"]
-
+    
+    def upload_biofile(self, endpoint: str, data: dict, file: Path, expected_checksum: str):
+        url = self.endpoints[endpoint]
+        files = {"file": open(file, "rb")}
+        
         try:
-            with path.open("rb") as f:
-                r = self.session.post(url, headers=self._headers(), files={"file": f}, verify=self.verify)
-            r.raise_for_status()
+            r = requests.post(url, data=data, files=files, headers=self._headers())
 
         except requests.exceptions.HTTPError as e:
+            # TODO: fix refresh token not working as expected
             if e.response.status_code == 401:
                 self.auth.refresh_or_login()
-                r = self.session.post(url, headers=self._headers(), files={"file": open(path, "rb")}, verify=self.verify)
+                r = requests.post(url, data=data, files=files, headers=self._headers())
                 if r.status_code == 401:
                     raise AuthenticationError() from e
             else:
-                raise UploadError(filename, e.response.status_code, str(e)) from e
+                raise UploadError(file.stem, e.response.status_code, str(e)) from e
+                
         except requests.exceptions.RequestException as e:
-            raise UploadError(filename, message=str(e)) from e
+            raise UploadError(file.stem, message=str(e)) from e
 
         remote_checksum = r.json()["checksum"]
         if remote_checksum != expected_checksum:
-            raise ChecksumMismatchError(filename, expected_checksum, remote_checksum)
+            raise ChecksumMismatchError(file.stem, expected_checksum, remote_checksum)
 
         return remote_checksum

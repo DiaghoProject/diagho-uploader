@@ -45,8 +45,12 @@ def extract_expected_files(metadata: dict) -> dict[str, str]:
     files = {
         f["filename"]: {
             "checksum": f["checksum"],
-            "file_type": f["fileType"],
+            "fileType": f["fileType"],
             "assembly": f["assembly"],
+            "priority": f["priority"],
+            # TODO: should be a get or create with run name instead of runId
+            # fix on api/biofile_uploader as well
+            # "run": f["run"],
         }
         for f in metadata["files"]
     }

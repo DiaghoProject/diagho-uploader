@@ -12,4 +12,8 @@ class Context:
     files_dir: Path
     archives_dir: Path
 
+    accessions: dict[str, int]
+    tabfiles_columns_index: dict[int, str]
+    dedup_biofiles: bool = False
+
     # logger: object  # replace with logging.Logger if you want
