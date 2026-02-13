@@ -12,6 +12,7 @@ class TokenData(BaseModel):
 class AuthHandler:
     def __init__(self, config: dict, endpoints, token_file="tokens.json"):
         self.config = config
+        self.endpoints = endpoints
         self.token_file = Path(token_file)
         self.access_token: str | None = None
         self.refresh_token: str | None = None
@@ -32,11 +33,11 @@ class AuthHandler:
         self.token_file.write_text(tokens.model_dump_json())
 
     def login(self):
-        url = self.endpoints.login
+        url = self.endpoints["login"]
         r = requests.post(
             url,
             json={
-                "username": self.config["diagho_api"]["username"],
+                "identifier": self.config["diagho_api"]["username"],
                 "password": self.config["diagho_api"]["password"],
             },
             verify=not self.config.get("allow_insecure", False),
@@ -53,8 +54,8 @@ class AuthHandler:
         if not self.refresh_token:
             raise TokenRefreshError("No refresh token available")
 
-        url = self.endpoints.refresh
-        r = self.session.post(
+        url = self.endpoints["refresh"]
+        r = requests.post(
             url,
             json={"refresh": self.refresh_token},
         )

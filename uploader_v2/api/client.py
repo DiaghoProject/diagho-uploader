@@ -13,7 +13,7 @@ class ApiClient:
 
     def _headers(self):
         self.auth.ensure_valid_token()
-        return {"Authorization": f"Bearer {self.auth.token}"}
+        return {"Authorization": f"Bearer {self.auth.access_token}"}
 
     def healthcheck(self):
         url = self.endpoints["healthcheck"]
@@ -24,7 +24,7 @@ class ApiClient:
 
     def upload_file(self, path, expected_checksum):
         filename = path.name
-        file_type = "SNV" if filename.endswith(".vcf") else "CNV"
+        file_type = "SNV" if (filename.endswith(".vcf") or filename.endswith(".vcf.gz")) else "CNV"
         url = self.endpoints[f"post_biofile_{file_type.lower()}"]
 
         try:
