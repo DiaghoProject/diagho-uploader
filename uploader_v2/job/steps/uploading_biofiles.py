@@ -1,5 +1,5 @@
-from uploader_v2.api.biofiles_uploader import BiofileUploader
-from uploader_v2.api.exceptions import AuthenticationError, ChecksumMismatchError, UploadError
+from uploader_v2.services.biofiles_uploader import BiofileUploader
+from uploader_v2.infrastructure.api.exceptions import AuthenticationError, ChecksumMismatchError, UploadError
 from uploader_v2.context import Context
 from uploader_v2.job.states import JobState
 
