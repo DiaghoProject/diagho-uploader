@@ -21,10 +21,6 @@ check_authent:
   max_retries: 5        # Maximum number of retries
   delay: 10             # Delay (in seconds) between each retry
 
-# App settings
-settings:
-  max_workers: 4        # This value should remain inferior or equal to MAXIMUM_CONCURRENT_TASKS settings in Diagho
-
 # Email settings
 emails:
   send_mail_flag: 1                 # Enables or disables email notifications. Set to 1 to enable, 0 to disable.
@@ -67,5 +63,6 @@ interpretations:
     "Nom du projet Test 1": "test1-project-slug"
     "Nom du projet Test 2": "test2-project-slug"
 
-tabfiles_columns_index: {"1": "CHROM", "2": "START", "3": "END"}  # Index (base 1) of mandatory columns, here .bed as example 
-dedup_biofiles: true    # Remove duplicate variants in uploaded biofiles
+tabfiles_columns_index: {"1": "CHROM", "2": "START", "3": "END"}   # Index (base 1) of mandatory columns, here .bed as example 
+tabfiles_zero_based: true   # Are positions in tabfiles one or zero-based? (VCF are 1-based, BED are 0-based)
+dedup_biofiles: false       # Remove duplicate variants in uploaded biofiles if any

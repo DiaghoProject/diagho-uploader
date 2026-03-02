@@ -1,7 +1,7 @@
 from uploader_v2.job.model import IngestionJob
 from uploader_v2.job.dispatch import dispatch_step, SLEEP_BY_STATE
 from uploader_v2.context import Context
-from uploader_v2.api.client import ApiClient
+from uploader_v2.infrastructure.api.client import ApiClient
 from time import sleep
 from pathlib import Path
 
@@ -16,6 +16,8 @@ def build_context(config):
         accessions=config["accessions"],
         tabfiles_columns_index=config["tabfiles_columns_index"],
         dedup_biofiles=config["dedup_biofiles"],
+        tabfiles_columns_index=config["tabfiles_columns_index"],
+        tabfiles_zero_based=config["tabfiles_zero_based"],
         # logger=config.logger,
     )
 

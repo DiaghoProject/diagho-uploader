@@ -29,8 +29,26 @@ class BiofileUploader:
         data = {
             "priority": self.priority.value,
             "accession": accession,
+            # TODO: uncomment with API update
             # "run": self.run,
             "dedup": dedup,
         }
 
         return self.ctx.api.upload_biofile("post_biofile_snv", data, self.file, self.checksum)
+
+    def upload_cnv_file(self):
+        dedup = self.ctx.dedup_biofiles
+        tabfiles_columns_index=self.ctx.tabfiles_columns_index
+        tabfiles_zero_based=self.ctx.tabfiles_zero_based
+
+        data = {
+            "priority": self.priority.value,
+            "assembly": self.assembly.value,
+            # TODO: uncomment with API update
+            # "run": self.run,
+            "dedup": dedup,
+            "columnIndex": tabfiles_columns_index,
+            "zeroBased": tabfiles_zero_based,
+        }
+
+        return self.ctx.api.upload_biofile("post_biofile_cnv", data, self.file, self.checksum)
