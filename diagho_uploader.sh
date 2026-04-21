@@ -6,6 +6,7 @@ FORCE=false
 UPDATE=false
 DEBUG=false
 STATUS=false
+PARSE=false
 CONFIG="config/config.yaml"
 
 while [[ $# -gt 0 ]]; do
@@ -32,6 +33,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --status)
       STATUS=true
+      shift
+      ;;
+    --parse)
+      PARSE=true
       shift
       ;;
     --config)
@@ -115,4 +120,9 @@ if [ "$STATUS" = true ]; then
   else
     echo "Not running."
   fi
+fi
+
+# --parse: wait for a TSV/JSON in metadata_dir, print validated JSON, exit
+if [ "$PARSE" = true ]; then
+  python main.py --parse --config "$CONFIG"
 fi
