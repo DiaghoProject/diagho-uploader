@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 from uploader_v2.context import Context
 
@@ -42,7 +43,7 @@ class BiofileUploader:
             # TODO: uncomment with API update
             # "run": self.run,
             "dedup": self.ctx.dedup_biofiles,
-            "columnIndex": self.ctx.tabfiles_columns_index,
+            "columnIndex": json.dumps(self.ctx.tabfiles_columns_index),
             "zeroBased": self.ctx.tabfiles_zero_based,
         }
         print(f"uploading: {self.file.stem}")
