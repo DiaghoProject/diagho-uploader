@@ -1,7 +1,10 @@
 from dataclasses import dataclass, field
+from datetime import datetime
 from pathlib import Path
 from typing import Dict, Optional
+
 from .states import JobState
+
 
 @dataclass
 class IngestionJob:
@@ -14,5 +17,8 @@ class IngestionJob:
 
     expected_files: Dict[str, Dict[str, str]] = field(default_factory=dict)
     uploaded_files: Dict[str, str] = field(default_factory=dict)
+    upload_attempts: Dict[str, int] = field(default_factory=dict)
+
+    biofiles_wait_started: Optional[datetime] = None
 
     last_error: Optional[str] = None

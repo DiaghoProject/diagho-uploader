@@ -31,7 +31,14 @@ def step(job, ctx: Context):
             job.state = JobState.FAILED
             return
         except UploadError as e:
-            logger.warning("Upload error for %s: %s — will retry", filename, e)
+            attempts = job.upload_attempts.get(filename, 0) + 1
+            job.upload_attempts[filename] = attempts
+            if attempts >= 5:
+                logger.error("Max upload attempts reached for %s: %s", filename, e)
+                job.last_error = str(e)
+                job.state = JobState.FAILED
+                return
+            logger.warning("Upload error for %s (%d/5): %s — will retry", filename, attempts, e)
             job.last_error = str(e)
             return
 
