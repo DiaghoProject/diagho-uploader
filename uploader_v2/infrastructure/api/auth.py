@@ -1,40 +1,32 @@
+import base64
 import json
 import logging
-from pathlib import Path
+import time
 
 import requests
-from pydantic import BaseModel
 
 from .exceptions import AuthenticationError, TokenRefreshError
 
 logger = logging.getLogger(__name__)
 
+
+def _token_is_expired(token: str) -> bool:
+    try:
+        payload = token.split(".")[1]
+        payload += "=" * (-len(payload) % 4)
+        data = json.loads(base64.urlsafe_b64decode(payload))
+        return data.get("exp", 0) < time.time()
+    except Exception:
+        return True
+
+
 # TODO: Could be largely simplified with an API key authentication
-class TokenData(BaseModel):
-    access: str
-    refresh: str
-
-
 class AuthHandler:
-    def __init__(self, config: dict, endpoints, token_file="tokens.json"):
+    def __init__(self, config: dict, endpoints):
         self.config = config
         self.endpoints = endpoints
-        self.token_file = Path(token_file)
         self.access_token: str | None = None
         self.refresh_token: str | None = None
-        self._load_token()
-
-    def _load_token(self):
-        if self.token_file.exists():
-            data = json.loads(self.token_file.read_text())
-            tokens = TokenData.model_validate(data)
-            self.access_token = tokens.access
-            self.refresh_token = tokens.refresh
-            logger.debug("Auth token loaded from %s", self.token_file)
-
-    def _save_tokens(self):
-        tokens = TokenData(access=self.access_token, refresh=self.refresh_token)
-        self.token_file.write_text(tokens.model_dump_json())
 
     def login(self):
         url = self.endpoints["login"]
@@ -51,7 +43,6 @@ class AuthHandler:
         data = r.json()
         self.access_token = data["access"]
         self.refresh_token = data["refresh"]
-        self._save_tokens()
         logger.info("Login successful")
 
     def refresh(self):
@@ -63,12 +54,11 @@ class AuthHandler:
             raise TokenRefreshError("Refresh failed")
         data = r.json()
         self.access_token = data["access"]
-        self._save_tokens()
         logger.debug("Token refreshed")
 
     def ensure_valid_token(self):
-        if not self.access_token:
-            self.login()
+        if not self.access_token or _token_is_expired(self.access_token):
+            self.refresh_or_login()
 
     def refresh_or_login(self):
         try:
