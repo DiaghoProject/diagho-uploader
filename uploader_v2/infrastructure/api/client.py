@@ -51,6 +51,15 @@ class ApiClient:
 
         return remote_checksum
 
+    def post_metadata(self, payload: dict) -> None:
+        url = self.endpoints["post_config"]
+        try:
+            r = self.session.post(url, json=payload, headers=self._headers(), verify=self.verify)
+        except requests.exceptions.RequestException as e:
+            raise ApiError(str(e)) from e
+        if not r.ok:
+            raise ApiError(f"Metadata POST failed (HTTP {r.status_code}): {r.text}")
+
     def get_biofile_loading_status(self, checksum: str) -> str:
         url = f"{self.endpoints['get_biofile']}?checksum={checksum}"
         try:

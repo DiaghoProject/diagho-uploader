@@ -4,6 +4,7 @@ from uploader_v2.job.steps import (
     waiting_biofiles,
     uploading_biofiles,
     waiting_parsing,
+    posting_metadata,
 )
 
 DISPATCH = {
@@ -11,7 +12,7 @@ DISPATCH = {
     JobState.WAITING_BIOFILES: waiting_biofiles.step,
     JobState.UPLOADING_BIOFILES: uploading_biofiles.step,
     JobState.WAITING_PARSING: waiting_parsing.step,
-    JobState.POSTING_METADATA: None,
+    JobState.POSTING_METADATA: posting_metadata.step,
     JobState.DONE: None,
     JobState.FAILED: None
 }
