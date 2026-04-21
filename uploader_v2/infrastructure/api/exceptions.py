@@ -28,3 +28,10 @@ class UploadError(ApiError):
         if status_code:
             msg += f" (HTTP {status_code})"
         super().__init__(msg)
+
+class BiofileParsingError(ApiError):
+    """Raised when a biofile reaches a terminal failure status after upload."""
+    def __init__(self, filename: str, status: str):
+        self.filename = filename
+        self.status = status
+        super().__init__(f"Biofile '{filename}' parsing failed with status: {status}")

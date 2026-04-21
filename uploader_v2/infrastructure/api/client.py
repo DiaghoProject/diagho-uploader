@@ -2,7 +2,7 @@ from pathlib import Path
 import requests
 from .auth import AuthHandler
 from .endpoints import get_api_endpoints
-from .exceptions import ApiError, AuthenticationError, UploadError, ChecksumMismatchError
+from .exceptions import ApiError, AuthenticationError, UploadError, ChecksumMismatchError, BiofileParsingError
 
 class ApiClient:
     def __init__(self, config: dict):
@@ -50,3 +50,19 @@ class ApiClient:
             raise ChecksumMismatchError(file.stem, expected_checksum, remote_checksum)
 
         return remote_checksum
+
+    def get_biofile_loading_status(self, checksum: str) -> str:
+        url = f"{self.endpoints['get_biofile']}?checksum={checksum}"
+        try:
+            r = self.session.get(url, headers=self._headers(), verify=self.verify)
+        except requests.exceptions.RequestException as e:
+            raise ApiError(str(e)) from e
+        if not r.ok:
+            raise ApiError(f"Failed to get biofile status (HTTP {r.status_code})")
+        results = r.json().get("results", [])
+        if not results:
+            raise ApiError(f"No biofile found for checksum {checksum}")
+        status = results[0].get("loadingStatus")
+        if status is None:
+            raise ApiError(f"Missing loadingStatus field for checksum {checksum}")
+        return status

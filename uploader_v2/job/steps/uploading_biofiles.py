@@ -25,3 +25,5 @@ def step(job, ctx: Context):
         except UploadError as e:
             print(e)
             # ctx.logger.warning(str(e))
+
+    job.state = JobState.WAITING_PARSING
