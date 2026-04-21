@@ -25,23 +25,25 @@ class ApiClient:
     
     def upload_biofile(self, endpoint: str, data: dict, file: Path, expected_checksum: str):
         url = self.endpoints[endpoint]
-        files = {"file": open(file, "rb")}
-        
-        try:
-            r = requests.post(url, data=data, files=files, headers=self._headers())
 
-        except requests.exceptions.HTTPError as e:
-            # TODO: fix refresh token not working as expected
-            if e.response.status_code == 401:
+        with open(file, "rb") as fh:
+            try:
+                r = requests.post(url, data=data, files={"file": fh}, headers=self._headers(), verify=self.verify)
+            except requests.exceptions.RequestException as e:
+                raise UploadError(file.stem, message=str(e)) from e
+
+            if r.status_code == 401:
                 self.auth.refresh_or_login()
-                r = requests.post(url, data=data, files=files, headers=self._headers())
+                fh.seek(0)
+                try:
+                    r = requests.post(url, data=data, files={"file": fh}, headers=self._headers(), verify=self.verify)
+                except requests.exceptions.RequestException as e:
+                    raise UploadError(file.stem, message=str(e)) from e
                 if r.status_code == 401:
-                    raise AuthenticationError() from e
-            else:
-                raise UploadError(file.stem, e.response.status_code, str(e)) from e
-                
-        except requests.exceptions.RequestException as e:
-            raise UploadError(file.stem, message=str(e)) from e
+                    raise AuthenticationError()
+
+            if not r.ok:
+                raise UploadError(file.stem, r.status_code, r.text)
 
         remote_checksum = r.json()["checksum"]
         if remote_checksum != expected_checksum:

@@ -23,4 +23,6 @@ SLEEP_BY_STATE = {
 }
 
 def dispatch_step(job, ctx):
-    DISPATCH[job.state](job, ctx)
+    step = DISPATCH.get(job.state)
+    if step is not None:
+        step(job, ctx)

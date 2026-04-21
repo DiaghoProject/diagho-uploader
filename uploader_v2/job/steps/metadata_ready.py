@@ -1,8 +1,9 @@
+import json
+import shutil
 from datetime import datetime
 from uploader_v2.job.states import JobState
 from uploader_v2.metadata.parser import build_from_tsv
 from uploader_v2.metadata.validator import validate_payload
-import shutil
 
 def step(job, ctx):
     files = list(ctx.metadata_dir.glob("*.tsv")) + list(ctx.metadata_dir.glob("*.json"))
@@ -16,7 +17,7 @@ def step(job, ctx):
 
     try:
         if path.suffix == ".json":
-            raw = content
+            raw = json.loads(content)
         elif path.suffix == ".tsv":
             raw = build_from_tsv(content)
         else:

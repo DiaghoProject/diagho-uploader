@@ -13,8 +13,8 @@ def step(job, ctx: Context):
 
         try:
             # remote_checksum = ctx.api.upload_file(path, file_data)
-            remote_checksum = BiofileUploader(ctx, path, file_data)
-            job.uploaded_files[filename] = remote_checksum
+            uploader = BiofileUploader(ctx, path, file_data)
+            job.uploaded_files[filename] = uploader.remote_checksum
 
         except AuthenticationError:
             # ctx.logger.warning("Auth failed, will retry next loop")

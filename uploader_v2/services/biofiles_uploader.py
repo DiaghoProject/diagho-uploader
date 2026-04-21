@@ -12,13 +12,13 @@ class BiofileUploader:
         # TODO: should be a get or create with run name instead of runId
         # fix on steps/metadata_ready as well
         # self.run = file_data["run"]
-        self.upload_strategy()
+        self.remote_checksum = self.upload_strategy()
 
     def upload_strategy(self):
         if (self.file_type == "SNV"):
-            self.upload_snv_file()
+            return self.upload_snv_file()
         elif (self.file_type == "CNV"):
-            self.upload_cnv_file()
+            return self.upload_cnv_file()
         else:
             raise ValueError(f"File {self.file.stem} does not have a valid type: {self.file_type}")
 
@@ -27,7 +27,7 @@ class BiofileUploader:
         dedup = self.ctx.dedup_biofiles
 
         data = {
-            "priority": self.priority.value,
+            "priority": self.priority,
             "accession": accession,
             # TODO: uncomment with API update
             # "run": self.run,
@@ -44,8 +44,8 @@ class BiofileUploader:
         tabfiles_zero_based=self.ctx.tabfiles_zero_based
 
         data = {
-            "priority": self.priority.value,
-            "assembly": self.assembly.value,
+            "priority": self.priority,
+            "assembly": self.assembly,
             # TODO: uncomment with API update
             # "run": self.run,
             "dedup": dedup,
