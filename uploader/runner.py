@@ -17,6 +17,32 @@ logger = logging.getLogger(__name__)
 
 _shutdown = False
 
+_REQUIRED_KEYS = [
+    "metadata_dir",
+    "files_dir",
+    "archives_dir",
+    "accessions",
+    "dedup_biofiles",
+    "tabfiles_columns_index",
+    "tabfiles_zero_based",
+]
+_REQUIRED_API_KEYS = ["username", "password", "url"]
+
+
+def validate_config(config: dict) -> None:
+    missing = [k for k in _REQUIRED_KEYS if k not in config]
+    api_cfg = config.get("diagho_api")
+    if not isinstance(api_cfg, dict):
+        missing.append("diagho_api")
+    else:
+        missing += [f"diagho_api.{k}" for k in _REQUIRED_API_KEYS if k not in api_cfg]
+    if missing:
+        logger.error(
+            "Missing required config keys:\n%s",
+            "\n".join(f"  - {k}" for k in missing),
+        )
+        sys.exit(1)
+
 
 def _handle_signal(signum, frame):
     global _shutdown
@@ -64,6 +90,7 @@ def run_forever(config: dict) -> None:
     signal.signal(signal.SIGINT, _handle_signal)
 
     setup_logger(config)
+    validate_config(config)
     logger.info("Uploader started")
 
     ctx    = build_context(config)

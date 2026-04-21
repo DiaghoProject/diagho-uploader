@@ -26,6 +26,10 @@ def load_config(config_file: str) -> dict:
 def parse_only(config: dict) -> None:
     logging.disable(logging.CRITICAL)
 
+    if "metadata_dir" not in config:
+        print("Missing required config key: metadata_dir", file=sys.stderr)
+        sys.exit(1)
+
     metadata_dir = Path(config["metadata_dir"])
     _stop = False
 
