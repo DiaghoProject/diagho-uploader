@@ -20,8 +20,8 @@ DISPATCH = {
 SLEEP_BY_STATE = {
     JobState.WAITING_METADATA: 20,
     JobState.WAITING_BIOFILES: 10,
+    JobState.UPLOADING_BIOFILES: 30,
     JobState.WAITING_PARSING: 20,
-    JobState.POSTING_METADATA: 0
 }
 
 def dispatch_step(job, ctx):

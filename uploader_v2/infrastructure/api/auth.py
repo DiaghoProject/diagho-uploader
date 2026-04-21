@@ -41,7 +41,7 @@ class AuthHandler:
                 "identifier": self.config["diagho_api"]["username"],
                 "password": self.config["diagho_api"]["password"],
             },
-            verify=not self.config.get("allow_insecure", False),
+            verify=not self.config["diagho_api"].get("allow_insecure", False),
         )
         if r.status_code != 200:
             raise AuthenticationError(f"Login failed: {r.text}")

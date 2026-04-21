@@ -10,7 +10,7 @@ class ApiClient:
         self.endpoints = get_api_endpoints(config)
         self.auth = AuthHandler(config, endpoints=self.endpoints)
         self.session = requests.Session()
-        self.verify = not config.get("allow_insecure", False)
+        self.verify = not config["diagho_api"].get("allow_insecure", False)
 
     def _headers(self):
         self.auth.ensure_valid_token()

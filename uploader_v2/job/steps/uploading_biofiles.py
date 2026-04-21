@@ -25,5 +25,6 @@ def step(job, ctx: Context):
         except UploadError as e:
             print(e)
             # ctx.logger.warning(str(e))
+            return  # stay in UPLOADING_BIOFILES, retry next loop
 
     job.state = JobState.WAITING_PARSING

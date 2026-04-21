@@ -12,7 +12,6 @@ def step(job, ctx):
         return
 
     path = files[0]
-    print(f"file detected: {path}")
     with open(path, encoding="utf-8") as f:
         content = f.read()
 

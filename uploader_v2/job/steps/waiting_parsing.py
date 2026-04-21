@@ -19,6 +19,7 @@ def step(job, ctx):
             return
 
         if status.lower() != _SUCCESS:
+            print(f"{filename} still loading")
             return  # at least one file still loading, stay in WAITING_PARSING
 
     job.state = JobState.POSTING_METADATA

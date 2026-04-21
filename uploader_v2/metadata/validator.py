@@ -15,7 +15,7 @@ def validate_payload(payload: dict) -> dict:
     # business rules not expressible in schema
     enforce_rules(model)
 
-    return model.model_dump()
+    return model.model_dump(mode="json", exclude_none=True)
 
 
 def enforce_rules(model: MetadataPayload):
