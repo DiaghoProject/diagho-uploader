@@ -1,14 +1,20 @@
 import json
+import logging
 from pathlib import Path
+
 import requests
-from .exceptions import AuthenticationError, TokenRefreshError
 from pydantic import BaseModel
 
+from .exceptions import AuthenticationError, TokenRefreshError
+
+logger = logging.getLogger(__name__)
+
+# TODO: Could be largely simplified with an API key authentication
 class TokenData(BaseModel):
     access: str
     refresh: str
 
-# TODO: Could be largely simplified with an API key authentication, with limited access to endpoints
+
 class AuthHandler:
     def __init__(self, config: dict, endpoints, token_file="tokens.json"):
         self.config = config
@@ -24,12 +30,10 @@ class AuthHandler:
             tokens = TokenData.model_validate(data)
             self.access_token = tokens.access
             self.refresh_token = tokens.refresh
+            logger.debug("Auth token loaded from %s", self.token_file)
 
     def _save_tokens(self):
-        tokens = TokenData(
-            access=self.access_token,
-            refresh=self.refresh_token,
-        )
+        tokens = TokenData(access=self.access_token, refresh=self.refresh_token)
         self.token_file.write_text(tokens.model_dump_json())
 
     def login(self):
@@ -44,28 +48,23 @@ class AuthHandler:
         )
         if r.status_code != 200:
             raise AuthenticationError(f"Login failed: {r.text}")
-
         data = r.json()
         self.access_token = data["access"]
         self.refresh_token = data["refresh"]
         self._save_tokens()
+        logger.info("Login successful")
 
     def refresh(self):
         if not self.refresh_token:
             raise TokenRefreshError("No refresh token available")
-
         url = self.endpoints["refresh"]
-        r = requests.post(
-            url,
-            json={"refresh": self.refresh_token},
-        )
-
+        r = requests.post(url, json={"refresh": self.refresh_token})
         if r.status_code != 200:
             raise TokenRefreshError("Refresh failed")
-
         data = r.json()
         self.access_token = data["access"]
         self._save_tokens()
+        logger.debug("Token refreshed")
 
     def ensure_valid_token(self):
         if not self.access_token:
@@ -75,4 +74,5 @@ class AuthHandler:
         try:
             self.refresh()
         except TokenRefreshError:
+            logger.warning("Token refresh failed, falling back to login")
             self.login()
