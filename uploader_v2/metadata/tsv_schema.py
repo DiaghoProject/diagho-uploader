@@ -75,6 +75,12 @@ class TsvRow(BaseModel):
 
     _line: Optional[int] = None
 
+    @field_validator("assignee", mode="before")
+    def empty_assignee_to_none(cls, v):
+        if v is None or v == "":
+            return None
+        return v
+
     @field_validator("checksum", mode="before")
     def normalize_checksum(cls, v):
         if v is None or v == "":
