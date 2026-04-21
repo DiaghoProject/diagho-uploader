@@ -13,7 +13,6 @@ build/
 
 # Runtime files
 nohup.out
-tokens.json
 diagho_uploader.sh.pid
 
 # Config files
@@ -25,6 +24,7 @@ config/*
 *.tsv*
 *.vcf*
 *.log*
+*.json*
 
 # Prod directories
 /archives/*
