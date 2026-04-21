@@ -31,6 +31,8 @@ smtp:
   port: 25
   use_tls: false
   from_email_format: "diagho-uploader-{hostname}@example.fr"
+  username:                              # optional — leave blank for open relay
+  password:                              # optional — leave blank for open relay
 
 # Logging (not yet active — pending logging utils)
 logging:

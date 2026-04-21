@@ -8,6 +8,7 @@ from uploader_v2.job.states import JobState
 from uploader_v2.context import Context
 from uploader_v2.infrastructure.api.client import ApiClient
 from uploader_v2.utils.logger import setup_logger
+from uploader_v2.utils.mailer import Mailer
 
 logger = logging.getLogger(__name__)
 
@@ -25,12 +26,32 @@ def build_context(config: dict) -> Context:
     )
 
 
+def _done_body(job: IngestionJob) -> str:
+    metadata = job.metadata_path.name if job.metadata_path else "unknown"
+    biofiles = "\n".join(f"  - {f}" for f in job.uploaded_files)
+    return (
+        f"Ingestion completed successfully.\n\n"
+        f"Metadata: {metadata}\n"
+        f"Biofiles uploaded ({len(job.uploaded_files)}):\n{biofiles}"
+    )
+
+
+def _failed_body(job: IngestionJob, failed_from: str) -> str:
+    metadata = job.metadata_path.name if job.metadata_path else "not loaded"
+    return (
+        f"Ingestion failed at state: {failed_from}\n\n"
+        f"Error: {job.last_error or 'unknown error'}\n"
+        f"Metadata: {metadata}"
+    )
+
+
 def run_forever(config: dict) -> None:
     setup_logger(config)
     logger.info("Uploader started")
 
-    ctx = build_context(config)
-    job = IngestionJob(job_id="default")
+    ctx    = build_context(config)
+    mailer = Mailer(config)
+    job    = IngestionJob(job_id="default")
 
     while True:
         prev_state = job.state
@@ -41,11 +62,13 @@ def run_forever(config: dict) -> None:
 
         if job.state == JobState.DONE:
             logger.info("Job completed successfully")
+            mailer.info(_done_body(job))
             job = IngestionJob(job_id="default")
             continue
 
         if job.state == JobState.FAILED:
             logger.error("Job failed: %s", job.last_error or "unknown error")
+            mailer.alert(_failed_body(job, prev_state.name))
             job = IngestionJob(job_id="default")
             continue
 
