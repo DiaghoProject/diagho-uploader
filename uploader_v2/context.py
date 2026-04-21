@@ -16,3 +16,4 @@ class Context:
     tabfiles_columns_index: dict[str, str]
     tabfiles_zero_based: bool = True
     dedup_biofiles: bool = False
+    biofile_timeout_minutes: int = 60
