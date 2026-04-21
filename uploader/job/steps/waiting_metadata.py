@@ -4,9 +4,9 @@ import shutil
 from datetime import datetime
 
 from ..states import JobState
-from uploader_v2.metadata.parser import parse_tsv_rows
-from uploader_v2.metadata.builder import build_payload
-from uploader_v2.metadata.validator import validate_payload
+from uploader.metadata.parser import parse_tsv_rows
+from uploader.metadata.builder import build_payload
+from uploader.metadata.validator import validate_payload
 
 logger = logging.getLogger(__name__)
 

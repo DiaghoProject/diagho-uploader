@@ -2,9 +2,9 @@ import logging
 import shutil
 
 from ..states import JobState
-from uploader_v2.services.biofiles_uploader import BiofileUploader
-from uploader_v2.infrastructure.api.exceptions import AuthenticationError, ChecksumMismatchError, UploadError
-from uploader_v2.context import Context
+from uploader.services.biofiles_uploader import BiofileUploader
+from uploader.infrastructure.api.exceptions import AuthenticationError, ChecksumMismatchError, UploadError
+from uploader.context import Context
 
 logger = logging.getLogger(__name__)
 

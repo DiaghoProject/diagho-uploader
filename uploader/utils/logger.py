@@ -28,19 +28,19 @@ def _make_namer(base_path: Path):
 
 
 def setup_logger(config: dict) -> None:
-    """Configure the uploader_v2 logger from the config dict.
+    """Configure the uploader logger from the config dict.
 
     Console handler level is controlled by logging.log_level (default INFO).
     File handler always logs at DEBUG when logging.log_directory is set.
     Rotation is controlled by log_rotation_when / log_rotation_interval / log_backup_count.
     Files older than backupCount × interval are deleted automatically.
-    All child loggers (uploader_v2.*) inherit these handlers automatically.
+    All child loggers (uploader.*) inherit these handlers automatically.
     """
     log_cfg = config.get("logging", {})
     console_level = getattr(logging, log_cfg.get("log_level", "INFO").upper(), logging.INFO)
     log_dir = log_cfg.get("log_directory")
 
-    root = logging.getLogger("uploader_v2")
+    root = logging.getLogger("uploader")
     root.setLevel(logging.DEBUG)
 
     if root.handlers:

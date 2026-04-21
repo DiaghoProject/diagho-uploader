@@ -1,7 +1,7 @@
 import logging
 
 from ..states import JobState
-from uploader_v2.infrastructure.api.exceptions import ApiError
+from uploader.infrastructure.api.exceptions import ApiError
 
 logger = logging.getLogger(__name__)
 

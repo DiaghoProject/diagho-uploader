@@ -1,20 +1,30 @@
-from uploader_v2.runner import run_forever
-# from .config import load_config
-import yaml
+import argparse
 import sys
 
-def load_config(config_file):
-    """Load configuration file."""
+import yaml
+
+from uploader.runner import run_forever
+
+
+def load_config(config_file: str) -> dict:
     try:
-        with open(config_file, "r") as file:
-            return yaml.safe_load(file)
+        with open(config_file) as f:
+            return yaml.safe_load(f)
     except Exception as e:
-        print(f"Error when loading configuration file: {e}", file=sys.stderr)
+        print(f"Failed to load config: {e}", file=sys.stderr)
         sys.exit(1)
 
+
 def main():
-    config = load_config("config/config.yaml")
-    run_forever(config)
+    parser = argparse.ArgumentParser(description="Diagho genomic data uploader")
+    parser.add_argument(
+        "--config",
+        default="config/config.yaml",
+        help="Path to config YAML (default: config/config.yaml)",
+    )
+    args = parser.parse_args()
+    run_forever(load_config(args.config))
+
 
 if __name__ == "__main__":
     main()

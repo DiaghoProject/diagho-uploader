@@ -1,18 +1,27 @@
 import logging
+import signal
 import sys
 from pathlib import Path
 from time import sleep
 
-from uploader_v2.job.model import IngestionJob
-from uploader_v2.job.dispatch import dispatch_step, SLEEP_BY_STATE
-from uploader_v2.job.states import JobState
-from uploader_v2.context import Context
-from uploader_v2.infrastructure.api.client import ApiClient
-from uploader_v2.infrastructure.api.exceptions import ApiError
-from uploader_v2.utils.logger import setup_logger
-from uploader_v2.utils.mailer import Mailer
+from uploader.job.model import IngestionJob
+from uploader.job.dispatch import dispatch_step, SLEEP_BY_STATE
+from uploader.job.states import JobState
+from uploader.context import Context
+from uploader.infrastructure.api.client import ApiClient
+from uploader.infrastructure.api.exceptions import ApiError
+from uploader.utils.logger import setup_logger
+from uploader.utils.mailer import Mailer
 
 logger = logging.getLogger(__name__)
+
+_shutdown = False
+
+
+def _handle_signal(signum, frame):
+    global _shutdown
+    logger.info("Shutdown signal received, will stop after current step")
+    _shutdown = True
 
 
 def build_context(config: dict) -> Context:
@@ -49,6 +58,11 @@ def _failed_body(job: IngestionJob, failed_from: str) -> str:
 
 
 def run_forever(config: dict) -> None:
+    global _shutdown
+    _shutdown = False
+    signal.signal(signal.SIGTERM, _handle_signal)
+    signal.signal(signal.SIGINT, _handle_signal)
+
     setup_logger(config)
     logger.info("Uploader started")
 
@@ -64,7 +78,7 @@ def run_forever(config: dict) -> None:
 
     job = IngestionJob(job_id="init")
 
-    while True:
+    while not _shutdown:
         prev_state = job.state
         dispatch_step(job, ctx)
 
@@ -85,3 +99,5 @@ def run_forever(config: dict) -> None:
 
         if job.state == prev_state:
             sleep(SLEEP_BY_STATE.get(job.state, 2))
+
+    logger.info("Uploader stopped")

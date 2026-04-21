@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from uploader_v2.context import Context
+from uploader.context import Context
 
 
 class BiofileUploader:
