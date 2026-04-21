@@ -1,12 +1,9 @@
 import csv
 from typing import List
-from uploader_v2.metadata.builder import build_payload
-from uploader_v2.metadata.schemas import TsvRow
-# import logging
+from uploader_v2.metadata.tsv_schema import TsvRow
 
-# logger = logging.getLogger("uploader_v2")
 
-def build_from_tsv(tsv_text: str) -> List[TsvRow]:
+def parse_tsv_rows(tsv_text: str) -> List[TsvRow]:
     reader = csv.DictReader(tsv_text.splitlines(), delimiter="\t")
     rows = []
     for i, raw in enumerate(reader, start=2):  # line numbers (account for header)
@@ -18,5 +15,4 @@ def build_from_tsv(tsv_text: str) -> List[TsvRow]:
             rows.append(r)
         except Exception as e:
             raise ValueError(f"TSV parse error at line {i}: {e}") from e
-    
-    return build_payload(rows)
+    return rows

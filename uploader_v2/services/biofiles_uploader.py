@@ -1,6 +1,7 @@
 from pathlib import Path
 from uploader_v2.context import Context
 
+
 class BiofileUploader:
     def __init__(self, ctx: Context, file: Path, file_data: dict):
         self.ctx = ctx
@@ -10,49 +11,39 @@ class BiofileUploader:
         self.assembly = file_data["assembly"]
         self.priority = file_data["priority"]
         # TODO: should be a get or create with run name instead of runId
-        # fix on steps/metadata_ready as well
         # self.run = file_data["run"]
-        self.remote_checksum = self.upload_strategy()
 
-    def upload_strategy(self):
-        if (self.file_type == "SNV"):
-            return self.upload_snv_file()
-        elif (self.file_type == "CNV"):
-            return self.upload_cnv_file()
-        else:
-            raise ValueError(f"File {self.file.stem} does not have a valid type: {self.file_type}")
+    @classmethod
+    def upload(cls, ctx: Context, file: Path, file_data: dict) -> str:
+        return cls(ctx, file, file_data)._run()
 
-    def upload_snv_file(self):
-        accession = self.ctx.accessions[self.assembly]
-        dedup = self.ctx.dedup_biofiles
+    def _run(self) -> str:
+        if self.file_type == "SNV":
+            return self._upload_snv()
+        elif self.file_type == "CNV":
+            return self._upload_cnv()
+        raise ValueError(f"File {self.file.stem} does not have a valid type: {self.file_type}")
 
+    def _upload_snv(self) -> str:
         data = {
             "priority": self.priority,
-            "accession": accession,
+            "accession": self.ctx.accessions[self.assembly],
             # TODO: uncomment with API update
             # "run": self.run,
-            "dedup": dedup,
+            "dedup": self.ctx.dedup_biofiles,
         }
-
         print(f"uploading: {self.file.stem}")
-
         return self.ctx.api.upload_biofile("post_biofile_snv", data, self.file, self.checksum)
 
-    def upload_cnv_file(self):
-        dedup = self.ctx.dedup_biofiles
-        tabfiles_columns_index=self.ctx.tabfiles_columns_index
-        tabfiles_zero_based=self.ctx.tabfiles_zero_based
-
+    def _upload_cnv(self) -> str:
         data = {
             "priority": self.priority,
             "assembly": self.assembly,
             # TODO: uncomment with API update
             # "run": self.run,
-            "dedup": dedup,
-            "columnIndex": tabfiles_columns_index,
-            "zeroBased": tabfiles_zero_based,
+            "dedup": self.ctx.dedup_biofiles,
+            "columnIndex": self.ctx.tabfiles_columns_index,
+            "zeroBased": self.ctx.tabfiles_zero_based,
         }
-
         print(f"uploading: {self.file.stem}")
-
         return self.ctx.api.upload_biofile("post_biofile_cnv", data, self.file, self.checksum)

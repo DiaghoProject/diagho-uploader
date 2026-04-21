@@ -1,5 +1,6 @@
 from uploader_v2.job.model import IngestionJob
 from uploader_v2.job.dispatch import dispatch_step, SLEEP_BY_STATE
+from uploader_v2.job.states import JobState
 from uploader_v2.context import Context
 from uploader_v2.infrastructure.api.client import ApiClient
 from time import sleep
@@ -27,6 +28,12 @@ def run_forever(config):
     while True:
         prev_state = job.state
         dispatch_step(job, ctx)
+
+        if job.state in (JobState.DONE, JobState.FAILED):
+            suffix = f" — {job.last_error}" if job.last_error else ""
+            print(f"Job ended: {job.state.name}{suffix}")
+            job = IngestionJob(job_id="default")
+            continue
 
         if job.state == prev_state:
             sleep_time = SLEEP_BY_STATE.get(job.state, 2)

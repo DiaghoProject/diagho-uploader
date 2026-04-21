@@ -1,5 +1,5 @@
 from pydantic import ValidationError
-from .schemas import MetadataPayload
+from .payload_schema import MetadataPayload
 
 
 class MetadataValidationError(Exception):

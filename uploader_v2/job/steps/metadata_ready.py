@@ -2,7 +2,8 @@ import json
 import shutil
 from datetime import datetime
 from uploader_v2.job.states import JobState
-from uploader_v2.metadata.parser import build_from_tsv
+from uploader_v2.metadata.parser import parse_tsv_rows
+from uploader_v2.metadata.builder import build_payload
 from uploader_v2.metadata.validator import validate_payload
 
 def step(job, ctx):
@@ -19,7 +20,7 @@ def step(job, ctx):
         if path.suffix == ".json":
             raw = json.loads(content)
         elif path.suffix == ".tsv":
-            raw = build_from_tsv(content)
+            raw = build_payload(parse_tsv_rows(content))
         else:
             raise Exception(f"Incompatible file format: {path}")
 

@@ -1,9 +1,6 @@
 from collections import OrderedDict
 from typing import List, Dict, Any, Tuple
-from uploader_v2.metadata.schemas import TsvRow, HardValidationError, PretagItem
-# import logging
-
-# logger = logging.getLogger("uploader_v2")
+from uploader_v2.metadata.tsv_schema import TsvRow, HardValidationError, PretagItem
 
 # TODO: To change for batch interpretations
 def ensure_single_index(interp_rows: List[TsvRow], title: str):
