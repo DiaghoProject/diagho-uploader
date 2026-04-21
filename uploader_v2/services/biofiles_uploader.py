@@ -33,7 +33,6 @@ class BiofileUploader:
             # "run": self.run,
             "dedup": self.ctx.dedup_biofiles,
         }
-        print(f"uploading: {self.file.stem}")
         return self.ctx.api.upload_biofile("post_biofile_snv", data, self.file, self.checksum)
 
     def _upload_cnv(self) -> str:
@@ -46,5 +45,4 @@ class BiofileUploader:
             "columnIndex": json.dumps(self.ctx.tabfiles_columns_index),
             "zeroBased": self.ctx.tabfiles_zero_based,
         }
-        print(f"uploading: {self.file.stem}")
         return self.ctx.api.upload_biofile("post_biofile_cnv", data, self.file, self.checksum)

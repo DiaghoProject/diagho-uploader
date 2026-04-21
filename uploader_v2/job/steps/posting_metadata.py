@@ -1,4 +1,4 @@
-from uploader_v2.job.states import JobState
+from ..states import JobState
 from uploader_v2.infrastructure.api.exceptions import ApiError
 
 

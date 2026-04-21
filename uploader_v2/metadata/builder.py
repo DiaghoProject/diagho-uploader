@@ -1,14 +1,16 @@
 from collections import OrderedDict
 from typing import List, Dict, Any, Tuple
-from uploader_v2.metadata.tsv_schema import TsvRow, HardValidationError, PretagItem
 
-# TODO: To change for batch interpretations
+from .tsv_schema import TsvRow, HardValidationError, PretagItem
+
+
 def ensure_single_index(interp_rows: List[TsvRow], title: str):
     indexes = list(set((r.person_id, r.is_index) for r in interp_rows if r.is_index))
     if len(indexes) > 1:
         raise HardValidationError(f"Interpretation '{title}' has multiple index cases: {indexes}")
     if len(indexes) == 0:
         raise HardValidationError(f"Interpretation '{title}' has no index case (required)")
+
 
 def build_families(rows: List[TsvRow]) -> List[Dict[str, Any]]:
     families: Dict[str, Dict[str, Any]] = {}
@@ -30,40 +32,50 @@ def build_families(rows: List[TsvRow]) -> List[Dict[str, Any]]:
             person["fatherIdentifier"] = r.father_id
         if r.note:
             person["comment"] = r.note
-    out = []
-    for fam in families.values():
-        out.append({"identifier": fam["identifier"], "persons": list(fam["persons"].values())})
-    return out
+    return [
+        {"identifier": fam["identifier"], "persons": list(fam["persons"].values())}
+        for fam in families.values()
+    ]
+
 
 def build_files(rows: List[TsvRow]) -> List[Dict[str, Any]]:
     files: Dict[Tuple[str, str], Dict[str, Any]] = OrderedDict()
     for r in rows:
         key = (r.filename, r.checksum)
         if key not in files:
-            files[key] = {"checksum": r.checksum, "filename": r.filename, "samples": [], "run": r.run, "assembly": r.assembly, "fileType": r.file_type}
-        sample_obj = {"name": r.sample, "person": r.person_id}
+            files[key] = {
+                "checksum": r.checksum,
+                "filename": r.filename,
+                "assembly": r.assembly,
+                "fileType": r.file_type,
+                "priority": r.priority,
+                "run": r.run,
+                "samples": [],
+            }
+        sample = {"name": r.sample, "person": r.person_id}
         if r.bam_path:
-            sample_obj["bamPath"] = r.bam_path
-        files[key]["samples"].append(sample_obj)
+            sample["bamPath"] = r.bam_path
+        files[key]["samples"].append(sample)
     return list(files.values())
 
+
 def build_interpretations(rows: List[TsvRow]) -> List[Dict[str, Any]]:
-    interps: Dict[str, Dict[str, Any]] = OrderedDict()
     groups: Dict[str, List[TsvRow]] = OrderedDict()
     for r in rows:
         groups.setdefault(r.interpretation_title, []).append(r)
+
+    interps: Dict[str, Dict[str, Any]] = OrderedDict()
     for title, grp in groups.items():
         ensure_single_index(grp, title)
+        idxs = [r for r in grp if r.is_index]
         info = {
             "title": title,
-            "assignee": grp[0].assignee,
             "project": grp[0].project,
+            "assignee": grp[0].assignee,
             "priority": grp[0].priority or "normal",
-            "indexCase": None,
-            "datas": OrderedDict()
+            "indexCase": idxs[0].person_id if idxs else None,
+            "datas": OrderedDict(),
         }
-        idxs = [r for r in grp if r.is_index]
-        info["indexCase"] = idxs[0].person_id if idxs else None
         for r in grp:
             dtype = r.file_type or "SNV"
             dtitle = r.data_title or dtype
@@ -72,13 +84,16 @@ def build_interpretations(rows: List[TsvRow]) -> List[Dict[str, Any]]:
                 info["datas"][dkey] = {
                     "type": dtype,
                     "title": dtitle,
-                    "pretags": None,
                     "samples": [],
-                    "isCohort": bool(r.is_cohort)
+                    "isCohort": bool(r.is_cohort),
+                    "pretags": None,
                 }
             data = info["datas"][dkey]
-            samp = {"name": r.sample, "isAffected": bool(r.is_affected), "checksum": r.checksum}
-            data["samples"].append(samp)
+            data["samples"].append({
+                "name": r.sample,
+                "isAffected": bool(r.is_affected),
+                "checksum": r.checksum,
+            })
             if data["pretags"] is None and r.pretags is not None:
                 data["pretags"] = [p.model_dump() for p in r.pretags]
             if r.is_cohort:
@@ -87,18 +102,21 @@ def build_interpretations(rows: List[TsvRow]) -> List[Dict[str, Any]]:
         interps[title] = info
     return list(interps.values())
 
+
 def build_payload(rows: List[TsvRow]) -> Dict[str, Any]:
-    mapping = {}
+    # validate no sample+checksum maps to multiple persons across rows
+    mapping: Dict[Tuple[str, str], str] = {}
     for r in rows:
         key = (r.sample, r.checksum)
         if key in mapping and mapping[key] != r.person_id:
-            raise HardValidationError(f"Sample+checksum {key} mapped to multiple persons: {mapping[key]} vs {r.person_id} at line {r._line}")
+            raise HardValidationError(
+                f"Sample+checksum {key} maps to multiple persons: "
+                f"{mapping[key]} vs {r.person_id} at line {r._line}"
+            )
         mapping[key] = r.person_id
 
-    payload = {
+    return {
         "families": build_families(rows),
         "files": build_files(rows),
-        "interpretations": build_interpretations(rows)
+        "interpretations": build_interpretations(rows),
     }
-
-    return payload

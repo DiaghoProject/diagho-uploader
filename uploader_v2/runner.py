@@ -18,7 +18,6 @@ def build_context(config):
         dedup_biofiles=config["dedup_biofiles"],
         tabfiles_columns_index=config["tabfiles_columns_index"],
         tabfiles_zero_based=config["tabfiles_zero_based"],
-        # logger=config.logger,
     )
 
 def run_forever(config):

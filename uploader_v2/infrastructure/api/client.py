@@ -2,7 +2,7 @@ from pathlib import Path
 import requests
 from .auth import AuthHandler
 from .endpoints import get_api_endpoints
-from .exceptions import ApiError, AuthenticationError, UploadError, ChecksumMismatchError, BiofileParsingError
+from .exceptions import ApiError, AuthenticationError, UploadError, ChecksumMismatchError
 
 class ApiClient:
     def __init__(self, config: dict):

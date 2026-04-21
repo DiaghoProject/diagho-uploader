@@ -8,9 +8,6 @@ from pydantic import BaseModel, Field, field_validator
 class HardValidationError(Exception):
     pass
 
-class SoftValidationWarning(Warning):
-    pass
-
 
 class Priority(str, Enum):
     low = "low"
@@ -73,7 +70,8 @@ class TsvRow(BaseModel):
     is_cohort: Optional[bool] = Field(default=False)
     pretags: Optional[List[PretagItem]] = None
 
-    _line: Optional[int] = None
+    # set by parser for error reporting; not a Pydantic field
+    _line: int = 0
 
     @field_validator("assignee", mode="before")
     def empty_assignee_to_none(cls, v):
