@@ -21,7 +21,7 @@ tabfiles_zero_based: true    # true for BED (0-based), false for 1-based formats
 
 dedup_biofiles: false        # Remove duplicate variants in uploaded biofiles
 
-# Email notifications (not yet active — pending logging/mail utils)
+# Email notifications
 emails:
   send_mail_flag: 1
   recipients: "user@example.fr"          # Comma-separated for multiple recipients
@@ -34,7 +34,7 @@ smtp:
   username:                              # optional — leave blank for open relay
   password:                              # optional — leave blank for open relay
 
-# Logging (not yet active — pending logging utils)
+# Logging
 logging:
   log_level: "INFO"
   log_directory: "path/to/logs"
