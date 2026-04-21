@@ -42,6 +42,15 @@ class ApiClient:
                 if r.status_code == 401:
                     raise AuthenticationError()
 
+            if r.status_code == 400:
+                try:
+                    body = r.json()
+                    if isinstance(body, list) and any("already been uploaded" in str(m) for m in body):
+                        return expected_checksum
+                except Exception:
+                    pass
+                raise UploadError(file.stem, r.status_code, r.text)
+
             if not r.ok:
                 raise UploadError(file.stem, r.status_code, r.text)
 
