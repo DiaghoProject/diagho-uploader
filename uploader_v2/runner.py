@@ -1,4 +1,5 @@
 import logging
+import sys
 from pathlib import Path
 from time import sleep
 
@@ -7,6 +8,7 @@ from uploader_v2.job.dispatch import dispatch_step, SLEEP_BY_STATE
 from uploader_v2.job.states import JobState
 from uploader_v2.context import Context
 from uploader_v2.infrastructure.api.client import ApiClient
+from uploader_v2.infrastructure.api.exceptions import ApiError
 from uploader_v2.utils.logger import setup_logger
 from uploader_v2.utils.mailer import Mailer
 
@@ -23,6 +25,7 @@ def build_context(config: dict) -> Context:
         dedup_biofiles=config["dedup_biofiles"],
         tabfiles_columns_index=config["tabfiles_columns_index"],
         tabfiles_zero_based=config["tabfiles_zero_based"],
+        biofile_timeout_minutes=config.get("biofile_timeout_minutes", 60),
     )
 
 
@@ -51,25 +54,33 @@ def run_forever(config: dict) -> None:
 
     ctx    = build_context(config)
     mailer = Mailer(config)
-    job    = IngestionJob(job_id="default")
+
+    try:
+        ctx.api.healthcheck()
+        logger.info("API healthcheck passed")
+    except ApiError as e:
+        logger.error("API unreachable at startup: %s", e)
+        sys.exit(1)
+
+    job = IngestionJob(job_id="init")
 
     while True:
         prev_state = job.state
         dispatch_step(job, ctx)
 
         if job.state != prev_state:
-            logger.info("State: %s → %s", prev_state.name, job.state.name)
+            logger.info("[%s] State: %s → %s", job.job_id, prev_state.name, job.state.name)
 
         if job.state == JobState.DONE:
-            logger.info("Job completed successfully")
+            logger.info("[%s] Job completed successfully", job.job_id)
             mailer.info(_done_body(job))
-            job = IngestionJob(job_id="default")
+            job = IngestionJob(job_id="init")
             continue
 
         if job.state == JobState.FAILED:
-            logger.error("Job failed: %s", job.last_error or "unknown error")
+            logger.error("[%s] Job failed: %s", job.job_id, job.last_error or "unknown error")
             mailer.alert(_failed_body(job, prev_state.name))
-            job = IngestionJob(job_id="default")
+            job = IngestionJob(job_id="init")
             continue
 
         if job.state == prev_state:

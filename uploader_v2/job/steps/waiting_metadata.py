@@ -17,7 +17,9 @@ def step(job, ctx):
         return
 
     path = files[0]
-    logger.info("Metadata file detected: %s", path.name)
+    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    job.job_id = f"{path.stem}_{timestamp}"
+    logger.info("[%s] Metadata file detected: %s", job.job_id, path.name)
     content = path.read_text(encoding="utf-8")
 
     try:
@@ -29,11 +31,12 @@ def step(job, ctx):
             raise ValueError(f"Unsupported metadata format: {path.suffix}")
 
         validated = validate_payload(raw)
-        logger.debug("Validated payload: %s", validated)
+        logger.debug("[%s] Validated payload: %s", job.job_id, validated)
 
         expected = _extract_expected_files(validated)
         logger.info(
-            "%d biofile(s) expected: %s",
+            "[%s] %d biofile(s) expected: %s",
+            job.job_id,
             len(expected),
             list(expected.keys()),
         )
@@ -43,13 +46,12 @@ def step(job, ctx):
         job.expected_files = expected
         job.state = JobState.WAITING_BIOFILES
 
-        timestamp = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%S")
         dst = ctx.archives_dir / f"{path.stem}_{timestamp}{path.suffix}"
         shutil.move(str(path), str(dst))
-        logger.info("Metadata archived to %s", dst.name)
+        logger.info("[%s] Metadata archived to %s", job.job_id, dst.name)
 
     except Exception as e:
-        logger.error("Metadata processing failed: %s", e)
+        logger.error("[%s] Metadata processing failed: %s", job.job_id, e)
         job.last_error = str(e)
         job.state = JobState.FAILED
 
