@@ -9,6 +9,31 @@ STATUS=false
 PARSE=false
 CONFIG="config/config.yaml"
 
+usage() {
+  cat <<EOF
+Usage: $(basename "$0") <command> [options]
+
+Commands:
+  --start           Start the uploader in the background (daemon mode)
+  --start --debug   Start in the foreground with live output
+  --stop            Send a graceful shutdown signal (finishes current step)
+  --stop --force    Kill the process immediately
+  --status          Show whether the uploader is running
+  --update          Stop, pull latest changes, reinstall deps, restart
+  --parse           Wait for a TSV/JSON in metadata_dir, print the validated
+                    JSON payload to stdout, then exit (no API calls, no logs)
+
+Options:
+  --config <path>   Path to config YAML (default: config/config.yaml)
+  --help            Show this help message
+EOF
+}
+
+if [[ $# -eq 0 ]]; then
+  usage
+  exit 0
+fi
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --start)
@@ -43,8 +68,14 @@ while [[ $# -gt 0 ]]; do
       CONFIG="$2"
       shift 2
       ;;
+    --help|-h)
+      usage
+      exit 0
+      ;;
     *)
       echo "Unknown option: $1"
+      echo
+      usage
       exit 1
       ;;
   esac
