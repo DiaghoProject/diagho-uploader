@@ -125,6 +125,6 @@ def run_forever(config: dict) -> None:
             continue
 
         if job.state == prev_state:
-            sleep(SLEEP_BY_STATE.get(job.state, 2))
+            sleep(SLEEP_BY_STATE.get(job.state, 30))
 
     logger.info("Uploader stopped")
