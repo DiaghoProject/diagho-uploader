@@ -24,6 +24,7 @@ class AuthHandler:
             tokens = TokenData.model_validate(data)
             self.access_token = tokens.access
             self.refresh_token = tokens.refresh
+            print(f"auth token loaded")
 
     def _save_tokens(self):
         tokens = TokenData(
@@ -49,6 +50,7 @@ class AuthHandler:
         self.access_token = data["access"]
         self.refresh_token = data["refresh"]
         self._save_tokens()
+        print("log in successful")
 
     def refresh(self):
         if not self.refresh_token:
@@ -66,6 +68,7 @@ class AuthHandler:
         data = r.json()
         self.access_token = data["access"]
         self._save_tokens()
+        print("token refreshed")
 
     def ensure_valid_token(self):
         if not self.access_token:

@@ -10,6 +10,7 @@ def step(job, ctx):
         return
 
     path = files[0]
+    print(f"file detected: {path}")
     with open(path, encoding="utf-8") as f:
         content = f.read()
 
@@ -22,6 +23,7 @@ def step(job, ctx):
             raise Exception(f"Incompatible file format: {path}")
 
         validated = validate_payload(raw)
+        print(f"json validated")
 
         job.metadata_path = path
         job.metadata_json = validated
@@ -54,5 +56,7 @@ def extract_expected_files(metadata: dict) -> dict[str, str]:
         }
         for f in metadata["files"]
     }
+
+    print(f"expected files: {files}")
 
     return files

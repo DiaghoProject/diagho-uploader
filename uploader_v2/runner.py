@@ -14,7 +14,6 @@ def build_context(config):
         files_dir=Path(config["files_dir"]),
         archives_dir=Path(config["archives_dir"]),
         accessions=config["accessions"],
-        tabfiles_columns_index=config["tabfiles_columns_index"],
         dedup_biofiles=config["dedup_biofiles"],
         tabfiles_columns_index=config["tabfiles_columns_index"],
         tabfiles_zero_based=config["tabfiles_zero_based"],

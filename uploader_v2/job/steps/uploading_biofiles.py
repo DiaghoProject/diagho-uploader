@@ -4,6 +4,7 @@ from uploader_v2.context import Context
 from uploader_v2.job.states import JobState
 
 def step(job, ctx: Context):
+    print("starting upload")
     for filename, file_data in job.expected_files.items():
         if filename in job.uploaded_files:
             continue

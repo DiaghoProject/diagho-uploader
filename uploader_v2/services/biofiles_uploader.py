@@ -34,6 +34,8 @@ class BiofileUploader:
             "dedup": dedup,
         }
 
+        print(f"uploading: {self.file.stem}")
+
         return self.ctx.api.upload_biofile("post_biofile_snv", data, self.file, self.checksum)
 
     def upload_cnv_file(self):
@@ -50,5 +52,7 @@ class BiofileUploader:
             "columnIndex": tabfiles_columns_index,
             "zeroBased": tabfiles_zero_based,
         }
+
+        print(f"uploading: {self.file.stem}")
 
         return self.ctx.api.upload_biofile("post_biofile_cnv", data, self.file, self.checksum)
