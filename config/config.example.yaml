@@ -21,6 +21,8 @@ tabfiles_zero_based: true    # true for BED (0-based), false for 1-based formats
 
 dedup_biofiles: false        # Remove duplicate variants in uploaded biofiles
 
+biofile_timeout_minutes: 60  # Max minutes to wait for biofiles before failing the job
+
 # Email notifications
 emails:
   send_mail_flag: 1
