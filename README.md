@@ -1,133 +1,293 @@
-# Diagho Uploader
+# diagho-uploader
 
-## Description
+Automated pipeline bridge for [Diagho](https://diagho.fr): watches input directories, uploads genomic biofiles (VCF, BED-like CNV tabfiles), and posts the associated metadata configuration to the Diagho API. Designed to run as a long-lived background daemon at the end of bioinformatics pipelines.
 
-Upload automatisé des fichiers **biofiles** (SNV, CNV) et des informations patients associées, dans Diagho.
+---
 
+## How it works
 
+The uploader runs a state machine that processes one ingestion job at a time:
 
-## Input file (TSV) : samples informations
+```
+WAITING_METADATA → WAITING_BIOFILES → UPLOADING_BIOFILES → WAITING_PARSING → POSTING_METADATA → DONE
+                                                                                                   ↓
+                                                                                             (reset, next job)
+```
 
-- Fichier tabulé contenant les informations de chaque sample.
-- Colonnes attendues :
+| State | What happens |
+|---|---|
+| `WAITING_METADATA` | Polls `metadata_dir` for a `.tsv` or `.json` file. When found, parses and validates it, then archives it. |
+| `WAITING_BIOFILES` | Polls `files_dir` until all biofiles declared in the metadata are present. Fails after `biofile_timeout_minutes`. |
+| `UPLOADING_BIOFILES` | Uploads each biofile to the API. Retries up to 5 times per file on transient errors; already-uploaded files are skipped by checksum. Archived on success. |
+| `WAITING_PARSING` | Polls the API until all uploaded biofiles have finished server-side parsing. |
+| `POSTING_METADATA` | Posts the full metadata configuration (families, interpretations, etc.) to the API. |
+| `DONE` / `FAILED` | Sends an email notification, resets, and waits for the next metadata file. |
 
+---
 
-| **Colonne**              | **Description** |
-|--------------------------|----------------|
-| **filename**             | Nom du fichier VCF ou BED |
-| **checksum**             | Checksum du fichier (optionnel) |
-| **file_type**            | Type de fichier : SNV ou CNV |
-| **assembly**             | Version du génome de référence utilisée : GRCh37 ou GRCh38 |
-| **sample**               | ID du sample |
-| **bam_path**             | Chemin du fichier BAM (optionnel) |
-| **family_id**            | ID de la famille |
-| **person_id**            | ID unique de l'individu |
-| **father_id**            | ID du père |
-| **mother_id**            | ID de la mère |
-| **sex**                  | Sexe de l'individu (`male`/`female`/`unknown`). |
-| **is_affected**          | Indique si l'individu est atteint (`1 = affecté`, `0 = non affecté`). |
-| **first_name**           | Prénom (optionnel) |
-| **last_name**            | Nom de famille (optionnel) |
-| **date_of_birth**        | Date de naissance (format `JJ/MM/AAAA`) |
-| **hpo**                  | Termes HPO associés (optionnel) |
-| **interpretation_title** | Titre de l'interprétation Diagho |
-| **is_index**             | Indique si l'individu est le cas index de la famille (`1 = oui`, `0 = non`). |
-| **project**              | Nom du projet |
-| **assignee**             | Utilisateur assignée à l'analyse (optionnel) |
-| **priority**             | Niveau de priorité de l'analyse (ex. `low`, `normal`, `high`) (défaut = `normal`) |
-| **person_note**          | Notes ou remarques concernant l'individu (optionnel) |
-| **data_title**           | Titre des données de l'analyse (optionnel) |
+## Requirements
 
+- Python 3.10+
+- Access to a running Diagho API instance
 
-## Installation et configuration
+---
 
-
-### Pré-requis
-
-Créer 2 répertoires :
-- **input_biofiles** : va contenir les fichiers VCF et BED
-- **input_data** : va contenir les fichiers TSV (informations sur les échantillons)
-
-
-### Installation 
-
+## Installation
 
 ```bash
-git clone https://github.com/DiaghoProject/diagho-uploader.git
-
+git clone <repo-url>
 cd diagho-uploader
-
-# Create venv
 python -m venv venv
-
-# Activate venv
 source venv/bin/activate
-
-# Install dependences
 pip install -r requirements.txt
+```
 
-# Copy config file
+---
+
+## Configuration
+
+Copy the example config and fill in your values:
+
+```bash
 cp config/config.example.yaml config/config.yaml
 ```
 
+`config/config.yaml` is gitignored and will never be committed.
 
-### Configuration
+### Reference
 
-- Compléter le fichier `config.yaml` :
-  - **input_data** : répertoire d'input des fichier TSV
-  - **input_biofiles** : répertoire d'input des biofiles (VCF, BED,...)
-  - **backup_data** : backup fichiers TSV (une fois chargé)
-  - **backup_biofiles**: backup biofiles (une fois chargé)
-  - **logging**
-    - **log_directory** : répertoire des fichiers de logs
-  - **emails**
-    - **recipients** : liste des adresses emails pour recevoir les mails d'info/alerte (si plusieurs : `"user1@example.com,user2@example.com"`)
-    - **send_mail_flag** : mettre à `1` pour activer l'envoi de mail, sinon `0` pour désactiver
+#### Directories
 
-  - **diagho_api** : renseigner les informations de connexion à l'API
-  - **accessions** : indiquer les ID d'accession pour GRCh37 et GRCh38
+| Key | Description |
+|---|---|
+| `metadata_dir` | Drop TSV or JSON metadata files here. Processed files are archived automatically. |
+| `files_dir` | Drop biofiles (VCF, CNV tabfiles, etc.) here. |
+| `archives_dir` | Destination for processed metadata files and uploaded biofiles. |
 
+#### API
 
-
-## Start watcher
-
-### Start in background
-
-```bash
-bash diagho_uploader.sh --start
+```yaml
+diagho_api:
+  url: "http://hostname:8080/api/v1/"
+  username: ""
+  password: ""
+  allow_insecure: true   # disable SSL verification — use for self-signed certs or plain HTTP
 ```
 
-### Start in debug mode
+#### Genome accessions
 
-Affichage des logs dans le terminal.
+Maps assembly names used in metadata TSV rows to their numeric IDs in your Diagho instance:
 
-```bash
-bash diagho_uploader.sh --start --debug
+```yaml
+accessions:
+  GRCh37: 1
+  GRCh38: 2
 ```
 
-## Stop watcher
+The names must match what is used in the `assembly` column of your TSV files.
 
-```bash
-bash diagho_uploader.sh --stop
+#### CNV tabfile settings
+
+```yaml
+tabfiles_columns_index: {"1": "CHROM", "2": "START", "3": "END"}
+tabfiles_zero_based: true   # true for BED (0-based), false for 1-based formats
 ```
 
-### Forcer l'arrêt de l'uploader (kill le process si en cours)
+`tabfiles_columns_index` maps 1-based column positions to the expected column names as configured in Diagho.
 
-```bash
-bash diagho_uploader.sh --stop --force
+#### Biofile timeout
+
+```yaml
+biofile_timeout_minutes: 60   # optional — default 60
 ```
 
+How long to wait for expected biofiles to appear in `files_dir` before failing the job.
 
-## Update
+#### Deduplication
 
-```bash
-bash diagho_uploader.sh --update
+```yaml
+dedup_biofiles: false   # remove duplicate variants in uploaded biofiles
 ```
 
-## Check status
+#### Email notifications
 
-Indique si l'uploader est en cours.
+```yaml
+emails:
+  send_mail_flag: 1
+  recipients: "user@example.com"   # comma-separated for multiple recipients
+
+smtp:
+  server: "mailserver"
+  port: 25
+  use_tls: false
+  from_email_format: "diagho-uploader-{hostname}@example.com"
+  username:   # leave blank for open relay
+  password:   # leave blank for open relay
+```
+
+An alert email is sent on job failure; an info email is sent on success. Set `send_mail_flag: 0` to disable.
+
+#### Logging
+
+```yaml
+logging:
+  log_level: "INFO"           # DEBUG, INFO, WARNING, ERROR
+  log_directory: "path/to/logs"
+  log_rotation_when: "W0"     # W0 = every Monday; see TimedRotatingFileHandler docs
+  log_rotation_interval: 1
+  log_backup_count: 52        # keep 52 weekly rotations (≈ 1 year)
+```
+
+Logs are always printed to the console. File logging is enabled when `log_directory` is set. Log files are named `uploader.YYYY-MM-DD.log`.
+
+---
+
+## Running
+
+All operations go through `diagho_uploader.sh`:
+
+```
+Usage: diagho_uploader.sh <command> [options]
+
+Commands:
+  --start           Start the uploader in the background (daemon mode)
+  --start --debug   Start in the foreground with live output
+  --stop            Send a graceful shutdown signal (finishes current step)
+  --stop --force    Kill the process immediately
+  --status          Show whether the uploader is running
+  --update          Stop, pull latest changes, reinstall deps, restart
+  --parse           Wait for a TSV/JSON in metadata_dir, print the validated
+                    JSON payload to stdout, then exit (no API calls, no logs)
+
+Options:
+  --config <path>   Path to config YAML (default: config/config.yaml)
+  --help            Show this help message
+```
+
+### Validate a metadata file without running the pipeline
+
+`--parse` is useful for checking that a TSV file produces the expected API payload before running a real ingestion:
 
 ```bash
-bash diagho_uploader.sh --status
+# drop a file into metadata_dir, then:
+./diagho_uploader.sh --parse
+```
+
+Polls `metadata_dir`, prints the validated JSON to stdout when a file appears, and exits. No API calls are made. SIGTERM / Ctrl-C cancels the wait.
+
+---
+
+## Metadata TSV format
+
+The metadata file describes one or more biofiles and their associated clinical/family context. Each row represents one sample on one biofile within one interpretation.
+
+Multiple rows sharing the same `filename` / `checksum` define multiple samples on the same file. Multiple rows sharing the same `interpretation_title` define the samples and data blocks within one interpretation.
+
+### Columns
+
+| Column | Required | Values / format | Description |
+|---|---|---|---|
+| `filename` | yes | string | Biofile filename (must be present in `files_dir`) |
+| `checksum` | yes | MD5 hex string | MD5 checksum of the biofile |
+| `file_type` | yes | `SNV`, `CNV` | Biofile type |
+| `assembly` | yes | e.g. `GRCh37`, `GRCh38` | Genome assembly — must match a key in `accessions` config |
+| `sample` | yes | string | Sample name |
+| `bam_path` | no | path string | Path to associated BAM file |
+| `run` | no | string | Run identifier |
+| `family_id` | yes | string | Family identifier |
+| `person_id` | yes | string | Person identifier |
+| `father_id` | no | string | `person_id` of the father |
+| `mother_id` | no | string | `person_id` of the mother |
+| `sex` | no | `male`, `female`, `unknown` | Biological sex |
+| `is_affected` | no | `0` / `1` | Whether the person is affected |
+| `first_name` | no | string | |
+| `last_name` | no | string | |
+| `date_of_birth` | no | `YYYY-MM-DD` | |
+| `note` | no | string | Free-text note attached to the person |
+| `interpretation_title` | yes | string | Groups rows into one interpretation |
+| `is_index` | yes* | `0` / `1` | Marks the index case — **exactly one `1` per interpretation** |
+| `data_title` | no | string | Label for the data block within the interpretation |
+| `project` | yes | string | Project identifier in Diagho |
+| `assignee` | no | string | Username to assign the interpretation to |
+| `priority` | no | `low`, `normal`, `high`, `highest` | Defaults to `normal` |
+| `is_cohort` | no | `0` / `1` | Whether this is a cohort analysis |
+| `pretags` | no | JSON array | Pre-applied tags: `[{"tag_id": N, "filter_id": N}, ...]` |
+
+### Notes
+
+- A TSV with no header row, or missing required columns, will fail at `WAITING_METADATA` and transition the job to `FAILED`.
+- `priority` also accepts legacy integer values: `0` = low, `1` = normal, `2` = high, `3` = highest.
+- Checksums containing a comma (e.g. `abc123,extra`) are silently truncated to the first value.
+- Invalid `pretags` (malformed JSON) are dropped with a warning rather than failing the whole job.
+
+---
+
+## Development
+
+### Install dev dependencies
+
+```bash
+pip install -r requirements-dev.txt
+```
+
+### Run unit tests
+
+```bash
+pytest tests/unit/
+```
+
+### Run integration tests
+
+Integration tests require a live Diagho API. Populate `config/config.yaml` with valid credentials, then:
+
+```bash
+pytest -m integration
+```
+
+Integration tests are skipped automatically when `config/config.yaml` is absent.
+
+---
+
+## Project structure
+
+```
+diagho-uploader/
+├── main.py                        # Entry point
+├── diagho_uploader.sh             # CLI wrapper (start/stop/parse/…)
+├── config/
+│   └── config.example.yaml        # Configuration template
+├── uploader/
+│   ├── runner.py                  # Main loop and state machine driver
+│   ├── context.py                 # Immutable runtime context (dirs, API client, settings)
+│   ├── job/
+│   │   ├── model.py               # IngestionJob — mutable per-job state
+│   │   ├── states.py              # JobState enum
+│   │   ├── dispatch.py            # Step dispatch table and sleep policy
+│   │   └── steps/                 # One module per state
+│   ├── metadata/
+│   │   ├── parser.py              # TSV → List[TsvRow]
+│   │   ├── builder.py             # List[TsvRow] → raw payload dict
+│   │   ├── validator.py           # Raw dict → validated dict (Pydantic)
+│   │   ├── tsv_schema.py          # TsvRow model and field validators
+│   │   └── payload_schema.py      # API payload models
+│   ├── services/
+│   │   └── biofiles_uploader.py   # SNV / CNV upload logic
+│   ├── infrastructure/api/
+│   │   ├── client.py              # ApiClient — all HTTP calls
+│   │   ├── auth.py                # JWT auth handler (in-memory tokens)
+│   │   ├── endpoints.py           # URL builder
+│   │   └── exceptions.py          # API exception hierarchy
+│   └── utils/
+│       ├── logger.py              # Logging setup with file rotation
+│       └── mailer.py              # SMTP email notifications
+├── tests/
+│   ├── conftest.py                # Shared fixtures and synthetic test data
+│   ├── unit/
+│   │   ├── test_metadata_pipeline.py
+│   │   ├── test_auth.py
+│   │   └── test_steps.py
+│   └── integration/
+│       └── test_api.py
+├── requirements.txt
+└── requirements-dev.txt
 ```
