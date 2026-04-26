@@ -11,8 +11,6 @@ class BiofileUploader:
         self.file_type = file_data["fileType"]
         self.assembly = file_data["assembly"]
         self.priority = file_data["priority"]
-        # TODO: should be a get or create with run name instead of runId
-        # self.run = file_data["run"]
 
     @classmethod
     def upload(cls, ctx: Context, file: Path, file_data: dict) -> str:
@@ -29,8 +27,6 @@ class BiofileUploader:
         data = {
             "priority": self.priority,
             "accession": self.ctx.accessions[self.assembly],
-            # TODO: uncomment with API update
-            # "run": self.run,
             "dedup": self.ctx.dedup_biofiles,
         }
         return self.ctx.api.upload_biofile("post_biofile_snv", data, self.file, self.checksum)
@@ -39,8 +35,6 @@ class BiofileUploader:
         data = {
             "priority": self.priority,
             "assembly": self.assembly,
-            # TODO: uncomment with API update
-            # "run": self.run,
             "dedup": self.ctx.dedup_biofiles,
             "columnIndex": json.dumps(self.ctx.tabfiles_columns_index),
             "zeroBased": self.ctx.tabfiles_zero_based,

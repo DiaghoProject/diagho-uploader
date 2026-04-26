@@ -16,7 +16,7 @@ def step(job, ctx):
     if not files:
         return
 
-    path = files[0]
+    path = files[0]  # process one file per cycle; any remaining files will be picked up in subsequent passes
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     job.job_id = f"{path.stem}_{timestamp}"
     logger.info("[%s] Metadata file detected: %s", job.job_id, path.name)

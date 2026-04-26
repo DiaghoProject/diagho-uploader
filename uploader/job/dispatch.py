@@ -17,6 +17,7 @@ DISPATCH = {
     JobState.FAILED: None,
 }
 
+# Poll interval (seconds) per state — shorter when state changes are expected to be fast
 SLEEP_BY_STATE = {
     JobState.WAITING_METADATA: 30,
     JobState.WAITING_BIOFILES: 10,

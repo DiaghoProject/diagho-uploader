@@ -22,6 +22,7 @@ def step(job, ctx: Context):
             job.uploaded_files[filename] = checksum
             logger.info("Uploaded %s — checksum: %s", filename, checksum)
         except AuthenticationError:
+            # Transient auth failure: go back one state so the upload is retried after token renewal
             logger.warning("Authentication failed during upload, will retry")
             job.state = JobState.WAITING_BIOFILES
             return

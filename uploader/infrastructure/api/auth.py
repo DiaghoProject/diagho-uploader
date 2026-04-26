@@ -13,14 +13,13 @@ logger = logging.getLogger(__name__)
 def _token_is_expired(token: str) -> bool:
     try:
         payload = token.split(".")[1]
-        payload += "=" * (-len(payload) % 4)
+        payload += "=" * (-len(payload) % 4)  # JWT base64url strips padding; Python decoder requires it
         data = json.loads(base64.urlsafe_b64decode(payload))
         return data.get("exp", 0) < time.time()
     except Exception:
         return True
 
 
-# TODO: Could be largely simplified with an API key authentication
 class AuthHandler:
     def __init__(self, config: dict, endpoints):
         self.config = config

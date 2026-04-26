@@ -83,7 +83,7 @@ class TsvRow(BaseModel):
     def normalize_checksum(cls, v):
         if v is None or v == "":
             return None
-        return str(v).split(",")[0]
+        return str(v)
 
     @field_validator("is_affected", "is_index", "is_cohort", mode="before")
     def parse_bool(cls, v):
@@ -126,6 +126,7 @@ class TsvRow(BaseModel):
             return parsed
         except Exception:
             try:
+                # Some tools export Python-repr format with single quotes instead of valid JSON
                 parsed = json.loads(v.replace("'", '"'))
                 if not isinstance(parsed, list):
                     raise ValueError("pretags must be a list")

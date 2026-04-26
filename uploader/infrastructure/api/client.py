@@ -33,8 +33,9 @@ class ApiClient:
                 raise UploadError(file.stem, message=str(e)) from e
 
             if r.status_code == 401:
+                # Token may have expired after _headers() check but before/during the request; retry once
                 self.auth.refresh_or_login()
-                fh.seek(0)
+                fh.seek(0)  # file handle was already read; rewind before retry
                 try:
                     r = requests.post(url, data=data, files={"file": fh}, headers=self._headers(), verify=self.verify)
                 except requests.exceptions.RequestException as e:
@@ -45,6 +46,7 @@ class ApiClient:
             if r.status_code == 400:
                 try:
                     body = r.json()
+                    # Idempotent re-upload: if the API says the file is already there, treat it as success
                     if isinstance(body, list) and any("already been uploaded" in str(m) for m in body):
                         return expected_checksum
                 except Exception:
