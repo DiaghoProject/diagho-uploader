@@ -17,6 +17,7 @@ from uploader.infrastructure.api.exceptions import (
     ApiError,
     AuthenticationError,
     ChecksumMismatchError,
+    MaxAuthRetriesError,
     UploadError,
 )
 
@@ -199,6 +200,62 @@ def test_uploading_biofiles_checksum_mismatch_fails(mock_ctx):
         uploading_biofiles.step(job, mock_ctx)
 
     assert job.state == JobState.FAILED
+
+
+def test_uploading_biofiles_auth_error_stays_uploading(mock_ctx):
+    job = IngestionJob(job_id="test")
+    job.state = JobState.UPLOADING_BIOFILES
+    job.expected_files = _EXPECTED_FILES
+
+    with patch("uploader.job.steps.uploading_biofiles.BiofileUploader.upload",
+               side_effect=AuthenticationError("token expired")):
+        uploading_biofiles.step(job, mock_ctx)
+
+    assert job.state == JobState.UPLOADING_BIOFILES
+
+
+def test_uploading_biofiles_max_auth_retries_fails(mock_ctx):
+    job = IngestionJob(job_id="test")
+    job.expected_files = _EXPECTED_FILES
+
+    with patch("uploader.job.steps.uploading_biofiles.BiofileUploader.upload",
+               side_effect=MaxAuthRetriesError(7)):
+        uploading_biofiles.step(job, mock_ctx)
+
+    assert job.state == JobState.FAILED
+    assert job.last_error is not None
+
+
+_TWO_FILES = {
+    "snv001.vcf.gz": {
+        "checksum": "aaaabbbbccccddddeeeeffffaaaabbbb",
+        "fileType": "SNV",
+        "assembly": "GRCh38",
+        "priority": "normal",
+    },
+    "cnv002.tsv": {
+        "checksum": "11112222333344445555666677778888",
+        "fileType": "CNV",
+        "assembly": "GRCh38",
+        "priority": "normal",
+    },
+}
+
+
+def test_uploading_biofiles_auth_failure_preserves_already_uploaded(mock_ctx):
+    (mock_ctx.files_dir / "snv001.vcf.gz").write_bytes(b"fake")
+    (mock_ctx.files_dir / "cnv002.tsv").write_bytes(b"fake")
+    job = IngestionJob(job_id="test")
+    job.state = JobState.UPLOADING_BIOFILES
+    job.expected_files = _TWO_FILES
+
+    # first file uploads, second triggers auth failure
+    with patch("uploader.job.steps.uploading_biofiles.BiofileUploader.upload",
+               side_effect=["aaaabbbbccccddddeeeeffffaaaabbbb", AuthenticationError("expired")]):
+        uploading_biofiles.step(job, mock_ctx)
+
+    assert "snv001.vcf.gz" in job.uploaded_files
+    assert job.state == JobState.UPLOADING_BIOFILES  # not stuck, not failed
 
 
 # ---------------------------------------------------------------------------

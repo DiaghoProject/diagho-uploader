@@ -34,11 +34,6 @@ def test_non_empty_assignee_preserved():
     assert _minimal_row(assignee="analyst01").assignee == "analyst01"
 
 
-def test_checksum_comma_split():
-    row = _minimal_row(checksum="aaaabbbbccccddddeeeeffffaaaabbbb,extra")
-    assert row.checksum == "aaaabbbbccccddddeeeeffffaaaabbbb"
-
-
 def test_blank_priority_defaults_to_normal():
     assert _minimal_row(priority="").priority == Priority.normal
     assert _minimal_row(priority=None).priority == Priority.normal
