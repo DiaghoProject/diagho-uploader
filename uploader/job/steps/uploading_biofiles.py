@@ -3,7 +3,7 @@ import shutil
 
 from ..states import JobState
 from uploader.services.biofiles_uploader import BiofileUploader
-from uploader.infrastructure.api.exceptions import AuthenticationError, ChecksumMismatchError, UploadError
+from uploader.infrastructure.api.exceptions import AuthenticationError, MaxAuthRetriesError, ChecksumMismatchError, UploadError
 from uploader.context import Context
 
 logger = logging.getLogger(__name__)
@@ -21,9 +21,12 @@ def step(job, ctx: Context):
             checksum = BiofileUploader.upload(ctx, path, file_data)
             job.uploaded_files[filename] = checksum
             logger.info("Uploaded %s — checksum: %s", filename, checksum)
+        except MaxAuthRetriesError as e:
+            job.last_error = str(e)
+            job.state = JobState.FAILED
+            return
         except AuthenticationError:
-            # API client will try to refresh or re-authenticate
-            logger.warning("Authentication failed during upload, will retry")
+            # Authentication will be retried next cycle
             return
         except ChecksumMismatchError as e:
             logger.error("Checksum mismatch for %s: %s", filename, e)

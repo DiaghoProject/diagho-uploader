@@ -8,6 +8,10 @@ class AuthenticationError(ApiError):
 class TokenRefreshError(AuthenticationError):
     pass
 
+class MaxAuthRetriesError(AuthenticationError):
+    def __init__(self, attempts: int):
+        super().__init__(f"Authentication failed {attempts} times in a row. Check API availability and credentials.")
+
 class ChecksumMismatchError(ApiError):
     def __init__(self, filename: str, local: str, remote: str):
         self.filename = filename
