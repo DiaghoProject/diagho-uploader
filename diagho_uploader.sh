@@ -6,7 +6,33 @@ FORCE=false
 UPDATE=false
 DEBUG=false
 STATUS=false
+PARSE=false
+CONFIG="config/config.yaml"
 
+usage() {
+  cat <<EOF
+Usage: $(basename "$0") <command> [options]
+
+Commands:
+  --start           Start the uploader in the background (daemon mode)
+  --start --debug   Start in the foreground with live output
+  --stop            Send a graceful shutdown signal (finishes current step)
+  --stop --force    Kill the process immediately
+  --status          Show whether the uploader is running
+  --update          Stop, pull latest changes, reinstall deps, restart
+  --parse           Wait for a TSV/JSON in metadata_dir, print the validated
+                    JSON payload to stdout, then exit (no API calls, no logs)
+
+Options:
+  --config <path>   Path to config YAML (default: config/config.yaml)
+  --help            Show this help message
+EOF
+}
+
+if [[ $# -eq 0 ]]; then
+  usage
+  exit 0
+fi
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -14,12 +40,12 @@ while [[ $# -gt 0 ]]; do
       START=true
       shift
       ;;
-    --force)
-      FORCE=true
-      shift
-      ;;
     --stop)
       STOP=true
+      shift
+      ;;
+    --force)
+      FORCE=true
       shift
       ;;
     --update)
@@ -34,162 +60,100 @@ while [[ $# -gt 0 ]]; do
       STATUS=true
       shift
       ;;
+    --parse)
+      PARSE=true
+      shift
+      ;;
+    --config)
+      CONFIG="$2"
+      shift 2
+      ;;
+    --help|-h)
+      usage
+      exit 0
+      ;;
     *)
-      echo "Option inconnue : $1"
+      echo "Unknown option: $1"
+      echo
+      usage
       exit 1
       ;;
   esac
 done
 
-
-#--------------
-
-# source venv
 source venv/bin/activate
 
-# PID (pour tester si process actif)
 SCRIPT_NAME=$(basename "$0")
 PID_FILE="${SCRIPT_NAME}.pid"
 
-DURATION=5
-INCREMENT=0.05
-
-# Start watcher
+# --start
 if [ "$START" = true ]; then
-  echo "
-  #################################
-  #        START WATCHER          #
-  #################################
-  "
-
   if [ -f "$PID_FILE" ] && kill -0 "$(cat "$PID_FILE")" 2>/dev/null; then
-    echo "Le script est déjà en cours d'exécution avec le PID $(cat "$PID_FILE")."
+    echo "Already running with PID $(cat "$PID_FILE")."
     exit 1
   fi
 
-  # Debug mode (not started in background)
   if [ "$DEBUG" = true ]; then
-
-    echo "
-    #################################
-    #        START WATCHER          #
-    #################################
-    > DEBUG
-    "
-    python main.py start_file_watcher
-  
+    python main.py --config "$CONFIG"
   else
-
-    nohup python main.py start_file_watcher > /dev/null 2>&1 &
+    nohup python main.py --config "$CONFIG" > /dev/null 2>&1 &
     disown
-
-    # Ecrire le PID dans le fichier
     echo $! > "$PID_FILE"
-    echo "Script lancé avec le PID $(cat "$PID_FILE")."
-
+    echo "Started with PID $(cat "$PID_FILE")."
   fi
 fi
 
-# Stop watcher (+/- forcer l'arrêt du process)
+# --stop
 if [ "$STOP" = true ]; then
-  echo "
-  #################################
-  #        STOP WATCHER           #
-  #################################
-  "
-
-  # Arrêt du watcher avec le flag
-  touch stop_watcher.flag
-
-  # Si "force" : kill le process
-  if [ "$FORCE" = true ] && [ -f "$PID_FILE" ] && kill -0 "$(cat "$PID_FILE")" 2>/dev/null; then
+  if [ -f "$PID_FILE" ] && kill -0 "$(cat "$PID_FILE")" 2>/dev/null; then
     PID=$(cat "$PID_FILE")
-    echo "Option --force activée. Arrêt forcé..."
-    kill "$PID"
-    echo "Processus $PID terminé de force."
+    if [ "$FORCE" = true ]; then
+      kill -9 "$PID"
+      echo "Process $PID force-killed."
+    else
+      kill "$PID"
+      echo "Shutdown signal sent to process $PID (will stop after current step)."
+    fi
+    rm -f "$PID_FILE"
+  else
+    echo "No running process found."
+    rm -f "$PID_FILE"
   fi
-
-  # Suppression du fichier car plus de process actif
-  rm -f "$PID_FILE"
-
 fi
 
-# Update script from Github
+# --update: stop, pull, install deps, restart
 if [ "$UPDATE" = true ]; then
-  
-  # Arrêt du watcher
-  echo "
+  if [ -f "$PID_FILE" ] && kill -0 "$(cat "$PID_FILE")" 2>/dev/null; then
+    PID=$(cat "$PID_FILE")
+    kill "$PID"
+    echo "Shutdown signal sent to process $PID, waiting..."
+    sleep 5
+    rm -f "$PID_FILE"
+  fi
 
-  #################################
-  #        STOP WATCHER           #
-  #################################
-  "
-  touch stop_watcher.flag
-
-  echo -n "["
-  ELAPSED=0
-  while (( $(echo "$ELAPSED < $DURATION" | bc -l) )); do
-    echo -n "#"
-    sleep "$INCREMENT"
-    ELAPSED=$(echo "$ELAPSED + $INCREMENT" | bc -l)
-  done
-  echo "] - Terminé !"
-
-  # Pull
-  echo "
-  
-  #################################
-  #        UPDATE                 #
-  #################################
-  "
+  echo "Pulling latest changes..."
   git pull
 
-  sleep 1
-
+  echo "Installing dependencies..."
   pip install -r requirements.txt
 
-  echo -n "["
-  ELAPSED=0
-  while (( $(echo "$ELAPSED < $DURATION" | bc -l) )); do
-    echo -n "#"
-    sleep "$INCREMENT"
-    ELAPSED=$(echo "$ELAPSED + $INCREMENT" | bc -l)
-  done
-  echo "] - Terminé !"
-
-  # Start watcher
-  echo "
-
-  #################################
-  #        START WATCHER          #
-  #################################
-  "
-  nohup python main.py start_file_watcher > /dev/null 2>&1 &
+  echo "Restarting..."
+  nohup python main.py --config "$CONFIG" > /dev/null 2>&1 &
   disown
-
-  echo -n "["
-  ELAPSED=0
-  while (( $(echo "$ELAPSED < $DURATION" | bc -l) )); do
-    echo -n "#"
-    sleep "$INCREMENT"
-    ELAPSED=$(echo "$ELAPSED + $INCREMENT" | bc -l)
-  done
-  echo "] - Terminé !"
-
-  # Ecrire le PID dans le fichier
   echo $! > "$PID_FILE"
-  echo "Script lancé avec le PID $(cat "$PID_FILE")."
-
+  echo "Started with PID $(cat "$PID_FILE")."
 fi
 
-# Status
-
+# --status
 if [ "$STATUS" = true ]; then
-
- if [ -f "$PID_FILE" ] && kill -0 "$(cat "$PID_FILE")" 2>/dev/null; then
-    echo "Le script est en cours d'exécution avec le PID $(cat "$PID_FILE")."
+  if [ -f "$PID_FILE" ] && kill -0 "$(cat "$PID_FILE")" 2>/dev/null; then
+    echo "Running with PID $(cat "$PID_FILE")."
   else
-    echo "Le script n'est pas en cours d'exécution."
+    echo "Not running."
   fi
+fi
 
+# --parse: wait for a TSV/JSON in metadata_dir, print validated JSON, exit
+if [ "$PARSE" = true ]; then
+  python main.py --parse --config "$CONFIG"
 fi
