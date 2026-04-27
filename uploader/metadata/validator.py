@@ -20,10 +20,7 @@ def validate_payload(payload: dict) -> dict:
 
 def enforce_rules(model: MetadataPayload):
     for interp in model.interpretations:
-        indexes = [
-            s for d in interp.datas for s in d.samples if s.isAffected
-        ]
-        if not indexes:
+        if not interp.indexCase:
             raise MetadataValidationError(
                 f"Interpretation '{interp.title}' has no index case"
             )

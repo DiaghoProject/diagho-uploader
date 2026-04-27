@@ -91,7 +91,6 @@ def build_interpretations(rows: List[TsvRow]) -> List[Dict[str, Any]]:
             data = info["datas"][dkey]
             data["samples"].append({
                 "name": r.sample,
-                "isAffected": bool(r.is_affected),
                 "checksum": r.checksum,
             })
             if data["pretags"] is None and r.pretags is not None:

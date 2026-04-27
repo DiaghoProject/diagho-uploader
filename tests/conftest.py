@@ -6,25 +6,25 @@ from unittest.mock import MagicMock
 # All identifiers are clearly fake — no real patient data.
 SAMPLE_TSV = (
     "filename\tchecksum\tfile_type\tassembly\tsample\tbam_path\trun\t"
-    "family_id\tperson_id\tfather_id\tmother_id\tsex\tis_affected\t"
+    "family_id\tperson_id\tfather_id\tmother_id\tsex\t"
     "first_name\tlast_name\tdate_of_birth\tnote\tinterpretation_title\t"
     "is_index\tdata_title\tproject\tassignee\tpriority\tis_cohort\tpretags\n"
 
     'snv001.vcf.gz\taaaabbbbccccddddeeeeffffaaaabbbb\tSNV\tGRCh38\tSAMPLE001\t\t\t'
-    'FAM001\tPERSON001\tPERSON003\tPERSON002\tmale\t1\t\t\t\t\t'
+    'FAM001\tPERSON001\tPERSON003\tPERSON002\tmale\t\t\t\t\t'
     'Interp001\t1\tSNV\tproject01\tanalyst01\tnormal\t0\t'
     '[{"tag_id": 1, "filter_id": 2}]\n'
 
     'snv001.vcf.gz\taaaabbbbccccddddeeeeffffaaaabbbb\tSNV\tGRCh38\tSAMPLE002\t\t\t'
-    'FAM001\tPERSON002\t\t\tfemale\t0\t\t\t\t\t'
+    'FAM001\tPERSON002\t\t\tfemale\t\t\t\t\t'
     'Interp001\t0\tSNV\tproject01\tanalyst01\tnormal\t0\t\n'
 
     'snv001.vcf.gz\taaaabbbbccccddddeeeeffffaaaabbbb\tSNV\tGRCh38\tSAMPLE003\t\t\t'
-    'FAM001\tPERSON003\t\t\tmale\t0\t\t\t\t\t'
+    'FAM001\tPERSON003\t\t\tmale\t\t\t\t\t'
     'Interp001\t0\tSNV\tproject01\tanalyst01\tnormal\t0\t\n'
 
     'cnv002.tsv\t11112222333344445555666677778888\tCNV\tGRCh38\tSAMPLE004\t\t\t'
-    'FAM002\tPERSON004\t\t\tmale\t1\t\t\t\t\t'
+    'FAM002\tPERSON004\t\t\tmale\t\t\t\t\t'
     'Interp002\t1\tCNV\tproject01\tanalyst02\thigh\t0\t\n'
 )
 

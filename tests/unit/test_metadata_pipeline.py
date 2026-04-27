@@ -51,15 +51,13 @@ def test_invalid_priority_falls_back_to_normal():
 
 
 def test_bool_fields_parse_truthy():
-    row = _minimal_row(is_affected="1", is_index="true", is_cohort="yes")
-    assert row.is_affected is True
+    row = _minimal_row(is_index="true", is_cohort="yes")
     assert row.is_index is True
     assert row.is_cohort is True
 
 
 def test_bool_fields_parse_falsy():
-    row = _minimal_row(is_affected="0", is_index="false", is_cohort="no")
-    assert row.is_affected is False
+    row = _minimal_row(is_index="false", is_cohort="no")
     assert row.is_index is False
     assert row.is_cohort is False
 

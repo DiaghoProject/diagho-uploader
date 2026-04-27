@@ -53,7 +53,6 @@ class TsvRow(BaseModel):
     mother_id: Optional[str] = None
 
     sex: Sex = Field(default=Sex.unknown)
-    is_affected: Optional[bool] = None
 
     first_name: Optional[str] = None
     last_name: Optional[str] = None
@@ -85,7 +84,7 @@ class TsvRow(BaseModel):
             return None
         return str(v)
 
-    @field_validator("is_affected", "is_index", "is_cohort", mode="before")
+    @field_validator("is_index", "is_cohort", mode="before")
     def parse_bool(cls, v):
         if v is None or v == "":
             return False

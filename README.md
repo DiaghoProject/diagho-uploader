@@ -199,7 +199,6 @@ Multiple rows sharing the same `filename` / `checksum` define multiple samples o
 | `father_id` | no | string | `person_id` of the father |
 | `mother_id` | no | string | `person_id` of the mother |
 | `sex` | no | `male`, `female`, `unknown` | Biological sex |
-| `is_affected` | no | `0` / `1` | Whether the person is affected |
 | `first_name` | no | string | |
 | `last_name` | no | string | |
 | `date_of_birth` | no | `YYYY-MM-DD` | |
