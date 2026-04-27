@@ -4,7 +4,7 @@ from tests.conftest import SAMPLE_TSV
 from uploader.metadata.parser import parse_tsv_rows
 from uploader.metadata.builder import build_payload
 from uploader.metadata.validator import validate_payload
-from uploader.metadata.tsv_schema import TsvRow, HardValidationError, Priority
+from uploader.metadata.tsv_schema import TsvRow, HardValidationError, Priority, Sex
 from uploader.metadata.validator import MetadataValidationError
 
 
@@ -24,6 +24,11 @@ def _minimal_row(**overrides) -> TsvRow:
         project="proj01",
     )
     return TsvRow(**{**defaults, **overrides})
+
+
+def test_empty_sex_defaults_to_unknown():
+    assert _minimal_row(sex="").sex == Sex.unknown
+    assert _minimal_row(sex=None).sex == Sex.unknown
 
 
 def test_empty_assignee_becomes_none():

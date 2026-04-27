@@ -73,6 +73,12 @@ class TsvRow(BaseModel):
     # set by parser for error reporting; not a Pydantic field
     _line: int = 0
 
+    @field_validator("sex", mode="before")
+    def empty_sex_to_unknown(cls, v):
+        if v is None or v == "":
+            return Sex.unknown
+        return v
+
     @field_validator("assignee", mode="before")
     def empty_assignee_to_none(cls, v):
         if v is None or v == "":
