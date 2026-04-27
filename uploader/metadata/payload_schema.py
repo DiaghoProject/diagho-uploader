@@ -39,6 +39,7 @@ class File(BaseModel):
 class InterpretationSample(BaseModel):
     name: str
     checksum: str
+    isDatasetIndex: Optional[bool] = None
 
 class DataBlock(BaseModel):
     type: DataType
