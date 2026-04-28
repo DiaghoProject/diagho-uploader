@@ -4,7 +4,8 @@ from tests.conftest import SAMPLE_TSV
 from uploader.metadata.parser import parse_tsv_rows
 from uploader.metadata.builder import build_payload
 from uploader.metadata.validator import validate_payload
-from uploader.metadata.tsv_schema import TsvRow, HardValidationError, Priority
+from uploader.metadata.tsv_schema import TsvRow, HardValidationError, Priority, Sex
+from uploader.metadata.validator import MetadataValidationError
 
 
 # ---------------------------------------------------------------------------
@@ -23,6 +24,11 @@ def _minimal_row(**overrides) -> TsvRow:
         project="proj01",
     )
     return TsvRow(**{**defaults, **overrides})
+
+
+def test_empty_sex_defaults_to_unknown():
+    assert _minimal_row(sex="").sex == Sex.unknown
+    assert _minimal_row(sex=None).sex == Sex.unknown
 
 
 def test_empty_assignee_becomes_none():
@@ -51,17 +57,17 @@ def test_invalid_priority_falls_back_to_normal():
 
 
 def test_bool_fields_parse_truthy():
-    row = _minimal_row(is_affected="1", is_index="true", is_cohort="yes")
-    assert row.is_affected is True
+    row = _minimal_row(is_index="true", is_cohort="yes", is_dataset_index="1")
     assert row.is_index is True
     assert row.is_cohort is True
+    assert row.is_dataset_index is True
 
 
 def test_bool_fields_parse_falsy():
-    row = _minimal_row(is_affected="0", is_index="false", is_cohort="no")
-    assert row.is_affected is False
+    row = _minimal_row(is_index="false", is_cohort="no", is_dataset_index="0")
     assert row.is_index is False
     assert row.is_cohort is False
+    assert row.is_dataset_index is False
 
 
 def test_pretags_valid_json():
@@ -163,13 +169,49 @@ def test_build_payload_pretags_on_index_row():
 
 def test_build_payload_missing_index_raises():
     no_index_tsv = SAMPLE_TSV.replace(
-        "Interp001\t1\tSNV",  # first row (index case)
-        "Interp001\t0\tSNV",
+        "Interp001\t1\t1\tSNV",  # first row (index case)
+        "Interp001\t0\t1\tSNV",
         1,
     )
     rows = parse_tsv_rows(no_index_tsv)
     with pytest.raises(HardValidationError, match="no index case"):
         build_payload(rows)
+
+
+def test_build_payload_dataset_index_present_when_true():
+    rows = parse_tsv_rows(SAMPLE_TSV)
+    payload = build_payload(rows)
+    interp1 = next(i for i in payload["interpretations"] if i["title"] == "Interp001")
+    snv_data = next(d for d in interp1["datas"] if d["type"] == "SNV")
+    s001 = next(s for s in snv_data["samples"] if s["name"] == "SAMPLE001")
+    assert s001.get("isDatasetIndex") is True
+
+
+def test_build_payload_dataset_index_absent_when_false():
+    rows = parse_tsv_rows(SAMPLE_TSV)
+    payload = build_payload(rows)
+    interp1 = next(i for i in payload["interpretations"] if i["title"] == "Interp001")
+    snv_data = next(d for d in interp1["datas"] if d["type"] == "SNV")
+    s002 = next(s for s in snv_data["samples"] if s["name"] == "SAMPLE002")
+    assert "isDatasetIndex" not in s002
+
+
+def test_validate_payload_rejects_multiple_dataset_indexes():
+    payload = {
+        "families": [{"identifier": "F1", "persons": [{"identifier": "P1"}, {"identifier": "P2"}]}],
+        "files": [{"checksum": "abc", "filename": "f.vcf.gz", "assembly": "GRCh38",
+                   "fileType": "SNV", "priority": "normal",
+                   "samples": [{"name": "S1", "person": "P1"}, {"name": "S2", "person": "P2"}]}],
+        "interpretations": [{
+            "title": "I1", "project": "p", "indexCase": "P1", "priority": "normal",
+            "datas": [{"type": "SNV", "title": "SNV", "isCohort": False, "samples": [
+                {"name": "S1", "checksum": "abc", "isDatasetIndex": True},
+                {"name": "S2", "checksum": "abc", "isDatasetIndex": True},
+            ]}],
+        }],
+    }
+    with pytest.raises(MetadataValidationError, match="multiple isDatasetIndex"):
+        validate_payload(payload)
 
 
 def test_build_payload_invalid_pretags_drops_gracefully():

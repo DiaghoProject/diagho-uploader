@@ -86,3 +86,20 @@ class ApiClient:
         if status is None:
             raise ApiError(f"Missing loadingStatus field for checksum {checksum}")
         return status
+
+    def get_biofile_checksum_status(self, checksum: str) -> str | None:
+        """Return loading status for checksum if present in app, None if not found."""
+        url = f"{self.endpoints['get_biofile']}?checksum={checksum}"
+        try:
+            r = self.session.get(url, headers=self._headers(), verify=self.verify)
+        except requests.exceptions.RequestException as e:
+            raise ApiError(str(e)) from e
+        if not r.ok:
+            raise ApiError(f"Failed to query biofile by checksum (HTTP {r.status_code})")
+        results = r.json().get("results", [])
+        if not results:
+            return None
+        status = results[0].get("loadingStatus")
+        if status is None:
+            raise ApiError(f"Missing loadingStatus field for checksum {checksum}")
+        return status

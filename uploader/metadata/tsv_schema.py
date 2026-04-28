@@ -53,7 +53,7 @@ class TsvRow(BaseModel):
     mother_id: Optional[str] = None
 
     sex: Sex = Field(default=Sex.unknown)
-    is_affected: Optional[bool] = None
+    is_dataset_index: Optional[bool] = None
 
     first_name: Optional[str] = None
     last_name: Optional[str] = None
@@ -73,6 +73,12 @@ class TsvRow(BaseModel):
     # set by parser for error reporting; not a Pydantic field
     _line: int = 0
 
+    @field_validator("sex", mode="before")
+    def empty_sex_to_unknown(cls, v):
+        if v is None or v == "":
+            return Sex.unknown
+        return v
+
     @field_validator("assignee", mode="before")
     def empty_assignee_to_none(cls, v):
         if v is None or v == "":
@@ -85,7 +91,7 @@ class TsvRow(BaseModel):
             return None
         return str(v)
 
-    @field_validator("is_affected", "is_index", "is_cohort", mode="before")
+    @field_validator("is_index", "is_cohort", "is_dataset_index", mode="before")
     def parse_bool(cls, v):
         if v is None or v == "":
             return False

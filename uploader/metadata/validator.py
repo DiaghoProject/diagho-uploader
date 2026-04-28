@@ -20,10 +20,14 @@ def validate_payload(payload: dict) -> dict:
 
 def enforce_rules(model: MetadataPayload):
     for interp in model.interpretations:
-        indexes = [
-            s for d in interp.datas for s in d.samples if s.isAffected
-        ]
-        if not indexes:
+        if not interp.indexCase:
             raise MetadataValidationError(
                 f"Interpretation '{interp.title}' has no index case"
             )
+        for data in interp.datas:
+            dataset_indexes = [s for s in data.samples if s.isDatasetIndex]
+            if len(dataset_indexes) > 1:
+                raise MetadataValidationError(
+                    f"DataBlock '{data.title}' in interpretation '{interp.title}' "
+                    f"has multiple isDatasetIndex samples"
+                )

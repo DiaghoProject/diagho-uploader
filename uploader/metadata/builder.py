@@ -89,11 +89,10 @@ def build_interpretations(rows: List[TsvRow]) -> List[Dict[str, Any]]:
                     "pretags": None,
                 }
             data = info["datas"][dkey]
-            data["samples"].append({
-                "name": r.sample,
-                "isAffected": bool(r.is_affected),
-                "checksum": r.checksum,
-            })
+            sample = {"name": r.sample, "checksum": r.checksum}
+            if r.is_dataset_index:
+                sample["isDatasetIndex"] = True
+            data["samples"].append(sample)
             if data["pretags"] is None and r.pretags is not None:
                 data["pretags"] = [p.model_dump() for p in r.pretags]
             if r.is_cohort:
