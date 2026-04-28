@@ -52,7 +52,7 @@ class Interpretation(BaseModel):
     title: str
     project: str
     assignee: Optional[str] = None
-    indexCase: str
+    indexCase: List[str]
     priority: str = Priority.normal
     datas: List[DataBlock]
 
