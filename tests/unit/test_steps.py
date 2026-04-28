@@ -121,6 +121,53 @@ def test_waiting_biofiles_timeout_fails(mock_ctx):
     assert "Timeout" in job.last_error
 
 
+def test_waiting_biofiles_all_in_app_goes_to_posting_metadata(mock_ctx):
+    mock_ctx.api.get_biofile_checksum_status.return_value = "success"
+    job = IngestionJob(job_id="test")
+    job.expected_files = _EXPECTED_FILES
+    waiting_biofiles.step(job, mock_ctx)
+    assert job.state == JobState.POSTING_METADATA
+    assert "snv001.vcf.gz" in job.uploaded_files
+
+
+def test_waiting_biofiles_some_in_app_pre_marks_and_waits_for_local(mock_ctx):
+    # snv in app, cnv not — cnv also not present locally → stay
+    def checksum_status(checksum):
+        return "success" if checksum == "aaaabbbbccccddddeeeeffffaaaabbbb" else None
+    mock_ctx.api.get_biofile_checksum_status.side_effect = checksum_status
+    job = IngestionJob(job_id="test")
+    job.state = JobState.WAITING_BIOFILES
+    job.expected_files = _TWO_FILES
+    waiting_biofiles.step(job, mock_ctx)
+    assert job.state == JobState.WAITING_BIOFILES
+    assert "snv001.vcf.gz" in job.uploaded_files
+    assert "cnv002.tsv" not in job.uploaded_files
+
+
+def test_waiting_biofiles_some_in_app_rest_local_goes_to_uploading(mock_ctx):
+    # snv in app, cnv not — but cnv present locally → proceed to upload
+    (mock_ctx.files_dir / "cnv002.tsv").write_bytes(b"fake")
+    def checksum_status(checksum):
+        return "success" if checksum == "aaaabbbbccccddddeeeeffffaaaabbbb" else None
+    mock_ctx.api.get_biofile_checksum_status.side_effect = checksum_status
+    job = IngestionJob(job_id="test")
+    job.expected_files = _TWO_FILES
+    waiting_biofiles.step(job, mock_ctx)
+    assert job.state == JobState.UPLOADING_BIOFILES
+    assert "snv001.vcf.gz" in job.uploaded_files
+
+
+def test_waiting_biofiles_api_error_falls_back_to_local_check(mock_ctx):
+    from uploader.infrastructure.api.exceptions import ApiError
+    mock_ctx.api.get_biofile_checksum_status.side_effect = ApiError("timeout")
+    (mock_ctx.files_dir / "snv001.vcf.gz").write_bytes(b"fake")
+    job = IngestionJob(job_id="test")
+    job.expected_files = _EXPECTED_FILES
+    waiting_biofiles.step(job, mock_ctx)
+    assert job.state == JobState.UPLOADING_BIOFILES
+    assert "snv001.vcf.gz" not in job.uploaded_files
+
+
 # ---------------------------------------------------------------------------
 # uploading_biofiles
 # ---------------------------------------------------------------------------

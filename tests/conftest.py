@@ -42,6 +42,7 @@ def mock_ctx(tmp_path):
     ctx.archives_dir = tmp_path / "archives"
     for d in (ctx.metadata_dir, ctx.files_dir, ctx.archives_dir):
         d.mkdir()
+    ctx.api.get_biofile_checksum_status.return_value = None
     ctx.accessions             = {"GRCh37": 1, "GRCh38": 2}
     ctx.tabfiles_columns_index = {"1": "CHROM", "2": "START", "3": "END"}
     ctx.tabfiles_zero_based    = True
