@@ -22,6 +22,9 @@ def step(job, ctx):
     logger.info("[%s] Metadata file detected: %s", job.job_id, path.name)
     content = path.read_text(encoding="utf-8")
 
+    archive_name = f"{path.stem}_{timestamp}{path.suffix}"
+    job.metadata_path = path
+
     try:
         if path.suffix == ".json":
             raw = json.loads(content)
@@ -41,19 +44,19 @@ def step(job, ctx):
             list(expected.keys()),
         )
 
-        job.metadata_path = path
         job.metadata_json = validated
         job.expected_files = expected
         job.state = JobState.WAITING_BIOFILES
-
-        dst = ctx.archives_dir / f"{path.stem}_{timestamp}{path.suffix}"
-        shutil.move(str(path), str(dst))
-        logger.info("[%s] Metadata archived to %s", job.job_id, dst.name)
 
     except Exception as e:
         logger.error("[%s] Metadata processing failed: %s", job.job_id, e)
         job.last_error = str(e)
         job.state = JobState.FAILED
+        archive_name = f"{path.stem}_{timestamp}_FAILED{path.suffix}"
+
+    dst = ctx.archives_dir / archive_name
+    shutil.move(str(path), str(dst))
+    logger.info("[%s] Metadata archived to %s", job.job_id, dst.name)
 
 
 def _extract_expected_files(metadata: dict) -> dict:
