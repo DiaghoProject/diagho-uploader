@@ -60,10 +60,10 @@ class TsvRow(BaseModel):
     date_of_birth: Optional[str] = None
     note: Optional[str] = None
 
-    interpretation_title: str
+    interpretation_title: Optional[str] = None
     is_index: Optional[bool] = Field(default=False)
     data_title: Optional[str] = None
-    project: str
+    project: Optional[str] = None
     assignee: Optional[str] = None
     priority: str = Field(default=Priority.normal)
 

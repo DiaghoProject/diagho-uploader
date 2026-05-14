@@ -29,6 +29,23 @@ SAMPLE_TSV = (
 )
 
 
+# Same structure as SAMPLE_TSV but with interpretation columns left blank.
+NO_INTERP_TSV = (
+    "filename\tchecksum\tfile_type\tassembly\tsample\tbam_path\trun\t"
+    "family_id\tperson_id\tfather_id\tmother_id\tsex\t"
+    "first_name\tlast_name\tdate_of_birth\tnote\tinterpretation_title\t"
+    "is_index\tis_dataset_index\tdata_title\tproject\tassignee\tpriority\tis_cohort\tpretags\n"
+
+    'snv001.vcf.gz\taaaabbbbccccddddeeeeffffaaaabbbb\tSNV\tGRCh38\tSAMPLE001\t\t\t'
+    'FAM001\tPERSON001\tPERSON003\tPERSON002\tmale\t\t\t\t\t'
+    '\t\t\t\t\t\tnormal\t0\t\n'
+
+    'snv001.vcf.gz\taaaabbbbccccddddeeeeffffaaaabbbb\tSNV\tGRCh38\tSAMPLE002\t\t\t'
+    'FAM001\tPERSON002\t\t\tfemale\t\t\t\t\t'
+    '\t\t\t\t\t\tnormal\t0\t\n'
+)
+
+
 @pytest.fixture
 def sample_tsv():
     return SAMPLE_TSV

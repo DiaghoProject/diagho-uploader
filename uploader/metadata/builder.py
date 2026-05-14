@@ -59,6 +59,13 @@ def build_files(rows: List[TsvRow]) -> List[Dict[str, Any]]:
 def build_interpretations(rows: List[TsvRow]) -> List[Dict[str, Any]]:
     groups: Dict[str, List[TsvRow]] = OrderedDict()
     for r in rows:
+        if not r.interpretation_title:
+            continue
+        if not r.project:
+            raise HardValidationError(
+                f"Row for interpretation '{r.interpretation_title}' at line {r._line} "
+                f"is missing a project"
+            )
         groups.setdefault(r.interpretation_title, []).append(r)
 
     interps: Dict[str, Dict[str, Any]] = OrderedDict()
