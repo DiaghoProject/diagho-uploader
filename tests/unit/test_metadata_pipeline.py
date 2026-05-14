@@ -1,6 +1,6 @@
 import pytest
 
-from tests.conftest import SAMPLE_TSV
+from tests.conftest import SAMPLE_TSV, NO_INTERP_TSV
 from uploader.metadata.parser import parse_tsv_rows
 from uploader.metadata.builder import build_payload
 from uploader.metadata.validator import validate_payload
@@ -284,3 +284,27 @@ def test_full_pipeline_enum_values_are_strings():
     assert isinstance(file_["fileType"], str)
     interp = validated["interpretations"][0]
     assert isinstance(interp["priority"], str)
+
+
+# ---------------------------------------------------------------------------
+# Optional interpretations
+# ---------------------------------------------------------------------------
+
+def test_no_interpretation_rows_produce_empty_list():
+    rows = parse_tsv_rows(NO_INTERP_TSV)
+    payload = build_payload(rows)
+    assert payload["interpretations"] == []
+
+
+def test_no_interpretation_still_builds_families_and_files():
+    rows = parse_tsv_rows(NO_INTERP_TSV)
+    payload = build_payload(rows)
+    assert len(payload["families"]) == 1
+    assert len(payload["files"]) == 1
+
+
+def test_interpretation_title_without_project_raises():
+    rows = [_minimal_row(interpretation_title="Interp001", project=None)]
+    rows[0]._line = 2
+    with pytest.raises(HardValidationError, match="missing a project"):
+        build_payload(rows)

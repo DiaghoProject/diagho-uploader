@@ -216,6 +216,7 @@ Multiple rows sharing the same `filename` / `checksum` define multiple samples o
 ### Notes
 
 - A TSV with no header row, or missing required columns, will fail at `WAITING_METADATA` and transition the job to `FAILED`.
+- Interpretation block (column interpretation_title and following) is optional if only upload of biofiles and their assignation to persons is needed. 
 - `priority` also accepts legacy integer values: `0` = low, `1` = normal, `2` = high, `3` = highest.
 - `is_index` marks the persons for whom the interpretation is created. Multiple rows in the same interpretation can have `is_index = 1`; the API receives the full list. `is_dataset_index` is the central sample of a dataset and columns of related persons will be renamed accordingly (eg INDEX, MOTHER, FATHER…).
 - Invalid `pretags` (malformed JSON) are dropped with a warning rather than failing the whole job.
