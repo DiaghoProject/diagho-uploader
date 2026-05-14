@@ -91,6 +91,24 @@ def test_build_context_passes_through_accessions_and_flags():
 # _done_body
 # ---------------------------------------------------------------------------
 
+_METADATA_JSON = {
+    "families": [
+        {"identifier": "FAM1", "persons": [
+            {"identifier": "P1", "sex": "male"},
+            {"identifier": "P2", "sex": "female"},
+        ]},
+        {"identifier": "FAM2", "persons": [
+            {"identifier": "P3", "sex": "male"},
+        ]},
+    ],
+    "files": [],
+    "interpretations": [
+        {"title": "Interp A", "project": "proj-alpha", "assignee": "alice@lab.com", "indexCase": ["P1"], "datas": []},
+        {"title": "Interp B", "project": "proj-beta", "assignee": None, "indexCase": ["P3"], "datas": []},
+    ],
+}
+
+
 def test_done_body_includes_metadata_name():
     job = IngestionJob(job_id="test")
     job.metadata_path = Path("/archives/run001.tsv")
@@ -112,6 +130,69 @@ def test_done_body_shows_file_count():
     job.metadata_path = Path("/archives/run001.tsv")
     job.uploaded_files = {"a.vcf.gz": "c1", "b.vcf.gz": "c2"}
     assert "2" in _done_body(job)
+
+
+def test_done_body_summary_counts_with_metadata_json():
+    job = IngestionJob(job_id="test")
+    job.metadata_path = Path("/archives/run001.tsv")
+    job.uploaded_files = {"a.vcf.gz": "c1"}
+    job.metadata_json = _METADATA_JSON
+    body = _done_body(job)
+    assert "1 biofile" in body
+    assert "2 families" in body
+    assert "3 person" in body
+    assert "2 interpretation" in body
+
+
+def test_done_body_singular_family():
+    job = IngestionJob(job_id="test")
+    job.metadata_path = Path("/archives/run001.tsv")
+    job.uploaded_files = {}
+    job.metadata_json = {
+        "families": [{"identifier": "FAM1", "persons": [{"identifier": "P1"}]}],
+        "files": [],
+        "interpretations": [],
+    }
+    assert "1 family" in _done_body(job)
+
+
+def test_done_body_shows_interpretation_details():
+    job = IngestionJob(job_id="test")
+    job.metadata_path = Path("/archives/run001.tsv")
+    job.uploaded_files = {}
+    job.metadata_json = _METADATA_JSON
+    body = _done_body(job)
+    assert "Interp A" in body
+    assert "proj-alpha" in body
+    assert "alice@lab.com" in body
+    assert "Interp B" in body
+    assert "proj-beta" in body
+
+
+def test_done_body_no_assignee_omits_assignee_label():
+    job = IngestionJob(job_id="test")
+    job.metadata_path = Path("/archives/run001.tsv")
+    job.uploaded_files = {}
+    job.metadata_json = {
+        "families": [{"identifier": "FAM1", "persons": [{"identifier": "P1"}]}],
+        "files": [],
+        "interpretations": [
+            {"title": "Solo", "project": "proj-x", "assignee": None, "indexCase": ["P1"], "datas": []},
+        ],
+    }
+    body = _done_body(job)
+    assert "Solo" in body
+    assert "assignee" not in body
+
+
+def test_done_body_without_metadata_json_shows_simple_summary():
+    job = IngestionJob(job_id="test")
+    job.metadata_path = Path("/archives/run001.tsv")
+    job.uploaded_files = {"a.vcf.gz": "c1"}
+    body = _done_body(job)
+    assert "1 biofile" in body
+    assert "families" not in body
+    assert "Interpretations" not in body
 
 
 # ---------------------------------------------------------------------------
