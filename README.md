@@ -16,7 +16,7 @@ WAITING_METADATA → WAITING_BIOFILES → UPLOADING_BIOFILES → WAITING_PARSING
 
 | State | What happens |
 |---|---|
-| `WAITING_METADATA` | Polls `metadata_dir` for a `.tsv` or `.json` file. When found, parses and validates it, then archives it. |
+| `WAITING_METADATA` | Polls `metadata_dir` for a `.tsv`, `.csv`, or `.json` file. When found, parses and validates it, then archives it. |
 | `WAITING_BIOFILES` | Polls `files_dir` until all biofiles declared in the metadata are present. Fails after `biofile_timeout_minutes`. |
 | `UPLOADING_BIOFILES` | Uploads each biofile to the API. Retries up to 5 times per file on transient errors; already-uploaded files are skipped by checksum. Archived on success. |
 | `WAITING_PARSING` | Polls the API until all uploaded biofiles have finished server-side parsing. |
@@ -60,7 +60,7 @@ cp config/config.example.yaml config/config.yaml
 
 | Key | Description |
 |---|---|
-| `metadata_dir` | Drop TSV or JSON metadata files here. Processed files are archived automatically. |
+| `metadata_dir` | Drop metadata files here (`.tsv`, `.csv`, or `.json`). Processed files are archived automatically. |
 | `files_dir` | Drop biofiles (VCF, CNV tabfiles, etc.) here. |
 | `archives_dir` | Destination for processed metadata files and uploaded biofiles. |
 
@@ -156,7 +156,7 @@ Commands:
   --stop --force    Kill the process immediately
   --status          Show whether the uploader is running
   --update          Stop, pull latest changes, reinstall deps, restart
-  --parse           Wait for a TSV/JSON in metadata_dir, print the validated
+  --parse           Wait for a TSV/CSV/JSON in metadata_dir, print the validated
                     JSON payload to stdout, then exit (no API calls, no logs)
 
 Options:
@@ -177,7 +177,13 @@ Polls `metadata_dir`, prints the validated JSON to stdout when a file appears, a
 
 ---
 
-## Metadata TSV format
+## Metadata file formats
+
+Three formats are accepted. All are equivalent once parsed — drop whichever is most convenient into `metadata_dir`.
+
+### TSV / CSV
+
+Tab-separated (`.tsv`) and comma-separated (`.csv`) files follow the same column structure. The format is auto-detected from the file extension.
 
 The metadata file describes one or more biofiles and their associated clinical/family context. Each row represents one sample on one biofile within one interpretation.
 
@@ -203,11 +209,11 @@ Multiple rows sharing the same `filename` / `checksum` define multiple samples o
 | `last_name` | no | string | |
 | `date_of_birth` | no | `YYYY-MM-DD` | |
 | `note` | no | string | Free-text note attached to the person |
-| `interpretation_title` | yes | string | Groups rows into one interpretation |
+| `interpretation_title` | no* | string | Groups rows into one interpretation — omit to upload biofiles and assign samples without creating interpretations |
 | `is_index` | yes* | `0` / `1` | Marks index cases of the interpretation — **at least one `1` per interpretation; multiple allowed** |
 | `is_dataset_index` | no | `0` / `1` | Marks the index of non cohort dataset — at most one `1` per data block |
 | `data_title` | no | string | Label for the data block within the interpretation |
-| `project` | yes | string | Project identifier in Diagho |
+| `project` | yes* | string | Project identifier in Diagho |
 | `assignee` | no | string | Username to assign the interpretation to |
 | `priority` | no | `low`, `normal`, `high`, `highest` | Defaults to `normal` |
 | `is_cohort` | no | `0` / `1` | Whether this is a cohort analysis |
@@ -215,11 +221,26 @@ Multiple rows sharing the same `filename` / `checksum` define multiple samples o
 
 ### Notes
 
-- A TSV with no header row, or missing required columns, will fail at `WAITING_METADATA` and transition the job to `FAILED`.
-- Interpretation block (column interpretation_title and following) is optional if only upload of biofiles and their assignation to persons is needed. 
-- `priority` also accepts legacy integer values: `0` = low, `1` = normal, `2` = high, `3` = highest.
+- A file with no header row, or missing required columns, will fail at `WAITING_METADATA` and transition the job to `FAILED`.
+- `interpretation_title` and all columns after it are optional. Omit them (or leave them blank) to upload biofiles and assign samples to persons without creating any interpretations.
+- `project` is required when `interpretation_title` is set; omitting it raises a validation error.
 - `is_index` marks the persons for whom the interpretation is created. Multiple rows in the same interpretation can have `is_index = 1`; the API receives the full list. `is_dataset_index` is the central sample of a dataset and columns of related persons will be renamed accordingly (eg INDEX, MOTHER, FATHER…).
-- Invalid `pretags` (malformed JSON) are dropped with a warning rather than failing the whole job.
+- `priority` also accepts legacy integer values: `0` = low, `1` = normal, `2` = high, `3` = highest.
+- Invalid `pretags` (malformed JSON) are dropped with a warning rather than failing the whole job. Use preferably project configurations in Diagho to handle this.
+
+### JSON
+
+A `.json` file must be a pre-built payload in the Diagho API format — the same structure that the TSV/CSV pipeline produces:
+
+```json
+{
+  "families": [...],
+  "files": [...],
+  "interpretations": [...]
+}
+```
+
+This is useful for re-submitting a previously validated payload, or for automation pipelines that produce the JSON directly and don't need the TSV layer. The file is validated against the same schema before processing.
 
 ---
 
@@ -266,7 +287,7 @@ diagho-uploader/
 │   │   ├── dispatch.py            # Step dispatch table and sleep policy
 │   │   └── steps/                 # One module per state
 │   ├── metadata/
-│   │   ├── parser.py              # TSV → List[TsvRow]
+│   │   ├── parser.py              # TSV/CSV → List[TsvRow]
 │   │   ├── builder.py             # List[TsvRow] → raw payload dict
 │   │   ├── validator.py           # Raw dict → validated dict (Pydantic)
 │   │   ├── tsv_schema.py          # TsvRow model and field validators

@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 import pytest
 
-from tests.conftest import SAMPLE_TSV
+from tests.conftest import SAMPLE_TSV, SAMPLE_CSV
 from uploader.job.model import IngestionJob
 from uploader.job.states import JobState
 from uploader.job.steps import (
@@ -81,6 +81,15 @@ def test_waiting_metadata_invalid_tsv_fails(mock_ctx):
     waiting_metadata.step(job, mock_ctx)
     assert job.state == JobState.FAILED
     assert job.last_error is not None
+
+
+def test_waiting_metadata_valid_csv_transitions(mock_ctx):
+    (mock_ctx.metadata_dir / "run001.csv").write_text(SAMPLE_CSV, encoding="utf-8")
+    job = IngestionJob(job_id="init")
+    waiting_metadata.step(job, mock_ctx)
+    assert job.state == JobState.WAITING_BIOFILES
+    assert "snv001.vcf.gz" in job.expected_files
+    assert "cnv002.tsv" in job.expected_files
 
 
 # ---------------------------------------------------------------------------

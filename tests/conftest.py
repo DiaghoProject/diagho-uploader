@@ -1,3 +1,5 @@
+import csv
+import io
 import pytest
 from pathlib import Path
 from unittest.mock import MagicMock
@@ -28,6 +30,17 @@ SAMPLE_TSV = (
     'Interp002\t1\t\tCNV\tproject01\tanalyst02\thigh\t0\t\n'
 )
 
+
+def _tsv_to_csv(tsv_text: str) -> str:
+    reader = csv.reader(io.StringIO(tsv_text), delimiter="\t")
+    out = io.StringIO()
+    writer = csv.writer(out)
+    for row in reader:
+        writer.writerow(row)
+    return out.getvalue()
+
+
+SAMPLE_CSV = _tsv_to_csv(SAMPLE_TSV)
 
 # Same structure as SAMPLE_TSV but with interpretation columns left blank.
 NO_INTERP_TSV = (

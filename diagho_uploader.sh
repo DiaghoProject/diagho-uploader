@@ -20,7 +20,7 @@ Commands:
   --stop --force    Kill the process immediately
   --status          Show whether the uploader is running
   --update          Stop, pull latest changes, reinstall deps, restart
-  --parse           Wait for a TSV/JSON in metadata_dir, print the validated
+  --parse           Wait for a TSV/CSV/JSON in metadata_dir, print the validated
                     JSON payload to stdout, then exit (no API calls, no logs)
 
 Options:

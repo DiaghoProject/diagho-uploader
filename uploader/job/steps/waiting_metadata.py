@@ -12,7 +12,11 @@ logger = logging.getLogger(__name__)
 
 
 def step(job, ctx):
-    files = list(ctx.metadata_dir.glob("*.tsv")) + list(ctx.metadata_dir.glob("*.json"))
+    files = (
+        list(ctx.metadata_dir.glob("*.tsv"))
+        + list(ctx.metadata_dir.glob("*.csv"))
+        + list(ctx.metadata_dir.glob("*.json"))
+    )
     if not files:
         return
 
@@ -30,6 +34,8 @@ def step(job, ctx):
             raw = json.loads(content)
         elif path.suffix == ".tsv":
             raw = build_payload(parse_tsv_rows(content))
+        elif path.suffix == ".csv":
+            raw = build_payload(parse_tsv_rows(content, delimiter=","))
         else:
             raise ValueError(f"Unsupported metadata format: {path.suffix}")
 

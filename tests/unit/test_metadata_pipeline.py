@@ -1,6 +1,6 @@
 import pytest
 
-from tests.conftest import SAMPLE_TSV, NO_INTERP_TSV
+from tests.conftest import SAMPLE_TSV, SAMPLE_CSV, NO_INTERP_TSV
 from uploader.metadata.parser import parse_tsv_rows
 from uploader.metadata.builder import build_payload
 from uploader.metadata.validator import validate_payload
@@ -106,10 +106,19 @@ def test_parser_assigns_line_numbers():
     assert rows[3]._line == 5
 
 
+def test_parser_csv_produces_same_rows_as_tsv():
+    tsv_rows = parse_tsv_rows(SAMPLE_TSV)
+    csv_rows = parse_tsv_rows(SAMPLE_CSV, delimiter=",")
+    assert len(csv_rows) == len(tsv_rows)
+    assert csv_rows[0].filename == tsv_rows[0].filename
+    assert csv_rows[0].checksum == tsv_rows[0].checksum
+    assert csv_rows[0].family_id == tsv_rows[0].family_id
+
+
 def test_parser_invalid_row_raises():
     # file_type maps to DataType enum — an unrecognised value triggers validation error
     bad_tsv = SAMPLE_TSV.replace("\tSNV\t", "\tINVALID_TYPE\t", 1)
-    with pytest.raises(ValueError, match="TSV parse error"):
+    with pytest.raises(ValueError, match="Parse error"):
         parse_tsv_rows(bad_tsv)
 
 
