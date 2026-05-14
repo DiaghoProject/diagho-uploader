@@ -204,7 +204,7 @@ Multiple rows sharing the same `filename` / `checksum` define multiple samples o
 | `date_of_birth` | no | `YYYY-MM-DD` | |
 | `note` | no | string | Free-text note attached to the person |
 | `interpretation_title` | yes | string | Groups rows into one interpretation |
-| `is_index` | yes* | `0` / `1` | Marks the index case of the interpretation — **exactly one `1` per interpretation** |
+| `is_index` | yes* | `0` / `1` | Marks index cases of the interpretation — **at least one `1` per interpretation; multiple allowed** |
 | `is_dataset_index` | no | `0` / `1` | Marks the index of non cohort dataset — at most one `1` per data block |
 | `data_title` | no | string | Label for the data block within the interpretation |
 | `project` | yes | string | Project identifier in Diagho |
@@ -217,7 +217,7 @@ Multiple rows sharing the same `filename` / `checksum` define multiple samples o
 
 - A TSV with no header row, or missing required columns, will fail at `WAITING_METADATA` and transition the job to `FAILED`.
 - `priority` also accepts legacy integer values: `0` = low, `1` = normal, `2` = high, `3` = highest.
-- `is_index` are the persons for whom the interpretation is created. `is_dataset_index` is the central sample a dataset and columns of related persons will be renamed accordingly (eg INDEX, MOTHER, FATHER…).
+- `is_index` marks the persons for whom the interpretation is created. Multiple rows in the same interpretation can have `is_index = 1`; the API receives the full list. `is_dataset_index` is the central sample of a dataset and columns of related persons will be renamed accordingly (eg INDEX, MOTHER, FATHER…).
 - Invalid `pretags` (malformed JSON) are dropped with a warning rather than failing the whole job.
 
 ---
