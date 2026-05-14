@@ -10,6 +10,7 @@ from uploader.job.states import JobState
 from uploader.context import Context
 from uploader.infrastructure.api.client import ApiClient
 from uploader.infrastructure.api.exceptions import ApiError
+from uploader.metadata.payload_schema import MetadataPayload
 from uploader.utils.logger import setup_logger
 from uploader.utils.mailer import Mailer
 
@@ -64,14 +65,41 @@ def build_context(config: dict) -> Context:
     )
 
 
+# Mail content
 def _done_body(job: IngestionJob) -> str:
-    metadata = job.metadata_path.name if job.metadata_path else "unknown"
-    biofiles = "\n".join(f"  - {f}" for f in job.uploaded_files)
-    return (
-        f"Ingestion completed successfully.\n\n"
-        f"Metadata: {metadata}\n"
-        f"Biofiles uploaded ({len(job.uploaded_files)}):\n{biofiles}"
-    )
+    metadata_name = job.metadata_path.name if job.metadata_path else "unknown"
+    n_biofiles = len(job.uploaded_files)
+
+    payload = MetadataPayload.model_validate(job.metadata_json) if job.metadata_json else None
+
+    if payload:
+        n_families = len(payload.families)
+        n_persons = sum(len(f.persons) for f in payload.families)
+        n_interps = len(payload.interpretations)
+        summary = (
+            f"Handled {n_biofiles} biofile(s), regarding "
+            f"{n_families} famil{'y' if n_families == 1 else 'ies'} with {n_persons} person(s) "
+            f"and created {n_interps} interpretation(s)."
+        )
+    else:
+        summary = f"Handled {n_biofiles} biofile(s)."
+
+    parts = [
+        "Ingestion completed successfully.",
+        f"Metadata file: {metadata_name}",
+        summary,
+        "",
+        f"Biofiles uploaded ({n_biofiles}):",
+        *[f"  - {f}" for f in job.uploaded_files],
+    ]
+
+    if payload and payload.interpretations:
+        parts += ["", f"Interpretations created ({n_interps}):"]
+        for interp in payload.interpretations:
+            assignee = f" (assignee: {interp.assignee})" if interp.assignee else ""
+            parts.append(f"  - {interp.title} [project: {interp.project}]{assignee}")
+
+    return "\n".join(parts)
 
 
 def _failed_body(job: IngestionJob, failed_from: str) -> str:
