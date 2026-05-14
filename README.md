@@ -35,7 +35,7 @@ WAITING_METADATA → WAITING_BIOFILES → UPLOADING_BIOFILES → WAITING_PARSING
 ## Installation
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/DiaghoProject/diagho-uploader.git
 cd diagho-uploader
 python -m venv venv
 source venv/bin/activate
