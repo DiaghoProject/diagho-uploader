@@ -155,7 +155,30 @@ def test_build_payload_interpretation_index_case():
     rows = parse_tsv_rows(SAMPLE_TSV)
     payload = build_payload(rows)
     interp1 = next(i for i in payload["interpretations"] if i["title"] == "Interp001")
-    assert interp1["indexCase"] == "PERSON001"
+    assert interp1["indexCase"] == ["PERSON001"]
+
+
+def test_build_payload_multiple_index_cases():
+    multi_index_tsv = SAMPLE_TSV.replace(
+        "Interp001\t0\t\tSNV\tproject01\tanalyst01\tnormal\t0\t\n"  # PERSON002 row
+        "snv001.vcf.gz\taaaabbbbccccddddeeeeffffaaaabbbb\tSNV\tGRCh38\tSAMPLE003",
+        "Interp001\t1\t\tSNV\tproject01\tanalyst01\tnormal\t0\t\n"  # make PERSON002 also index
+        "snv001.vcf.gz\taaaabbbbccccddddeeeeffffaaaabbbb\tSNV\tGRCh38\tSAMPLE003",
+        1,
+    )
+    rows = parse_tsv_rows(multi_index_tsv)
+    payload = build_payload(rows)
+    interp1 = next(i for i in payload["interpretations"] if i["title"] == "Interp001")
+    assert set(interp1["indexCase"]) == {"PERSON001", "PERSON002"}
+
+
+def test_validate_accepts_multiple_index_cases():
+    rows = parse_tsv_rows(SAMPLE_TSV)
+    payload = build_payload(rows)
+    interp = payload["interpretations"][0]
+    interp["indexCase"] = ["PERSON001", "PERSON002"]
+    validated = validate_payload(payload)
+    assert set(validated["interpretations"][0]["indexCase"]) == {"PERSON001", "PERSON002"}
 
 
 def test_build_payload_pretags_on_index_row():
@@ -203,7 +226,7 @@ def test_validate_payload_rejects_multiple_dataset_indexes():
                    "fileType": "SNV", "priority": "normal",
                    "samples": [{"name": "S1", "person": "P1"}, {"name": "S2", "person": "P2"}]}],
         "interpretations": [{
-            "title": "I1", "project": "p", "indexCase": "P1", "priority": "normal",
+            "title": "I1", "project": "p", "indexCase": ["P1"], "priority": "normal",
             "datas": [{"type": "SNV", "title": "SNV", "isCohort": False, "samples": [
                 {"name": "S1", "checksum": "abc", "isDatasetIndex": True},
                 {"name": "S2", "checksum": "abc", "isDatasetIndex": True},

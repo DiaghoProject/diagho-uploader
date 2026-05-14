@@ -4,11 +4,8 @@ from typing import List, Dict, Any, Tuple
 from .tsv_schema import TsvRow, HardValidationError, PretagItem
 
 
-def ensure_single_index(interp_rows: List[TsvRow], title: str):
-    indexes = list(set((r.person_id, r.is_index) for r in interp_rows if r.is_index))
-    if len(indexes) > 1:
-        raise HardValidationError(f"Interpretation '{title}' has multiple index cases: {indexes}")
-    if len(indexes) == 0:
+def ensure_has_index(interp_rows: List[TsvRow], title: str):
+    if not any(r.is_index for r in interp_rows):
         raise HardValidationError(f"Interpretation '{title}' has no index case (required)")
 
 
@@ -66,14 +63,14 @@ def build_interpretations(rows: List[TsvRow]) -> List[Dict[str, Any]]:
 
     interps: Dict[str, Dict[str, Any]] = OrderedDict()
     for title, grp in groups.items():
-        ensure_single_index(grp, title)
+        ensure_has_index(grp, title)
         idxs = [r for r in grp if r.is_index]
         info = {
             "title": title,
             "project": grp[0].project,
             "assignee": grp[0].assignee,
             "priority": grp[0].priority or "normal",
-            "indexCase": idxs[0].person_id if idxs else None,
+            "indexCase": list(dict.fromkeys(r.person_id for r in idxs)),
             "datas": OrderedDict(),
         }
         for r in grp:
