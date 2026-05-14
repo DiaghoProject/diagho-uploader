@@ -18,6 +18,7 @@ class IngestionJob:
     expected_files: Dict[str, Dict[str, str]] = field(default_factory=dict)
     uploaded_files: Dict[str, str] = field(default_factory=dict)
     upload_attempts: Dict[str, int] = field(default_factory=dict)
+    parsed_files: set[str] = field(default_factory=set)
 
     biofiles_wait_started: Optional[datetime] = None
 

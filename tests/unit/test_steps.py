@@ -168,6 +168,23 @@ def test_waiting_biofiles_api_error_falls_back_to_local_check(mock_ctx):
     assert "snv001.vcf.gz" not in job.uploaded_files
 
 
+def test_waiting_biofiles_success_status_populates_parsed_files(mock_ctx):
+    mock_ctx.api.get_biofile_checksum_status.return_value = "success"
+    job = IngestionJob(job_id="test")
+    job.expected_files = _EXPECTED_FILES
+    waiting_biofiles.step(job, mock_ctx)
+    assert "snv001.vcf.gz" in job.parsed_files
+
+
+def test_waiting_biofiles_non_success_status_does_not_populate_parsed_files(mock_ctx):
+    mock_ctx.api.get_biofile_checksum_status.return_value = "loading"
+    (mock_ctx.files_dir / "snv001.vcf.gz").write_bytes(b"fake")
+    job = IngestionJob(job_id="test")
+    job.expected_files = _EXPECTED_FILES
+    waiting_biofiles.step(job, mock_ctx)
+    assert "snv001.vcf.gz" not in job.parsed_files
+
+
 # ---------------------------------------------------------------------------
 # uploading_biofiles
 # ---------------------------------------------------------------------------
@@ -350,6 +367,40 @@ def test_waiting_parsing_api_error_stays(mock_ctx):
 
     waiting_parsing.step(job, mock_ctx)
 
+    assert job.state == JobState.WAITING_PARSING
+
+
+def test_waiting_parsing_populates_parsed_files_on_success(mock_ctx):
+    job = IngestionJob(job_id="test")
+    job.uploaded_files = {"snv001.vcf.gz": "csum1"}
+    mock_ctx.api.get_biofile_loading_status.return_value = "success"
+
+    waiting_parsing.step(job, mock_ctx)
+
+    assert "snv001.vcf.gz" in job.parsed_files
+
+
+def test_waiting_parsing_skips_already_parsed(mock_ctx):
+    job = IngestionJob(job_id="test")
+    job.uploaded_files = {"snv001.vcf.gz": "csum1"}
+    job.parsed_files = {"snv001.vcf.gz"}
+
+    waiting_parsing.step(job, mock_ctx)
+
+    mock_ctx.api.get_biofile_loading_status.assert_not_called()
+    assert job.state == JobState.POSTING_METADATA
+
+
+def test_waiting_parsing_skips_parsed_checks_pending(mock_ctx):
+    job = IngestionJob(job_id="test")
+    job.state = JobState.WAITING_PARSING
+    job.uploaded_files = {"done.vcf.gz": "csum1", "pending.vcf.gz": "csum2"}
+    job.parsed_files = {"done.vcf.gz"}
+    mock_ctx.api.get_biofile_loading_status.return_value = "loading"
+
+    waiting_parsing.step(job, mock_ctx)
+
+    mock_ctx.api.get_biofile_loading_status.assert_called_once_with("csum2")
     assert job.state == JobState.WAITING_PARSING
 
 

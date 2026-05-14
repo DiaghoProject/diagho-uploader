@@ -26,6 +26,8 @@ def step(job, ctx):
         if status is not None:
             logger.info("Biofile %s already uploaded in Diagho (status: %s)", filename, status)
             job.uploaded_files[filename] = checksum
+            if status.lower() == "success":
+                job.parsed_files.add(filename)
 
     # All files accounted for → skip upload and parsing wait entirely
     if all(f in job.uploaded_files for f in job.expected_files):
